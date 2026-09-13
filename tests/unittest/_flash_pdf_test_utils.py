@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+from contextlib import contextmanager
+from unittest.mock import patch
 from typing import Any
 
 from docvortex.analyzers.native.pdf import (
     models,
+    pipeline,
 )
 
 
@@ -17,6 +20,26 @@ _IGNORED_FINGERPRINT_KEYS = {
     "img_path",
     "_layout_tree",
 }
+
+
+@contextmanager
+def formula_detection_evidence():
+    """语义金标检查清空前的检测证据；同时断言真实输出边界已将公式内容清空。
+
+    仅供检测、编号归属和几何金标使用。公开解析及 renderer 测试不得使用此辅助器。
+    """
+    normalize = pipeline._normalize_output_block
+
+    def capture(block, page_size):
+        """保留最终检测证据供旧金标比较，避免图片化掩盖公式识别退化。"""
+        output = normalize(block, page_size)
+        if output is not None and output["type"] == "equation":
+            assert output["content"] == ""
+            output["content"] = pipeline._sanitize_pdf_control_text(block["content"], preserve_newlines=True)
+        return output
+
+    with patch.object(pipeline, "_normalize_output_block", capture):
+        yield
 
 
 def _sha256_bytes(value: bytes) -> str:

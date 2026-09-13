@@ -138,6 +138,14 @@ PUBLIC_API: dict[str, tuple[str, ...]] = {
         "images",
         "initialize_pdfium_runtime",
     ),
+    "docvortex.document.pdf.layout": (
+        "LAYOUT_EXTENSION",
+        "extract_layout_geometry",
+        "attach_layout_image_rotations",
+        "remap_layout_geometry",
+        "merge_layout_extensions",
+        "read_layout_geometry",
+    ),
     "docvortex.document.pdf.images": (
         "DEFAULT_PDF_IMAGE_DPI",
         "ImageType",
@@ -189,6 +197,7 @@ PUBLIC_API: dict[str, tuple[str, ...]] = {
         "LatexRenderOptions",
         "MarkdownRenderOptions",
         "PdfRenderOptions",
+        "PdfLayout",
         "RenderMode",
         "StructuredContentRenderOptions",
     ),

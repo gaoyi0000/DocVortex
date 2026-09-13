@@ -126,7 +126,7 @@ restored.export("output/report.epub", output_format="epub")
 
 - **文本 PDF：** 原生解析利用文档已有的文字与结构。需要 OCR 的扫描页面应交给外部 OCR 或推理服务。
 - **PDF 分类：** `docvortex classify report.pdf` 返回 `txt` 或 `ocr`。分类需要显式调用，不会启动推理；解析也不会自动切换后端。
-- **PDF 导出：** 按文档语义重新排版，不保证无损复现原始页面布局与绘图指令。
+- **PDF 导出：** 具有页面几何的 PDF 来源默认按原始块布局还原，正文可选择，表格和图表优先使用区域图；其他来源和旧结果继续语义重排。可通过 `--pdf-layout original|reflow` 显式选择，字体、换行与绘图指令不保证无损复现。详见 [PDF 布局选项](docs/USAGE.md#pdf-output-layout)。
 
 ## 文档导航
 

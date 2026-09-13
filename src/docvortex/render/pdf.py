@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from ..schema import MiddleJson
-from .contracts import AssetResolver
+from .contracts import AssetResolver, PdfLayout
 
 
 def render_pdf(
@@ -11,6 +11,7 @@ def render_pdf(
     *,
     asset_resolver: AssetResolver | None = None,
     document_title: str | None = None,
+    layout: PdfLayout = PdfLayout.AUTO,
 ) -> bytes:
     """惰性加载 PDF 实现并渲染严格 MiddleJson。"""
     from ._internal.pdf.renderer import render_pdf as _render_pdf
@@ -19,6 +20,7 @@ def render_pdf(
         middle_json,
         asset_resolver=asset_resolver,
         document_title=document_title,
+        layout=layout,
     )
 
 

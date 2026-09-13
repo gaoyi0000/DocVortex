@@ -9,7 +9,6 @@ import re
 from typing import Any, Iterable
 
 from bs4 import BeautifulSoup
-from loguru import logger
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
@@ -30,7 +29,7 @@ from ....content.inline import inline_plain_text, join_inline_spans
 from ..common.index import strip_index_page_tail
 from ..common.list_items import parse_list_item_marker, reference_list_needs_bullets
 from ..common.planner import PlannedBlock, build_render_plan
-from ...contracts import AssetResolver
+from ...contracts import AssetResolver, PdfLayout
 from ....schema import (
     PAGE_AUXILIARY_BLOCK_TYPES,
     RAW_ALGORITHM,
@@ -66,6 +65,7 @@ from ....schema import (
     TitleBlockBase,
 )
 from .assets import PdfAssetError, PreparedImage, prepare_block_image, prepare_html_image
+from .diagnostics import report_pdf_diagnostic
 from .formula import (
     DisplayFormulaFlowable,
     FormulaRenderer,
@@ -332,7 +332,7 @@ class _PdfRenderer:
                 flowable.spaceAfter = 7
                 return [flowable]
             except PdfFormulaError as exc:
-                logger.warning("PDF display formula fallback: {} ({})", exc, self._location(page_idx, block))
+                self._warning("pdf_formula_fallback", str(exc), page_idx, block)
         if _has_image_payload(block):
             image = self._try_prepared_block_image(block, page_idx)
             if image is not None:
@@ -433,7 +433,7 @@ class _PdfRenderer:
                         rendered.extend(self._html_tables(content, page_idx=page_idx, block=child))
                         continue
                     except PdfTableError as exc:
-                        logger.warning("PDF HTML table fallback: {} ({})", exc, self._location(page_idx, child))
+                        self._warning("pdf_table_fallback", str(exc), page_idx, child)
                     if _has_image_payload(child):
                         image = self._try_prepared_block_image(child, page_idx)
                         if image is not None:
@@ -473,7 +473,7 @@ class _PdfRenderer:
                     try:
                         rendered.extend(self._html_tables(content, page_idx=page_idx, block=child))
                     except PdfTableError as exc:
-                        logger.warning("PDF chart table omitted: {} ({})", exc, self._location(page_idx, child))
+                        self._warning("pdf_table_fallback", str(exc), page_idx, child)
                         if not image_succeeded:
                             rendered.append(self._preformatted(_plain_html_text(content), page_idx, child, self.styles.body))
                 elif content and not image_succeeded:
@@ -573,7 +573,7 @@ class _PdfRenderer:
             try:
                 prepared = prepare_html_image(source, self.asset_resolver)
             except PdfAssetError as exc:
-                logger.warning("PDF table image placeholder: {} ({})", exc, self._location(page_idx, block))
+                self._warning("pdf_image_unavailable", str(exc), page_idx, block)
                 return self._placeholder(
                     f"image unavailable: {alt_text}",
                     block=block,
@@ -620,7 +620,7 @@ class _PdfRenderer:
         try:
             return prepare_block_image(block, self.asset_resolver)
         except PdfAssetError as exc:
-            logger.warning("PDF image placeholder: {} ({})", exc, self._location(page_idx, block))
+            self._warning("pdf_image_unavailable", str(exc), page_idx, block)
             return None
 
     def _prepared_image_flowable(
@@ -659,6 +659,7 @@ class _PdfRenderer:
         url: str | None = None,
     ) -> Table:
         """创建带浅色边框、可选远程链接和定位文本的稳定占位框。"""
+        self._warning("pdf_content_placeholder", label, page_idx, block)
         normalized = re.sub(r"\s+", " ", label).strip()[:_MAX_PLACEHOLDER_TEXT] or "content unavailable"
         markup = render_plain_text_markup(normalized)
         if url:
@@ -690,12 +691,17 @@ class _PdfRenderer:
         """返回 PDF 告警与占位使用的稳定 page/block 定位。"""
         return f"page_idx={page_idx}, block_index={block.index}, block_type={block.type}"
 
+    def _warning(self, code: str, message: str, page_idx: int, block: BlockBase) -> None:
+        """用统一位置格式同时报告日志与结构化 PDF 诊断。"""
+        report_pdf_diagnostic(code, f"{message} ({self._location(page_idx, block)})", page_idx)
+
 
 def render_pdf(
     middle_json: MiddleJson,
     *,
     asset_resolver: AssetResolver | None = None,
     document_title: str | None = None,
+    layout: PdfLayout = PdfLayout.AUTO,
 ) -> bytes:
     """把严格 MiddleJson 无副作用地渲染为完整 PDF bytes。"""
     if not isinstance(middle_json, MiddleJson):
@@ -704,6 +710,27 @@ def render_pdf(
         raise TypeError("asset_resolver must be callable or None")
     if document_title is not None and not isinstance(document_title, str):
         raise TypeError("document_title must be a string or None")
+    if not isinstance(layout, PdfLayout):
+        raise TypeError("layout must be a PdfLayout value")
+    if layout is PdfLayout.ORIGINAL and middle_json.metadata.file_suffix != "pdf":
+        raise ValueError(f"Original PDF layout does not support source format: {middle_json.metadata.file_suffix}")
+    if layout is not PdfLayout.REFLOW and middle_json.metadata.file_suffix == "pdf":
+        from ....document.pdf.layout import read_layout_geometry
+        from .original import OriginalPdfRenderer
+
+        try:
+            page_sizes = read_layout_geometry(middle_json)
+        except ValueError as exc:
+            if layout is PdfLayout.ORIGINAL:
+                raise
+            report_pdf_diagnostic("pdf_layout_reflow_fallback", str(exc))
+        else:
+            return OriginalPdfRenderer(
+                middle_json,
+                asset_resolver=asset_resolver,
+                document_title=document_title,
+                page_sizes=page_sizes,
+            ).render()
     return _PdfRenderer(
         middle_json,
         asset_resolver=asset_resolver,

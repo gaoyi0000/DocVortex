@@ -45,6 +45,7 @@ def analyze(
 
     started = time.perf_counter()
     native_diagnostics: tuple[Diagnostic, ...] = ()
+    extensions = {}
     prepared = prepare_source(source, file_suffix=file_suffix, page_range=page_range, source_context=source_context)
     try:
         properties = prepared.source_properties
@@ -62,11 +63,16 @@ def analyze(
                 # 正文读取器仍负责输入有效性；可选属性提取失败不能阻断正文解析。
                 metadata_diagnostics = (Diagnostic(exc.code, str(exc)),)
         if prepared.file_suffix == "pdf":
+            from .document.pdf.layout import LAYOUT_EXTENSION, attach_layout_image_rotations, extract_layout_geometry
             from .document.pdf.visuals import attach_visual_block_images_from_pdf
 
             assert prepared.document is not None
+            geometry, geometry_diagnostics = extract_layout_geometry(prepared.document, prepared.page_index_map)
+            extensions[LAYOUT_EXTENSION] = geometry
+            native_diagnostics += geometry_diagnostics
             pages = models.PdfModel().predict(prepared.document)
             attach_visual_block_images_from_pdf(prepared.document, pages)
+            attach_layout_image_rotations(geometry, pages, prepared.page_index_map)
         elif prepared.file_suffix == "ofd":
             ofd_model = models.OfdModel()
             pages = ofd_model.predict(BytesIO(prepared.data))
@@ -93,6 +99,7 @@ def analyze(
             pages = model_types[prepared.file_suffix]().predict(BytesIO(prepared.data))
         model = ModelJson(
             pages=pages,
+            extensions=extensions,
             page_index_map=prepared.page_index_map or [],
             metadata=DocumentMetadata(
                 file_suffix=prepared.file_suffix, producer=Producer(name="docvortex", version=__version__), document=properties
@@ -175,8 +182,16 @@ def render(
             options = resolver_options[target](asset_resolver=resolved_assets.__getitem__)
         elif isinstance(options, resolver_options[target]) and options.asset_resolver is None:
             options = replace(options, asset_resolver=resolved_assets.__getitem__)
+    diagnostics: tuple[Diagnostic, ...] = ()
     with owned_render_document(middle):
-        value = render_value(middle, target, options=options)
+        if target is RenderFormat.PDF:
+            from .render._internal.pdf.diagnostics import collect_pdf_diagnostics
+
+            with collect_pdf_diagnostics() as pdf_diagnostics:
+                value = render_value(middle, target, options=options)
+            diagnostics = tuple(pdf_diagnostics)
+        else:
+            value = render_value(middle, target, options=options)
     if isinstance(value, bytes):
         content = value
     elif isinstance(value, str):
@@ -193,7 +208,11 @@ def render(
     }
     packaged = target in resolver_options
     return RenderArtifact(
-        content, target, mime_types.get(target, "application/json"), AssetStore() if packaged else resolved_assets
+        content,
+        target,
+        mime_types.get(target, "application/json"),
+        AssetStore() if packaged else resolved_assets,
+        diagnostics=diagnostics,
     )
 
 

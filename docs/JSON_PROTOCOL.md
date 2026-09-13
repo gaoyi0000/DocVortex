@@ -91,3 +91,45 @@ publication, date, authoring-software, and qualified count fields are shared by 
 The schema version remains 2.0. New readers accept absent source properties in existing documents;
 old strict readers require an upgrade to accept this addition. No legacy data is rewritten or
 silently enriched. See [source metadata](METADATA.md) for field and format semantics.
+
+## Optional PDF layout geometry
+
+Native PDF analysis adds `extensions.docvortex_layout` and deterministic
+postprocessing preserves it in Middle JSON and result bundles:
+
+```json
+{"docvortex_layout":{"version":1,"pages":[{"page_idx":0,"width_pt":595.28,"height_pt":841.89}]}}
+```
+
+`page_idx` is the original zero-based source index, including for page selections.
+Dimensions are finite positive PDF points (72 points per inch), in the same
+visible-page orientation as normalized block bboxes. Page rotation is already
+accounted for; consumers must not rotate these coordinates again. Blank pages
+also have geometry. Producers should provide an entry for each result page.
+Duplicate indices, unsupported extension versions, and missing/invalid dimensions
+cannot be used for original PDF layout. Extra source-page entries may be retained
+when selecting a subset of an existing result.
+
+Pages may also contain `image_rotations`, such as `{"3":270}`: keys are source
+block indices encoded as strings, and values are the 0/90/180/270-degree angles
+used to turn region crops upright. The original-layout renderer reverses this
+crop transform when placing the image. This preserves rotated table images
+without duplicating image data or adding rotated-text reconstruction.
+
+This uses the existing JSON extension mechanism; Model/Middle/bundle schema
+versions remain 2.0. Older documents without this extension remain readable.
+OFD geometry is not collected in this version. Other producers can supply the
+same extension for PDF results without depending on a live PDFDocument.
+
+Host analyzers can reuse `docvortex.document.pdf.layout.extract_layout_geometry`
+before closing their existing PDFDocument, then `attach_layout_image_rotations`
+after block filtering. Preserve crop angles before removing inference-only
+metadata. `remap_layout_geometry` maps local indices to source indices;
+`merge_layout_extensions` merges cached page batches while requiring other
+extensions to match and retaining the winning page's crop orientation.
+MinerU uses these helpers for all PDF tiers alongside `extensions.mineru`.
+
+Since 0.4.2, native PDF display equations have `content: ""` at the final output
+boundary and keep their image payload, bbox and detected equation-number region.
+Detection still uses internal text evidence. Inline formulas and model-assisted
+non-Flash formulas are unchanged; existing results are not rewritten.

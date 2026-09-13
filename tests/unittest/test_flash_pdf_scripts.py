@@ -28,6 +28,7 @@ from docvortex.analyzers.native.pdf.inline.types import (
 )
 from docvortex.analyzers.native.pdf.models import _AxisLine, _LineItem
 from docvortex.analyzers.native.pdf.pipeline import _analyze_native_document
+from _flash_pdf_test_utils import formula_detection_evidence
 from docvortex.document.pdf._document import PDFDocument
 from docvortex.document.pdf.text._contracts import Bbox, Char
 from docvortex.schema import BBox
@@ -694,10 +695,10 @@ def test_late_inline_math_region_drops_unrebased_candidate() -> None:
 def _flash_script_analysis(
     pdf_name: str,
 ) -> tuple[tuple[tuple[dict[str, Any], ...], ...], tuple[dict[str, Any], ...]]:
-    """一次解析真实 Flash PDF，同时缓存最终页面和逐行脚本诊断。"""
+    """一次解析真实 Flash PDF，缓存清空前的公式检测证据和逐行脚本诊断。"""
 
     diagnostics: list[dict[str, Any]] = []
-    with PDFDocument(str(_DEMO_PDF_DIR / pdf_name)) as document:
+    with PDFDocument(str(_DEMO_PDF_DIR / pdf_name)) as document, formula_detection_evidence():
         pages = _analyze_native_document(document, script_diagnostics=diagnostics)
     return tuple(tuple(page) for page in pages), tuple(diagnostics)
 

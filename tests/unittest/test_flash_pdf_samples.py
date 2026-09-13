@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from _flash_pdf_test_utils import formula_detection_evidence
 from _span_test_utils import inline_text, inline_urls, visible_content
 from bs4 import BeautifulSoup
 from pypdf import PdfReader
@@ -45,9 +46,9 @@ def _cached_model_list(
     _size: int,
     _mtime_ns: int,
 ) -> list[list[dict[str, Any]]]:
-    """每份不可变真实 PDF 只运行一次 Flash 预测，并缓存原始模型输出。"""
+    """每份 PDF 只运行一次预测；检测金标保留清空前的公式证据，公开输出另行测试。"""
 
-    with PDFDocument(Path(pdf_path).read_bytes()) as pdf_doc:
+    with PDFDocument(Path(pdf_path).read_bytes()) as pdf_doc, formula_detection_evidence():
         return PdfModel().predict(pdf_doc)
 
 

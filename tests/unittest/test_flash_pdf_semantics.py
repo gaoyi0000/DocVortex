@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from _flash_pdf_test_utils import (
+    formula_detection_evidence,
     _geometry_summary_mismatch,
     _page_bbox_fingerprint,
     _page_fingerprint,
@@ -71,7 +72,7 @@ def _pages() -> tuple[tuple[dict[str, Any], ...], ...]:
     """只解析一次真实中文论文，供本文件全部语义断言复用。"""
 
     source = _PROJECT_ROOT / _expectation()["path"]
-    with PDFDocument(str(source)) as document:
+    with PDFDocument(str(source)) as document, formula_detection_evidence():
         pages = _analyze_native_document(document)
     return tuple(tuple(page) for page in pages)
 
@@ -80,7 +81,7 @@ def _pages() -> tuple[tuple[dict[str, Any], ...], ...]:
 def _frozen_soil_pages() -> tuple[tuple[dict[str, Any], ...], ...]:
     """只解析一次中文论文1，供 canonical 几何兼容性断言复用。"""
 
-    with PDFDocument(str(_FROZEN_SOIL_PATH)) as document:
+    with PDFDocument(str(_FROZEN_SOIL_PATH)) as document, formula_detection_evidence():
         pages = _analyze_native_document(document)
     return tuple(tuple(page) for page in pages)
 
@@ -92,7 +93,7 @@ def _additional_chinese_paper_pages(
     """按版本化相对路径缓存新增中文论文 Flash 页面。"""
 
     source = _PROJECT_ROOT / relative_path
-    with PDFDocument(str(source)) as document:
+    with PDFDocument(str(source)) as document, formula_detection_evidence():
         pages = _analyze_native_document(document)
     return tuple(tuple(page) for page in pages)
 

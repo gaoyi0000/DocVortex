@@ -35,7 +35,7 @@ python -c "import docvortex; print(docvortex.__version__); print(docvortex.__fil
 
 DocVortex supports Python 3.10–3.14. If the package is missing, install it into the
 chosen environment with `python -m pip install docvortex`. The examples use the
-public SDK available in DocVortex 0.4.1. For a repository task, verify that imports
+public SDK available in DocVortex 0.4.2. For a repository task, verify that imports
 resolve to the intended checkout rather than an older installed copy.
 
 Convert a local file to Markdown:
@@ -100,9 +100,13 @@ deduplicated; out-of-bounds pages are omitted. Reversed ranges and negative numb
 are invalid. Omit page selection for other formats: they are parsed whole, and a
 nonempty PDF page selection is rejected for them.
 
-PDF export reflows semantic content. It does not preserve the original page layout
-and drawing instructions losslessly. If exact visual reproduction is essential,
-explain this limit before choosing PDF export as the solution.
+PDF export defaults to block layout restoration for PDF sources with complete
+page geometry; text remains selectable, while tables and charts prefer region
+images. Other sources (including OFD) and older PDF results use semantic reflow.
+Use `--pdf-layout original` to require PDF geometry or `--pdf-layout reflow` to
+request semantic reflow. Fonts and line breaks remain approximate; independent
+rotated text and lossless reconstruction are not supported. See the usage guide
+for `PdfLayout` options and render diagnostics.
 
 ## Write and verify results
 

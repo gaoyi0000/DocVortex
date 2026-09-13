@@ -31,6 +31,14 @@ class RenderMode(str, Enum):
     FULL = "full"
 
 
+class PdfLayout(str, Enum):
+    """PDF 输出的自动选择、原始块布局及语义重排策略。"""
+
+    AUTO = "auto"
+    ORIGINAL = "original"
+    REFLOW = "reflow"
+
+
 AssetResolver: TypeAlias = Callable[[str], bytes]
 ImageRenderer: TypeAlias = Callable[[BlockBase], str]
 
@@ -154,9 +162,12 @@ class PdfRenderOptions:
 
     asset_resolver: AssetResolver | None = None
     document_title: str | None = None
+    layout: PdfLayout = PdfLayout.AUTO
 
     def __post_init__(self) -> None:
         """在构造时校验素材解析器与文档标题。"""
+        if not isinstance(self.layout, PdfLayout):
+            raise TypeError("layout must be a PdfLayout value")
         if self.asset_resolver is not None and not callable(self.asset_resolver):
             raise TypeError("asset_resolver must be callable or None")
         if self.document_title is not None and not isinstance(self.document_title, str):
@@ -197,6 +208,7 @@ __all__ = [
     "LatexRenderOptions",
     "MarkdownRenderOptions",
     "PdfRenderOptions",
+    "PdfLayout",
     "RenderFormat",
     "RenderMode",
     "RenderOptions",

@@ -8,7 +8,6 @@ import html
 import re
 from typing import Iterable
 
-from loguru import logger
 from reportlab.lib.abag import ABag
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import Paragraph
@@ -16,6 +15,7 @@ from reportlab.platypus.paraparser import ParaParser
 
 from ....schema import CodeInlineSpan, EquationInlineSpan, HyperlinkSpan, InlineSpan, TextSpan
 from .formula import FormulaRenderer, InlineFormulaImage, PdfFormulaError
+from .diagnostics import report_pdf_diagnostic
 from .styles import ACCENT_COLOR, HAN_FONT, JAPANESE_FONT, KOREAN_FONT, MONO_FONT, UNICODE_FALLBACK_FONT
 
 _BOOKMARK_SAFE_RE = re.compile(r"[^A-Za-z0-9_]+")
@@ -49,7 +49,7 @@ class PdfAnchorRegistry:
         if name is None:
             return ""
         if normalized in self._attached:
-            logger.warning("Duplicate PDF anchor ignored: {}", normalized)
+            report_pdf_diagnostic("pdf_duplicate_anchor", f"Duplicate PDF anchor ignored: {normalized}")
             return ""
         self._attached.add(normalized)
         return f'<a name="{html.escape(name, quote=True)}"/>'
@@ -152,6 +152,12 @@ def build_pdf_paragraph(
     )
     parser = _PdfParaParser(context.formula_images)
     parsed_style, fragments, bullet_fragments = parser.parse(markup or "&#8203;", style)
+    # 中文及混排正文按字符边界断行，避免空格间的一长串中文被当作英文单词整体移行。
+    # 只复制当前段落样式；代码的字面换行及共享样式不受影响，富文本与链接仍复用已解析片段。
+    if block_type not in ("code_body", "algorithm_body") and any(
+        getattr(fragment, "text", "") and fragment.fontName in (HAN_FONT, JAPANESE_FONT, KOREAN_FONT) for fragment in fragments
+    ):
+        parsed_style = parsed_style.clone(parsed_style.name + " CJK", wordWrap="CJK")
     bullet_text = None
     if bullet_fragments:
         bullet_text = "".join(getattr(fragment, "text", "") for fragment in bullet_fragments)
@@ -247,10 +253,10 @@ def _render_span(
                 f'<img src="{token}" width="{vector.width:.3f}" height="{vector.height:.3f}" valign="{-vector.descent:.3f}"/>'
             )
         except PdfFormulaError as exc:
-            logger.warning(
-                "PDF inline formula fallback: {} ({})",
-                exc,
-                context.location(page_idx, block_index, block_type),
+            report_pdf_diagnostic(
+                "pdf_formula_fallback",
+                f"PDF inline formula fallback: {exc} ({context.location(page_idx, block_index, block_type)})",
+                page_idx,
             )
             fallback = render_plain_text_markup(f"${span.content}$", preserve_newlines=preserve_newlines)
             return f'<font name="{MONO_FONT}" color="#6b7280">{fallback}</font>'
@@ -271,10 +277,10 @@ def _render_span(
         target = _resolve_link_target(span.url, context.anchors)
         if target is None:
             if span.url.startswith("#"):
-                logger.warning(
-                    "Unmatched PDF internal link: {} ({})",
-                    span.url,
-                    context.location(page_idx, block_index, block_type),
+                report_pdf_diagnostic(
+                    "pdf_unmatched_link",
+                    f"Unmatched PDF internal link: {span.url} ({context.location(page_idx, block_index, block_type)})",
+                    page_idx,
                 )
             return child_markup
         return f'<a href="{html.escape(target, quote=True)}" color="{ACCENT_COLOR.hexval()}" underline="1">{child_markup}</a>'
@@ -313,6 +319,9 @@ def _resolve_link_target(url: str, anchors: PdfAnchorRegistry) -> str | None:
 
 def _font_for_character(character: str) -> str | None:
     """为中日韩字符选择 CID 字体，并为非 WinAnsi 字符选择 Unicode 回退。"""
+    # 标准字体把 bullet 映射到 0x7f，部分提取器会复制成控制字符；嵌入字体保留 ToUnicode。
+    if character == "•":
+        return UNICODE_FALLBACK_FONT
     codepoint = ord(character)
     if 0x3040 <= codepoint <= 0x30FF or 0x31F0 <= codepoint <= 0x31FF or 0xFF66 <= codepoint <= 0xFF9D:
         return JAPANESE_FONT

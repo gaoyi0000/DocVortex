@@ -1323,7 +1323,7 @@ def _normalize_output_block(
         "type": normalized_type,
         "bbox": normalized_bbox,
         "angle": 0 if normalized_type == "image" else int(block.get("angle", 0) or 0) % 360,
-        "content": content,
+        "content": "" if normalized_type == "equation" else content,
     }
     inline_math_regions = []
     for value in block.get("_inline_math_regions", []):

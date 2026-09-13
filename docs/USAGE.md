@@ -80,6 +80,93 @@ result.export("output/last-page.md", output_format="markdown")
 The result owns the data needed for later exports, so it can outlive the open
 document and the original source file.
 
+## PDF output layout
+
+PDF output defaults to `PdfLayout.AUTO`. Newly parsed PDF sources preserve their
+page dimensions, page boundaries, headers, footers, and block positions. Text is
+selectable and reflows inside each source block; original fonts and line breaks
+are approximate. Tables and charts prefer existing region images, and equations
+prefer vector rendering. Content absent from the parsed result cannot be restored.
+
+```python
+import docvortex
+from docvortex.render import PdfLayout, PdfRenderOptions
+
+result = docvortex.parse("report.pdf")
+artifact = docvortex.render_artifact(
+    result.middle_json, "pdf", assets=result.assets,
+    options=PdfRenderOptions(layout=PdfLayout.ORIGINAL),
+)
+print(artifact.diagnostics)
+artifact.write("output/report.pdf")
+
+# Keep the existing A4 semantic reflow explicitly.
+result.export("output/reflow.pdf", output_format="pdf",
+              options=PdfRenderOptions(layout=PdfLayout.REFLOW))
+```
+
+```bash
+docvortex convert report.pdf --format pdf --pdf-layout original --output output/report.pdf
+```
+
+`AUTO` falls back to reflow for older PDF results without complete page geometry,
+with a `pdf_layout_reflow_fallback` diagnostic. `ORIGINAL` rejects incomplete
+geometry and non-PDF sources. OFD and Office sources continue to reflow under
+`AUTO`; original layout currently supports PDF sources only. The lower-level
+`render_pdf()` accepts the same `layout` enum and returns bytes; its diagnostics
+are logged. The CLI reports diagnostics through the same logs.
+
+Result bundles retain the geometry extension and assets, so rendering does not
+reopen the source document. Body text and visual blocks fit independently inside
+their source boxes; `continues_prev` does not move text between original boxes.
+Pages and blank pages remain. Missing child coordinates use approximate layout
+inside the parent box. Reflow retains its existing paragraph merging and styles.
+
+Both PDF layouts use CJK line breaking for paragraphs containing Chinese,
+Japanese or Korean text, including mixed-language annotations and table cells.
+This avoids moving an entire space-delimited Chinese phrase to the next line.
+Pure Latin text and literal code/algorithm blocks retain their existing wrapping;
+no layout-only characters or hyphens are added to the source text.
+
+Original-layout titles use the actual fitted body font as a reference. A chapter
+title first looks for following same-page, same-column body text, then the nearest
+body in that column, then the exported body's median size (10.5 pt if none exists).
+The common target for each title type/level is the median reference size plus 2 pt,
+rounded up to 0.1 pt; larger local body text raises only that title's target.
+Document titles target 2 pt above the largest chapter target, or body plus 4 pt
+without chapters, with the same local hierarchy protection. Original style sizes
+are not hard caps, and a coverage percentage no longer reduces a whole group.
+
+A title that fits its original box stays there. Otherwise it can borrow empty
+space above, below and to the right within its column, keeping its left edge.
+Column width comes from the matched body; without reliable evidence the original
+width is retained. Original spanning titles retain their span. Other original
+boxes remain occupied, with a 2 pt clearance and page boundaries enforced;
+adjacent titles divide their gap at its midpoint. The original top edge is
+preferred, shifting upward when needed. Only a title that cannot fit its safe
+area shrinks, in 0.1 pt steps before the existing below-6-pt fallback. Script and
+inline-formula ink extents are included in title measurement. Index references
+and approximate parent groups do not participate; body text, captions, code and
+tables retain their original independent fitting results.
+
+`pdf_title_layout_expanded` identifies expanded title areas.
+`pdf_layout_font_exception` records local-body increases or insufficient-space
+reductions, including reference/target/final sizes and original/drawing bounds.
+`pdf_title_geometry_conflict` reports existing source overlaps, where the title
+stays within its original occupancy. `pdf_title_clearance_unavailable` reports
+source spacing too tight to provide a safe expansion. Only exported pages
+contribute; the input schema and assets are not modified.
+Text is fitted down to 6 pt, then proportionally scaled further if necessary;
+`pdf_layout_scaled` and `pdf_layout_small_text` diagnostics identify these cases.
+Individual rotated text, vertical writing, and character-level reconstruction
+are outside this first version.
+
+PDF text wrapping uses the existing ReportLab behavior. Code blocks retain their
+literal text. Since 0.4.2, native PDF display equations
+have empty `content` and retain their region images (including detected numbers),
+so all renderers use the existing image fallback. Inline equations are unchanged.
+Old results and caches are not rewritten; reparse to obtain the new output.
+
 ## Explicit PDF classification
 
 DocVortex parses native document content without OCR or VLM inference.
