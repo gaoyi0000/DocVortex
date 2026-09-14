@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from math import isfinite
 from typing import Protocol
 
 from bs4 import NavigableString, Tag
@@ -27,6 +28,13 @@ from .table_content import PdfTableContent
 
 _BLOCK_TAGS = {"address", "article", "blockquote", "div", "figcaption", "footer", "header", "li", "p", "section"}
 _SKIPPED_TAGS = {"script", "style", "template", "noscript"}
+_NATURAL_MEASURE_WIDTH = 1e6
+_SPATIAL_VERTICAL_PADDING = 1
+
+
+def _spatial_leading(font_size: float) -> float:
+    """让实际段落和保守行高下界使用相同的行距规则及浮点运算顺序。"""
+    return font_size * 11 / 8.5
 
 
 class PdfTableError(HtmlTableError):
@@ -121,10 +129,13 @@ def build_pdf_tables(
         styles = replace(
             styles,
             table_cell=styles.table_cell.clone(
-                "Spatial Table Cell", fontSize=spatial.font_size, leading=spatial.font_size * 11 / 8.5, autoLeading="max"
+                "Spatial Table Cell", fontSize=spatial.font_size, leading=_spatial_leading(spatial.font_size), autoLeading="max"
             ),
             table_header=styles.table_header.clone(
-                "Spatial Table Header", fontSize=spatial.font_size, leading=spatial.font_size * 11 / 8.5, autoLeading="max"
+                "Spatial Table Header",
+                fontSize=spatial.font_size,
+                leading=_spatial_leading(spatial.font_size),
+                autoLeading="max",
             ),
         )
     prepared = prepared if prepared is not None else PdfTableContent(source)
@@ -163,7 +174,7 @@ def _build_pdf_table(
         else None
     )
     column_widths = column_plan.widths if column_plan is not None else _column_widths(available_width, grid.column_count)
-    horizontal_padding, vertical_padding = (2, 1) if spatial is not None else (5, 4)
+    horizontal_padding, vertical_padding = (2, _SPATIAL_VERTICAL_PADDING) if spatial is not None else (5, 4)
     data: list[list[object]] = [["" for _ in range(grid.column_count)] for _ in range(grid.row_count)]
     commands: list[tuple[object, ...]] = [
         ("GRID", (0, 0), (-1, -1), 0.5, BORDER_COLOR),
@@ -226,7 +237,16 @@ def _cell_flowables(
     flowables: list[Flowable] = []
     content = prepared.cell(cell)
     if content.spans:
-        flowables.append(content.paragraph(build_paragraph, style, max_width, prepared.style_key(style), consume=not measure))
+        flowables.append(
+            content.paragraph(
+                build_paragraph,
+                style,
+                max_width,
+                prepared.style_key(style),
+                consume=not measure,
+                fragment_key=prepared.fragment_key(style) if spatial is not None else None,
+            )
+        )
     for source, alt in content.images:
         flowables.append(build_image(source, max_width, alt))
     for nested in content.nested:
@@ -243,7 +263,16 @@ def _cell_flowables(
             )
         )
     if not flowables:
-        flowables.append(content.paragraph(build_paragraph, style, max_width, prepared.style_key(style), consume=not measure))
+        flowables.append(
+            content.paragraph(
+                build_paragraph,
+                style,
+                max_width,
+                prepared.style_key(style),
+                consume=not measure,
+                fragment_key=prepared.fragment_key(style) if spatial is not None else None,
+            )
+        )
     return flowables
 
 
@@ -300,11 +329,15 @@ def _cell_widths(cell, width, style, styles, build_paragraph, build_image, depth
         prepared=prepared,
         measure=True,
     )
+    if len(flows) == 1 and isinstance(flows[0], Paragraph) and prepared.cell(cell.tag).unstyled:
+        measured = _simple_cjk_widths(flows[0], prepared)
+        if measured is not None:
+            return measured
     min_width = natural_width = 0.0
     for flow in flows:
         if isinstance(flow, Paragraph):
             measured_minimum = _paragraph_minimum_width(flow)
-            flow.wrap(1e6, 1e9)
+            flow.wrap(_NATURAL_MEASURE_WIDTH, 1e9)
             min_width = max(min_width, measured_minimum)
             natural_width = max([natural_width, *flow.getActualLineWidths0()])
         elif isinstance(flow, _SpatialTable):
@@ -315,6 +348,36 @@ def _cell_widths(cell, width, style, styles, build_paragraph, build_image, depth
             min_width = max(min_width, measured_width if isinstance(flow, Image) else flow.minWidth())
             natural_width = max(natural_width, measured_width)
     return min_width, natural_width
+
+
+def _simple_cjk_widths(paragraph: Paragraph, prepared: PdfTableContent) -> tuple[float, float] | None:
+    """对不会发生断行的简单 CJK 内容直接测宽，保留 ReportLab 的逐字符累加和余量还原。"""
+    style = paragraph.style
+    if (
+        style.wordWrap != "CJK"
+        or paragraph.bulletText
+        or style.endDots
+        or any(getattr(style, name, 0) for name in ("leftIndent", "rightIndent", "firstLineIndent"))
+        or getattr(paragraph, "_splitpara", False)
+        or any(
+            hasattr(fragment, "cbDefn") or hasattr(fragment, "lineBreak") or type(getattr(fragment, "text", None)) is not str
+            for fragment in paragraph.frags
+        )
+    ):
+        return None
+    minimum = total = 0.0
+    for fragment in paragraph.frags:
+        for character in fragment.text:
+            width = prepared.character_width(fragment.fontName, fragment.fontSize, character)
+            if not isfinite(width) or width < 0:
+                return None
+            total += width
+            if total > _NATURAL_MEASURE_WIDTH:
+                return None
+            if not character.isspace():
+                minimum = max(minimum, width)
+    # getActualLineWidths0 使用 width - extraSpace，不能直接返回 total 而改变浮点舍入。
+    return minimum, _NATURAL_MEASURE_WIDTH - (_NATURAL_MEASURE_WIDTH - total)
 
 
 def _paragraph_minimum_width(paragraph: Paragraph) -> float:

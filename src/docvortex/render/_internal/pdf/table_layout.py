@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from collections import OrderedDict
 from dataclasses import dataclass
 from math import isfinite
 from statistics import median
@@ -31,6 +32,14 @@ class _TableMeasurement:
     width_ratio: float
 
 
+@dataclass(frozen=True, slots=True)
+class _TrialSummary:
+    """只缓存不可变几何，不保存可变 Table、Paragraph 或画布。"""
+
+    heights: tuple[float, ...]
+    width_ratio: float
+
+
 class SpatialTableContent(Flowable):
     """保存结构表格的构造回调，所有试排均从目标逻辑宽度重新物化。"""
 
@@ -43,6 +52,8 @@ class SpatialTableContent(Flowable):
         angle: int,
         location: str,
         page_idx: int,
+        trial_key: Callable[[], tuple | None] | None = None,
+        minimum_height: Callable[[float], float | None] | None = None,
     ) -> None:
         """绑定本表上下文和已物化素材来源，不读取源 PDF 或修改语义树。"""
         super().__init__()
@@ -60,15 +71,32 @@ class SpatialTableContent(Flowable):
         self.failure: str | None = None
         self.fallback_flow: Flowable | None = None
         self.width = self.height = 0.0
+        self.trial_key = trial_key
+        self.minimum_height = minimum_height
+        self._measurement_context: tuple | None = None
+        self._trial_cache: OrderedDict[tuple, _TrialSummary] = OrderedDict()
 
     def fork(self) -> SpatialTableContent:
         """为另一候选区域创建独立布局状态，只复用只读内容构造回调。"""
         candidate = SpatialTableContent(
-            self.build, self.fallback, self.validate, angle=self.angle, location=self.location, page_idx=self.page_idx
+            self.build,
+            self.fallback,
+            self.validate,
+            angle=self.angle,
+            location=self.location,
+            page_idx=self.page_idx,
+            trial_key=self.trial_key,
+            minimum_height=self.minimum_height,
         )
         # 已确认的结构或绘制错误继续沿用既有按块回退契约。
         candidate.failure = self.failure
+        candidate._trial_cache = self._trial_cache
         return candidate
+
+    def clear_trials(self) -> None:
+        """页面绘制完成后释放同一表格各区域共享的几何摘要。"""
+        self._trial_cache.clear()
+        self._measurement_context = None
 
     def _snapshot(self) -> _TableMeasurement:
         """保留当前成功测量结果，后续试排会重新构造自己的 Table。"""
@@ -85,8 +113,17 @@ class SpatialTableContent(Flowable):
         """返回当前区域内经过最终缩放后的表格基准字号。"""
         return self.font_size * self.scale
 
-    def _measure(self, width: float, font_size: float, scale: float = 1.0) -> float:
+    def _measure(self, width: float, font_size: float, scale: float = 1.0, *, materialize: bool = False) -> float:
         """重新计算列宽和行高；即使低于 6 pt，缩放后的表宽也仍覆盖目标宽度。"""
+        key = (self._measurement_context, width, font_size, scale) if self._measurement_context is not None else None
+        cached = self._trial_cache.get(key) if key is not None and not materialize else None
+        if cached is not None:
+            self._trial_cache.move_to_end(key)
+            self.tables = []
+            self.heights = list(cached.heights)
+            self.width_ratio = cached.width_ratio
+            self.font_size, self.scale = font_size, scale
+            return (sum(self.heights) + 2 * (len(self.heights) - 1)) * scale
         self.tables = self.build(width / scale, font_size)
         if not self.tables:
             raise PdfTableError("HTML contains no materializable table")
@@ -96,6 +133,11 @@ class SpatialTableContent(Flowable):
         self.width_ratio = max(w * scale / width for w, _ in measurements)
         self.heights = [height for _, height in measurements]
         self.font_size, self.scale = font_size, scale
+        if key is not None:
+            if len(self._trial_cache) >= 128 and key not in self._trial_cache:
+                self._trial_cache.popitem(last=False)
+            self._trial_cache[key] = _TrialSummary(tuple(self.heights), self.width_ratio)
+            self._trial_cache.move_to_end(key)
         return (sum(self.heights) + 2 * (len(self.heights) - 1)) * scale
 
     def fit(self, width: float, height: float) -> None:
@@ -106,8 +148,13 @@ class SpatialTableContent(Flowable):
             return
         logical_width, logical_height = (height, width) if self.angle in (90, 270) else (width, height)
         try:
+            self._measurement_context = self.trial_key() if self.trial_key is not None else None
             # 候选只有 26 档，逐档测量可避免列宽重分配导致高度非单调时漏掉最大字号。
             for size in range(85, 59, -1):
+                lower_bound = self.minimum_height(size / 10) if size > 60 and self.minimum_height is not None else None
+                # 给浮点下界留出额外余量；6 pt 必须完整测量以保留缩放搜索的原始初始区间。
+                if lower_bound is not None and lower_bound > logical_height + 0.001 + 1e-8:
+                    continue
                 content_height = self._measure(logical_width, size / 10)
                 if content_height <= logical_height + 0.001 and self.width_ratio <= 1 + 1e-8:
                     break
@@ -124,6 +171,9 @@ class SpatialTableContent(Flowable):
                     else:
                         high = candidate
                 content_height = self._restore(best)
+            if not self.tables:
+                # 摘要命中不借用另一区域的可变对象；获选字号仍需真实物化和预绘制。
+                content_height = self._measure(logical_width, self.font_size, self.scale, materialize=True)
             self.width, self.height = (
                 (content_height, logical_width) if self.angle in (90, 270) else (logical_width, content_height)
             )

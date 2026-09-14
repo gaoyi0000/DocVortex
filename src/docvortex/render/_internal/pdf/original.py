@@ -44,6 +44,7 @@ from .table_layout import SpatialTableContent, has_spatial_table, place_tables
 
 
 _CONTAINER_TYPES = (ImageBlock, TableBlock, ChartBlock, CodeBlock, ListBlock, IndexBlock)
+_STANDARD_TABLE_BUILDER = _PdfRenderer._html_tables
 
 
 class OriginalPdfRenderer(_PdfRenderer):
@@ -172,6 +173,10 @@ class OriginalPdfRenderer(_PdfRenderer):
             for item in by_page[page.page_idx]:
                 self._draw_fitted(canvas, item)
             canvas.showPage()
+            for item in by_page[page.page_idx]:
+                for flow in item.flowables:
+                    if isinstance(flow, SpatialTableContent):
+                        flow.clear_trials()
         canvas.save()
         record_font_plans(plans)
         return output.getvalue()
@@ -295,9 +300,31 @@ class OriginalPdfRenderer(_PdfRenderer):
             probe = _PdfCanvas(BytesIO(), document_title=self.document_title)
             flowable.drawOn(probe, 0, 0)
 
+        def trial_key() -> tuple | None:
+            """按当前内容和样式隔离几何摘要，自定义构造回调继续执行原流程。"""
+            if getattr(self._html_tables, "__func__", None) is not _STANDARD_TABLE_BUILDER:
+                return None
+            prepared = self._table_content(block, block.content)
+            if prepared.unstyled_grids() is None:
+                return None
+            return (block.content, repr(vars(self.styles.table_cell)), repr(vars(self.styles.table_header)))
+
+        def minimum_height(font_size: float) -> float | None:
+            """仅标准结构表使用可证明的行高下界，自定义构造仍逐档真实测量。"""
+            if getattr(self._html_tables, "__func__", None) is not _STANDARD_TABLE_BUILDER:
+                return None
+            return self._table_content(block, block.content).minimum_height(font_size, self.styles)
+
         angle = self.image_rotations.get(page_idx, {}).get(str(block.index), 0)
         return SpatialTableContent(
-            build, fallback, validate, angle=angle, location=self._location(page_idx, block), page_idx=page_idx
+            build,
+            fallback,
+            validate,
+            angle=angle,
+            location=self._location(page_idx, block),
+            page_idx=page_idx,
+            trial_key=trial_key,
+            minimum_height=minimum_height,
         )
 
     def _table_fallback(
