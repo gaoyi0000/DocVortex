@@ -23,6 +23,7 @@ from ..common.html_table import (
     parse_html_tables as _parse_common_html_tables,
 )
 from .styles import BORDER_COLOR, SURFACE_COLOR, PdfStyleSet
+from .table_content import PdfTableContent
 
 _BLOCK_TAGS = {"address", "article", "blockquote", "div", "figcaption", "footer", "header", "li", "p", "section"}
 _SKIPPED_TAGS = {"script", "style", "template", "noscript"}
@@ -109,6 +110,7 @@ def build_pdf_tables(
     build_image: HtmlImageBuilder,
     depth: int = 1,
     spatial: SpatialTableOptions | None = None,
+    prepared: PdfTableContent | None = None,
 ) -> tuple[Table, ...]:
     """把 HTML 表格递归转换为支持合并单元格与重复表头的 PDF 表格。"""
     if depth > MAX_NESTED_TABLE_DEPTH:
@@ -125,7 +127,9 @@ def build_pdf_tables(
                 "Spatial Table Header", fontSize=spatial.font_size, leading=spatial.font_size * 11 / 8.5, autoLeading="max"
             ),
         )
-    grids = parse_html_tables(source)
+    prepared = prepared if prepared is not None else PdfTableContent(source)
+    prepared.begin_build()
+    grids = prepared.grids(source)
     return tuple(
         _build_pdf_table(
             grid,
@@ -135,6 +139,7 @@ def build_pdf_tables(
             build_image=build_image,
             depth=depth,
             spatial=spatial,
+            prepared=prepared,
         )
         for grid in grids
     )
@@ -149,10 +154,11 @@ def _build_pdf_table(
     build_image: HtmlImageBuilder,
     depth: int,
     spatial: SpatialTableOptions | None = None,
+    prepared: PdfTableContent,
 ) -> Table:
     """物化一个网格，写入单元格内容、合并区域与固定打印样式。"""
     column_plan = (
-        _content_column_widths(grid, available_width, styles, build_paragraph, build_image, depth, spatial)
+        _content_column_widths(grid, available_width, styles, build_paragraph, build_image, depth, spatial, prepared)
         if spatial is not None
         else None
     )
@@ -181,6 +187,7 @@ def _build_pdf_table(
             build_image=build_image,
             depth=depth,
             spatial=spatial,
+            prepared=prepared,
         )
         if placement.rowspan > 1 or placement.colspan > 1:
             commands.append(
@@ -212,25 +219,16 @@ def _cell_flowables(
     build_image: HtmlImageBuilder,
     depth: int,
     spatial: SpatialTableOptions | None = None,
+    prepared: PdfTableContent,
 ) -> list[Flowable]:
     """把单元格文本、图片与直接嵌套表按安全顺序转换为 Flowable。"""
     flowables: list[Flowable] = []
-    spans = _html_cell_spans(cell)
-    if spans:
-        flowables.append(build_paragraph(spans, style, max_width))
-    for image in cell.find_all("img"):
-        if image.find_parent("table") is not cell.find_parent("table"):
-            continue
-        source = image.get("src", "")
-        if isinstance(source, list):
-            source = ""
-        alt = image.get("alt", "image")
-        if isinstance(alt, list):
-            alt = " ".join(str(item) for item in alt)
-        flowables.append(build_image(str(source), max_width, str(alt)))
-    for nested in cell.find_all("table"):
-        if nested.find_parent(("td", "th")) is not cell:
-            continue
+    content = prepared.cell(cell)
+    if content.spans:
+        flowables.append(content.paragraph(build_paragraph, style, max_width, prepared.style_key(style)))
+    for source, alt in content.images:
+        flowables.append(build_image(source, max_width, alt))
+    for nested in content.nested:
         flowables.extend(
             build_pdf_tables(
                 nested,
@@ -240,10 +238,11 @@ def _cell_flowables(
                 build_image=build_image,
                 depth=depth + 1,
                 spatial=spatial,
+                prepared=prepared,
             )
         )
     if not flowables:
-        flowables.append(build_paragraph([TextSpan(type="text", content=" ")], style, max_width))
+        flowables.append(content.paragraph(build_paragraph, style, max_width, prepared.style_key(style)))
     return flowables
 
 
@@ -255,36 +254,21 @@ def _content_column_widths(
     build_image: HtmlImageBuilder,
     depth: int,
     spatial: SpatialTableOptions,
+    prepared: PdfTableContent,
 ) -> _ColumnPlan:
     """按真实单元格的最小与自然宽度分配列宽，并把合并格作为跨列约束。"""
     minimum = [spatial.font_size + 4 for _ in range(grid.column_count)]
     preferred = minimum.copy()
     for cell in sorted(grid.cells, key=lambda item: item.colspan):
         style = styles.table_header if cell.is_header else styles.table_cell
-        flows = _cell_flowables(
-            cell.tag,
-            max_width=max(1.0, width - 4),
-            style=style,
-            styles=styles,
-            build_paragraph=build_paragraph,
-            build_image=build_image,
-            depth=depth,
-            spatial=spatial,
-        )
-        min_width = natural_width = 0.0
-        for flow in flows:
-            if isinstance(flow, Paragraph):
-                measured_minimum = _paragraph_minimum_width(flow)
-                flow.wrap(1e6, 1e9)
-                min_width = max(min_width, measured_minimum)
-                natural_width = max([natural_width, *flow.getActualLineWidths0()])
-            elif isinstance(flow, _SpatialTable):
-                min_width = max(min_width, flow.column_plan.minimum)
-                natural_width = max(natural_width, flow.column_plan.preferred)
-            else:
-                measured_width, _ = flow.wrap(width, 1e9)
-                min_width = max(min_width, measured_width if isinstance(flow, Image) else flow.minWidth())
-                natural_width = max(natural_width, measured_width)
+        key = (id(cell.tag), prepared.style_key(style))
+        # 普通文本的固有宽度独立于分配宽度；资源、公式和嵌套表仍按本次约束真实测量。
+        cached = prepared.widths.get(key) if prepared.cell(cell.tag).plain else None
+        if cached is None:
+            cached = _cell_widths(cell, width, style, styles, build_paragraph, build_image, depth, spatial, prepared)
+            if prepared.cell(cell.tag).plain:
+                prepared.remember_widths(key, cached)
+        min_width, natural_width = cached
         for widths, required in ((minimum, min_width + 4), (preferred, natural_width + 4)):
             columns = range(cell.column, cell.column + cell.colspan)
             deficit = max(0.0, required - sum(widths[index] for index in columns)) / cell.colspan
@@ -299,6 +283,36 @@ def _content_column_widths(
         return _ColumnPlan([value + (width - high_sum) / grid.column_count for value in preferred], low_sum, high_sum)
     ratio = (width - low_sum) / (high_sum - low_sum)
     return _ColumnPlan([low + ratio * (high - low) for low, high in zip(minimum, preferred)], low_sum, high_sum)
+
+
+def _cell_widths(cell, width, style, styles, build_paragraph, build_image, depth, spatial, prepared) -> tuple[float, float]:
+    """测量单元格的真实最小宽度和自然宽度，不保存参与 wrap 的可变对象。"""
+    flows = _cell_flowables(
+        cell.tag,
+        max_width=max(1.0, width - 4),
+        style=style,
+        styles=styles,
+        build_paragraph=build_paragraph,
+        build_image=build_image,
+        depth=depth,
+        spatial=spatial,
+        prepared=prepared,
+    )
+    min_width = natural_width = 0.0
+    for flow in flows:
+        if isinstance(flow, Paragraph):
+            measured_minimum = _paragraph_minimum_width(flow)
+            flow.wrap(1e6, 1e9)
+            min_width = max(min_width, measured_minimum)
+            natural_width = max([natural_width, *flow.getActualLineWidths0()])
+        elif isinstance(flow, _SpatialTable):
+            min_width = max(min_width, flow.column_plan.minimum)
+            natural_width = max(natural_width, flow.column_plan.preferred)
+        else:
+            measured_width, _ = flow.wrap(width, 1e9)
+            min_width = max(min_width, measured_width if isinstance(flow, Image) else flow.minWidth())
+            natural_width = max(natural_width, measured_width)
+    return min_width, natural_width
 
 
 def _paragraph_minimum_width(paragraph: Paragraph) -> float:

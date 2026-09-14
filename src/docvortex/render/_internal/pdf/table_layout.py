@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
+from dataclasses import dataclass
 from math import isfinite
 from statistics import median
 from typing import Callable
@@ -16,6 +18,17 @@ from .formula_layout import _body_candidates, _safe_area, _same_column
 from .table import PdfTableError
 
 Rect = tuple[float, float, float, float]
+
+
+@dataclass(frozen=True)
+class _TableMeasurement:
+    """持有一次试排独占的实际表格与标量，不复制已经完成测量的行布局。"""
+
+    tables: list[Table]
+    heights: list[float]
+    font_size: float
+    scale: float
+    width_ratio: float
 
 
 class SpatialTableContent(Flowable):
@@ -47,6 +60,25 @@ class SpatialTableContent(Flowable):
         self.failure: str | None = None
         self.fallback_flow: Flowable | None = None
         self.width = self.height = 0.0
+
+    def fork(self) -> SpatialTableContent:
+        """为另一候选区域创建独立布局状态，只复用只读内容构造回调。"""
+        candidate = SpatialTableContent(
+            self.build, self.fallback, self.validate, angle=self.angle, location=self.location, page_idx=self.page_idx
+        )
+        # 已确认的结构或绘制错误继续沿用既有按块回退契约。
+        candidate.failure = self.failure
+        return candidate
+
+    def _snapshot(self) -> _TableMeasurement:
+        """保留当前成功测量结果，后续试排会重新构造自己的 Table。"""
+        return _TableMeasurement(self.tables, self.heights, self.font_size, self.scale, self.width_ratio)
+
+    def _restore(self, measurement: _TableMeasurement) -> float:
+        """直接恢复最佳候选，保持原数值计算顺序而不再次构造或测量。"""
+        self.tables, self.heights = measurement.tables, measurement.heights
+        self.font_size, self.scale, self.width_ratio = measurement.font_size, measurement.scale, measurement.width_ratio
+        return (sum(self.heights) + 2 * (len(self.heights) - 1)) * self.scale
 
     @property
     def effective_font_size(self) -> float:
@@ -83,13 +115,15 @@ class SpatialTableContent(Flowable):
                 high, low = 1.0, min(0.5, logical_height / content_height, 1 / self.width_ratio)
                 while self._measure(logical_width, 6.0, low) > logical_height or self.width_ratio > 1 + 1e-8:
                     low /= 2
+                best = self._snapshot()
                 for _ in range(18):
                     candidate = (low + high) / 2
                     if self._measure(logical_width, 6.0, candidate) <= logical_height and self.width_ratio <= 1 + 1e-8:
                         low = candidate
+                        best = self._snapshot()
                     else:
                         high = candidate
-                content_height = self._measure(logical_width, 6.0, low)
+                content_height = self._restore(best)
             self.width, self.height = (
                 (content_height, logical_width) if self.angle in (90, 270) else (logical_width, content_height)
             )
@@ -143,6 +177,8 @@ def has_spatial_table(item: PreparedBlock) -> bool:
 
 def _fit_group(item: PreparedBlock, area: Rect, canvas: Canvas) -> BlockFit:
     """为表题表注预留空间；父框极小时同步缩放组合并重新按补偿宽度测量。"""
+    # 候选持有独立的段落、图片和表格状态，原框胜出时无需撤销另一区域的试排。
+    item.flowables = [flow.fork() if isinstance(flow, SpatialTableContent) else deepcopy(flow) for flow in item.flowables]
     width, height = area[2] - area[0], area[3] - area[1]
     scale = 1.0
     for _ in range(80):
@@ -205,14 +241,14 @@ def place_tables(blocks: list[PreparedBlock], page_width: float, canvas: Canvas)
                 safe = (safe[0], max(safe[1], content_top), safe[2], min(safe[3], content_bottom))
                 if safe[3] <= safe[1]:
                     safe = None
-            if safe is not None:
+            if safe is not None and safe != original:
                 trial = _fit_group(item, safe, canvas)
                 if _quality(item, trial) > best_quality + 0.001:
                     best_area = safe
-            else:
+                    best_fit = trial
+            elif safe is None:
                 report_pdf_diagnostic("pdf_table_clearance_unavailable", f"Original box retained: {original}", item.page_idx)
-            # 重建选中的候选，确保各表格和段落不残留上一次试排的可变状态。
-            best_fit = _fit_group(item, best_area, canvas)
+            item.flowables = [flow for flow, _, _, _ in best_fit.measurements]
         top = min(max(original[1], best_area[1]), best_area[3] - best_fit.height)
         item.draw_rect = (best_area[0], top, best_area[0] + best_fit.width, top + best_fit.height)
         item.fit = best_fit

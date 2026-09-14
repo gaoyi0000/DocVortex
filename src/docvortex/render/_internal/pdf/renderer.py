@@ -75,6 +75,7 @@ from .formula import (
     split_formula_tag,
 )
 from .inline import PdfAnchorRegistry, PdfInlineContext, build_pdf_paragraph, render_plain_text_markup
+from .table_content import PdfTableContent
 from .pagination import protect_images, protect_paragraphs, protect_tables
 from .styles import BORDER_COLOR, FRAME_PADDING, PAGE_MARGIN, SURFACE_COLOR, build_pdf_styles
 from .table import PdfTableError, SpatialTableOptions, build_pdf_tables
@@ -169,6 +170,7 @@ class _PdfRenderer:
         self.asset_resolver = asset_resolver
         self.document_title = _resolve_document_title(middle_json, document_title)
         self.styles = build_pdf_styles()
+        self._table_contents: dict[int, PdfTableContent] = {}
         self.available_width = A4[0] - 2 * (PAGE_MARGIN + FRAME_PADDING)
         self.available_height = A4[1] - 2 * (PAGE_MARGIN + FRAME_PADDING)
         self.inline_context = PdfInlineContext(
@@ -557,6 +559,13 @@ class _PdfRenderer:
             preserve_newlines=True,
         )
 
+    def _table_content(self, block: BlockBase, content: str) -> PdfTableContent:
+        """把每个 block 的 HTML 内容准备一次，避免跨块复用定位上下文。"""
+        prepared = self._table_contents.get(id(block))
+        if prepared is None or prepared.source != content:
+            prepared = self._table_contents[id(block)] = PdfTableContent(content)
+        return prepared
+
     def _html_tables(
         self,
         content: str,
@@ -611,6 +620,7 @@ class _PdfRenderer:
                 build_paragraph=build_paragraph,
                 build_image=build_image,
                 spatial=spatial,
+                prepared=self._table_content(block, content),
             )
         )
 

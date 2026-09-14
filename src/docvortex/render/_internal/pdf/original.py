@@ -39,7 +39,7 @@ from .font_plan import BlockFit, PreparedBlock, plan_font_sizes, record_font_pla
 from .formula_layout import display_formula, place_formulas
 from .title_layout import TitleContent, place_title
 from .renderer import _PdfCanvas, _PdfRenderer, _flatten_non_link_spans, _has_image_payload, _plain_html_text
-from .table import PdfTableError, SpatialTableOptions, parse_html_tables
+from .table import PdfTableError, SpatialTableOptions
 from .table_layout import SpatialTableContent, has_spatial_table, place_tables
 
 
@@ -164,6 +164,8 @@ class OriginalPdfRenderer(_PdfRenderer):
         for page in self.middle_json.pages:
             place_formulas(by_page[page.page_idx], self.page_sizes[page.page_idx][0], self.styles.body.fontSize)
             place_tables(by_page[page.page_idx], self.page_sizes[page.page_idx][0], canvas)
+            for prepared in self._table_contents.values():
+                prepared.release_templates()
             canvas.setPageSize(self.page_sizes[page.page_idx])
             for item in by_page[page.page_idx]:
                 self._draw_fitted(canvas, item)
@@ -268,7 +270,7 @@ class OriginalPdfRenderer(_PdfRenderer):
     def _structured_table(self, block: TableBodyBlock, page_idx: int) -> Flowable:
         """优先保留 HTML 网格，延迟到正文和公式定位后适配表格区域。"""
         try:
-            parse_html_tables(block.content)
+            self._table_content(block, block.content)
         except PdfTableError as exc:
             return self._table_fallback(block, page_idx, self.available_width, self.available_height, str(exc))
 
