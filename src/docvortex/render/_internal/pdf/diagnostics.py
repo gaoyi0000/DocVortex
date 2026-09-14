@@ -12,7 +12,6 @@ from ....result import Diagnostic
 
 
 _diagnostics: ContextVar[list[Diagnostic] | None] = ContextVar("pdf_diagnostics", default=None)
-_DEBUG_DIAGNOSTIC_CODES = frozenset({"pdf_title_layout_expanded", "pdf_layout_scaled"})
 
 
 @contextmanager
