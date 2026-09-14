@@ -194,8 +194,8 @@ def test_overflow_preserves_all_text_and_reports_small_type() -> None:
     assert all(item.page_index == 0 for item in artifact.diagnostics)
 
 
-def test_table_image_and_caption_are_not_duplicated() -> None:
-    """表格优先区域图，正文图注独立定位且只出现一次。"""
+def test_structured_table_replaces_region_image_without_duplicate_caption() -> None:
+    """表格优先结构文字，不叠加整表图片，表题仍独立定位且只出现一次。"""
     bbox = (0.1, 0.1, 0.6, 0.5)
     middle = _middle(
         [
@@ -223,12 +223,12 @@ def test_table_image_and_caption_are_not_duplicated() -> None:
     )
     reader = _reader(render_pdf(middle))
     assert reader.pages[0].extract_text().count("CAPTION") == 1
-    assert "HIDDEN CELL" not in reader.pages[0].extract_text()
-    assert len(reader.pages[0].images) == 1
+    assert "HIDDEN CELL" in reader.pages[0].extract_text()
+    assert len(reader.pages[0].images) == 0
 
 
 def test_table_without_image_uses_structured_content() -> None:
-    """区域图缺失时保留表格中的可选择文字并记录降级。"""
+    """区域图缺失时正常输出结构文字，不把 HTML 渲染报告为降级。"""
     bbox = (0.1, 0.1, 0.9, 0.8)
     middle = _middle(
         [
@@ -254,7 +254,8 @@ def test_table_without_image_uses_structured_content() -> None:
     )
     artifact = render_artifact(middle, "pdf")
     assert "CELL" in _reader(artifact.content).pages[0].extract_text()
-    assert "pdf_layout_visual_fallback" in {item.code for item in artifact.diagnostics}
+    assert "pdf_table_layout" in {item.code for item in artifact.diagnostics}
+    assert "pdf_table_fallback" not in {item.code for item in artifact.diagnostics}
 
 
 def test_missing_child_geometry_uses_parent_group() -> None:

@@ -129,7 +129,7 @@ reads metadata without parsing the document body.
 
 - **Text PDFs:** native parsing uses the document's existing text and structure. Scanned pages requiring OCR need an external OCR or inference service.
 - **PDF classification:** `docvortex classify report.pdf` returns `txt` or `ocr`. Classification is explicit and does not start inference; parsing does not automatically switch backends.
-- **PDF export:** PDF sources with page geometry default to block layout restoration, with selectable text and region images for tables/charts. Other sources and older results use semantic reflow. Use `--pdf-layout original|reflow` to select explicitly; fonts, line breaks and drawing instructions are not reproduced losslessly. See [PDF output layout](docs/USAGE.md#pdf-output-layout).
+- **PDF export:** PDF sources with page geometry default to block layout restoration, with selectable text and HTML-based tables; charts retain region images. Other sources and older results use semantic reflow. Use `--pdf-layout original|reflow` to select explicitly; fonts, line breaks and drawing instructions are not reproduced losslessly. See [PDF output layout](docs/USAGE.md#pdf-output-layout).
 
 ## Documentation
 

@@ -77,7 +77,7 @@ from .formula import (
 from .inline import PdfAnchorRegistry, PdfInlineContext, build_pdf_paragraph, render_plain_text_markup
 from .pagination import protect_images, protect_paragraphs, protect_tables
 from .styles import BORDER_COLOR, FRAME_PADDING, PAGE_MARGIN, SURFACE_COLOR, build_pdf_styles
-from .table import PdfTableError, build_pdf_tables
+from .table import PdfTableError, SpatialTableOptions, build_pdf_tables
 
 _HTML_TABLE_RE = re.compile(r"<table\b", re.IGNORECASE)
 _INVALID_METADATA_TEXT_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\ud800-\udfff\ufffe\uffff]")
@@ -557,7 +557,15 @@ class _PdfRenderer:
             preserve_newlines=True,
         )
 
-    def _html_tables(self, content: str, *, page_idx: int, block: BlockBase) -> list[Table]:
+    def _html_tables(
+        self,
+        content: str,
+        *,
+        page_idx: int,
+        block: BlockBase,
+        available_width: float | None = None,
+        spatial: SpatialTableOptions | None = None,
+    ) -> list[Table]:
         """使用当前 block 上下文把 HTML table 物化为 ReportLab 表格。"""
 
         def build_paragraph(spans: list[InlineSpan], style: object, max_width: float) -> Paragraph:
@@ -570,7 +578,8 @@ class _PdfRenderer:
                 page_idx,
                 block,
                 preserve_newlines=True,
-                max_width=max_width,
+                # 原版式表格用公式自然宽度参与列宽约束，最后统一缩放区域，避免提前缩放两次。
+                max_width=max_width if spatial is None else float("inf"),
             )
 
         def build_image(source: str, max_width: float, alt_text: str) -> Flowable:
@@ -586,15 +595,22 @@ class _PdfRenderer:
                     width=max_width,
                     url=source if _is_remote_url(source) else None,
                 )
+            if spatial is not None:
+                # 单元格图片独立使用逻辑坐标，不继承整张区域图的旋转或外部高度上限。
+                width = min(max_width, prepared.width_px * 0.75)
+                return ReportLabImage(
+                    BytesIO(prepared.data), width=width, height=width * prepared.height_px / prepared.width_px
+                )
             return self._prepared_image_flowable(prepared, None, max_width=max_width)
 
         return list(
             build_pdf_tables(
                 content,
-                available_width=self.available_width,
+                available_width=self.available_width if available_width is None else available_width,
                 styles=self.styles,
                 build_paragraph=build_paragraph,
                 build_image=build_image,
+                spatial=spatial,
             )
         )
 

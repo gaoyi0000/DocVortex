@@ -99,8 +99,22 @@ document and the original source file.
 PDF output defaults to `PdfLayout.AUTO`. Newly parsed PDF sources preserve their
 page dimensions, page boundaries, headers, footers, and block positions. Text is
 selectable and reflows inside each source block; original fonts and line breaks
-are approximate. Tables and charts prefer existing region images, and equations
-prefer vector rendering. Content absent from the parsed result cannot be restored.
+are approximate. Tables prefer parsed HTML with selectable text and vector borders;
+charts retain region images, and equations prefer vector rendering. Content absent
+from the parsed result cannot be restored.
+
+Original-layout tables use content-based column widths and compact cell padding.
+They first fit their source box, then may use safe space in the same column while
+preserving page margins and a 2 pt gap from other blocks. Existing spanning tables
+retain their span. Rotation is restored after layout in upright coordinates;
+tables do not move to another page. Captions and notes remain separate when their
+own coordinates are available, or share the parent box when child coordinates
+are missing. If 6 pt text still cannot fit, the table is scaled further and
+`pdf_layout_small_text` is reported. Small text alone never triggers an image
+fallback. Missing, invalid, or unrenderable HTML falls back to the region image,
+then text or a placeholder, with `pdf_table_fallback` and `pdf_table_source`
+diagnostics. `pdf_table_layout` records the source, rotation, effective font size,
+and original/drawing bounds. Reflow table layout is unchanged.
 
 ```python
 import docvortex
@@ -160,8 +174,9 @@ adjacent titles divide their gap at its midpoint. The original top edge is
 preferred, shifting upward when needed. Only a title that cannot fit its safe
 area shrinks, in 0.1 pt steps before the existing below-6-pt fallback. Script and
 inline-formula ink extents are included in title measurement. Index references
-and approximate parent groups do not participate; body text, captions, code and
-tables retain their original independent fitting results.
+and approximate parent groups do not participate; body text, captions and code
+retain their original independent fitting results. Structured tables are placed
+after titles and equations, respecting their final drawing bounds.
 
 `pdf_title_layout_expanded` identifies expanded title areas.
 `pdf_layout_font_exception` records local-body increases or insufficient-space

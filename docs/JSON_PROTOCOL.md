@@ -113,8 +113,9 @@ when selecting a subset of an existing result.
 Pages may also contain `image_rotations`, such as `{"3":270}`: keys are source
 block indices encoded as strings, and values are the 0/90/180/270-degree angles
 used to turn region crops upright. The original-layout renderer reverses this
-crop transform when placing the image. This preserves rotated table images
-without duplicating image data or adding rotated-text reconstruction.
+crop transform when placing the image. Structured HTML tables use the same angle
+to restore the source orientation after layout in upright coordinates. No extra
+image data or schema fields are required.
 
 This uses the existing JSON extension mechanism; Model/Middle/bundle schema
 versions remain 2.0. Older documents without this extension remain readable.

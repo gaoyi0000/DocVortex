@@ -5,7 +5,7 @@ from __future__ import annotations
 from io import BytesIO
 from typing import Iterable
 
-from reportlab.platypus import Flowable, Image as ReportLabImage, Paragraph
+from reportlab.platypus import Flowable, Image as ReportLabImage, Paragraph, Table
 
 from ....schema import (
     AlgorithmBodyBlock,
@@ -39,7 +39,8 @@ from .font_plan import BlockFit, PreparedBlock, plan_font_sizes, record_font_pla
 from .formula_layout import display_formula, place_formulas
 from .title_layout import TitleContent, place_title
 from .renderer import _PdfCanvas, _PdfRenderer, _flatten_non_link_spans, _has_image_payload, _plain_html_text
-from .table import PdfTableError
+from .table import PdfTableError, SpatialTableOptions, parse_html_tables
+from .table_layout import SpatialTableContent, has_spatial_table, place_tables
 
 
 _CONTAINER_TYPES = (ImageBlock, TableBlock, ChartBlock, CodeBlock, ListBlock, IndexBlock)
@@ -87,7 +88,7 @@ class OriginalPdfRenderer(_PdfRenderer):
         by_page = {page.page_idx: [] for page in self.middle_json.pages}
         for item in blocks:
             by_page[item.page_idx].append(item)
-            if item.group is None and display_formula(item) is None:
+            if item.group is None and display_formula(item) is None and not has_spatial_table(item):
                 item.fit = self._fit_block(canvas, item.flowables, item.width, item.height)
                 if item.body_base_font_size is not None:
                     item.body_font_size = item.body_base_font_size * item.fit.scale
@@ -162,6 +163,7 @@ class OriginalPdfRenderer(_PdfRenderer):
             )
         for page in self.middle_json.pages:
             place_formulas(by_page[page.page_idx], self.page_sizes[page.page_idx][0], self.styles.body.fontSize)
+            place_tables(by_page[page.page_idx], self.page_sizes[page.page_idx][0], canvas)
             canvas.setPageSize(self.page_sizes[page.page_idx])
             for item in by_page[page.page_idx]:
                 self._draw_fitted(canvas, item)
@@ -226,12 +228,14 @@ class OriginalPdfRenderer(_PdfRenderer):
             if block.anchor and spans:
                 spans = [HyperlinkSpan(type="hyperlink", url=f"#{block.anchor}", content=_flatten_non_link_spans(spans))]
             return [self._paragraph(spans, self.styles.body, page_idx, block)]
-        if isinstance(block, (ImageBodyBlock, TableBodyBlock, ChartBodyBlock)):
+        if isinstance(block, TableBodyBlock):
+            return [self._structured_table(block, page_idx)]
+        if isinstance(block, (ImageBodyBlock, ChartBodyBlock)):
             if _has_image_payload(block):
                 prepared = self._try_prepared_block_image(block, page_idx)
                 if prepared is not None:
                     return [self._prepared_image_flowable(prepared, block)]
-            if isinstance(block, (TableBodyBlock, ChartBodyBlock)):
+            if isinstance(block, ChartBodyBlock):
                 self._diagnostic(
                     "pdf_layout_visual_fallback", "Region image unavailable; rendering structured content", page_idx, block
                 )
@@ -260,6 +264,69 @@ class OriginalPdfRenderer(_PdfRenderer):
                 flowable for child in block.content for flowable in self._block_flowables(child, page_idx, index_entry=True)
             ]
         return self._render_planned_block(PlannedBlock(page_idx=page_idx, block=block))
+
+    def _structured_table(self, block: TableBodyBlock, page_idx: int) -> Flowable:
+        """优先保留 HTML 网格，延迟到正文和公式定位后适配表格区域。"""
+        try:
+            parse_html_tables(block.content)
+        except PdfTableError as exc:
+            return self._table_fallback(block, page_idx, self.available_width, self.available_height, str(exc))
+
+        def build(width: float, font_size: float) -> list[Table]:
+            """用显式逻辑宽度和字号构造本次试排，不改变 renderer 的全局样式。"""
+            return self._html_tables(
+                block.content,
+                page_idx=page_idx,
+                block=block,
+                available_width=width,
+                spatial=SpatialTableOptions(font_size),
+            )
+
+        def fallback(width: float, height: float, reason: str) -> Flowable:
+            """只在结构物化或实际绘制失败后恢复该表素材。"""
+            return self._table_fallback(block, page_idx, width, height, reason)
+
+        def validate(flowable: Flowable) -> None:
+            """在独立画布预绘制，避免出错的半张表污染最终 PDF。"""
+            probe = _PdfCanvas(BytesIO(), document_title=self.document_title)
+            flowable.drawOn(probe, 0, 0)
+
+        angle = self.image_rotations.get(page_idx, {}).get(str(block.index), 0)
+        return SpatialTableContent(
+            build, fallback, validate, angle=angle, location=self._location(page_idx, block), page_idx=page_idx
+        )
+
+    def _table_fallback(
+        self,
+        block: TableBodyBlock,
+        page_idx: int,
+        width: float,
+        height: float,
+        reason: str,
+    ) -> Flowable:
+        """按原图、纯文字、占位顺序兜底，图片方向只恢复一次。"""
+        self._diagnostic("pdf_table_fallback", reason, page_idx, block)
+        if _has_image_payload(block):
+            prepared = self._try_prepared_block_image(block, page_idx)
+            if prepared is not None:
+                angle = self.image_rotations.get(page_idx, {}).get(str(block.index), 0)
+                ratio = prepared.width_px / prepared.height_px if angle in (90, 270) else prepared.height_px / prepared.width_px
+                image_height = width * ratio
+                scale = min(1.0, height / max(image_height, 0.001))
+                self._diagnostic("pdf_table_source", f"source=image, angle={angle}", page_idx, block)
+                return _RegionImage(prepared.data, width * scale, image_height * scale, angle)
+        if block.content.strip():
+            self._diagnostic("pdf_table_source", "source=text", page_idx, block)
+            return self._paragraph(
+                [TextSpan(type="text", content=_plain_html_text(block.content))],
+                self.styles.spatial_table,
+                page_idx,
+                block,
+                preserve_newlines=True,
+                max_width=width,
+            )
+        self._diagnostic("pdf_table_source", "source=placeholder", page_idx, block)
+        return self._placeholder("table unavailable", block=block, page_idx=page_idx, width=width)
 
     def _prepared_image_flowable(
         self,
