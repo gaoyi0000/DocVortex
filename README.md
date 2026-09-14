@@ -53,6 +53,8 @@ docvortex convert report.pdf --format markdown --output output/report.md
 
 Replace `report.pdf` with a local file in any supported input format.
 Use `--format` to choose the output; run `docvortex convert --help` for options.
+The root-level `--log-level` option controls loguru output and defaults to `info`.
+It must precede the command; `DOCVORTEX_LOG_LEVEL=warning` can also configure it.
 
 ### Python
 

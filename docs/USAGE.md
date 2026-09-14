@@ -7,6 +7,20 @@ you need access to intermediate results. All examples use the public Python SDK.
 Install with `pip install docvortex` and replace `report.pdf` with a local text PDF.
 Each example can be run independently in a fresh output directory.
 
+## Global CLI log level
+
+The root-level `--log-level` option controls loguru output for CLI commands.
+It defaults to `info`, supports `trace`, `debug`, `info`, `warning`, `error` and
+`critical`, and must be placed before the subcommand:
+
+```bash
+docvortex --log-level debug convert report.pdf --format markdown --output output/report.md
+```
+
+`DOCVORTEX_LOG_LEVEL` provides the same setting through an environment variable.
+An explicit `--log-level` value takes precedence. SDK imports do not change the
+host application's existing loguru sinks.
+
 ## Stage APIs
 
 The pipeline has three stages:

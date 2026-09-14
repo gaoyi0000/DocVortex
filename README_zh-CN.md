@@ -53,6 +53,8 @@ docvortex convert report.pdf --format markdown --output output/report.md
 
 将 `report.pdf` 替换为任意受支持格式的本地文件。
 通过 `--format` 选择输出格式，运行 `docvortex convert --help` 查看选项。
+根命令参数 `--log-level` 控制 loguru 日志等级，默认为 `info`，必须放在子命令之前；
+也可以使用 `DOCVORTEX_LOG_LEVEL=warning` 配置。
 
 ### Python
 

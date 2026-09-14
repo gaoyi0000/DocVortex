@@ -3,16 +3,36 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import click
+from loguru import logger
 
 from .version import __version__
 
 
+_LOG_LEVELS = ("trace", "debug", "info", "warning", "error", "critical")
+
+
+def _configure_log_level(level: str) -> None:
+    """按全局参数重建 loguru 标准错误输出，并过滤低于该等级的日志。"""
+    logger.remove()
+    logger.add(sys.stderr, level=level.upper())
+
+
 @click.group(help="DocVortex: native multi-format document parsing and conversion.")
 @click.version_option(__version__)
-def main() -> None:
-    """提供独立文档引擎的命令行入口。"""
+@click.option(
+    "--log-level",
+    type=click.Choice(_LOG_LEVELS, case_sensitive=False),
+    default="info",
+    show_default=True,
+    envvar="DOCVORTEX_LOG_LEVEL",
+    help="Global loguru log level; place this root option before the command.",
+)
+def main(log_level: str) -> None:
+    """提供独立文档引擎的命令行入口，并应用全局日志等级。"""
+    _configure_log_level(log_level)
 
 
 @main.command("convert")
