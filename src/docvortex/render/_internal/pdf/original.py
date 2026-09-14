@@ -131,17 +131,19 @@ class OriginalPdfRenderer(_PdfRenderer):
             )
             if reasons:
                 plan.exception_count += 1
-                self._warning("pdf_layout_font_exception", f"reason={','.join(reasons)}, {detail}", item.page_idx, item.block)
+                self._diagnostic(
+                    "pdf_layout_font_exception", f"reason={','.join(reasons)}, {detail}", item.page_idx, item.block
+                )
             if item.geometry_conflict:
-                self._warning("pdf_title_geometry_conflict", detail, item.page_idx, item.block)
+                self._diagnostic("pdf_title_geometry_conflict", detail, item.page_idx, item.block)
             elif item.clearance_unavailable:
-                self._warning("pdf_title_clearance_unavailable", detail, item.page_idx, item.block)
+                self._diagnostic("pdf_title_clearance_unavailable", detail, item.page_idx, item.block)
             ox0, oy0, ox1, oy1 = item.original_rect
             dx0, dy0, dx1, dy1 = item.draw_rect
             expanded = dx0 < ox0 - 0.001 or dy0 < oy0 - 0.001 or dx1 > ox1 + 0.001 or dy1 > oy1 + 0.001
             if expanded:
                 plan.expanded_count += 1
-                self._warning("pdf_title_layout_expanded", detail, item.page_idx, item.block)
+                self._diagnostic("pdf_title_layout_expanded", detail, item.page_idx, item.block)
             plan.titles.append(
                 {
                     "page_idx": item.page_idx,
@@ -190,7 +192,9 @@ class OriginalPdfRenderer(_PdfRenderer):
                         )
                     )
                 return prepared
-            self._warning("pdf_layout_approximate", "Missing child bbox; fitting the group inside its parent", page_idx, block)
+            self._diagnostic(
+                "pdf_layout_approximate", "Missing child bbox; fitting the group inside its parent", page_idx, block
+            )
         assert block.bbox is not None
         x0, y0, x1, y1 = block.bbox
         width, height = (x1 - x0) * page_width, (y1 - y0) * page_height
@@ -226,14 +230,14 @@ class OriginalPdfRenderer(_PdfRenderer):
                 if prepared is not None:
                     return [self._prepared_image_flowable(prepared, block)]
             if isinstance(block, (TableBodyBlock, ChartBodyBlock)):
-                self._warning(
+                self._diagnostic(
                     "pdf_layout_visual_fallback", "Region image unavailable; rendering structured content", page_idx, block
                 )
                 if "<table" in block.content.lower():
                     try:
                         return list(self._html_tables(block.content, page_idx=page_idx, block=block))
                     except PdfTableError as exc:
-                        self._warning("pdf_table_fallback", str(exc), page_idx, block)
+                        self._diagnostic("pdf_table_fallback", str(exc), page_idx, block)
                 if block.content.strip():
                     return [self._preformatted(_plain_html_text(block.content), page_idx, block, self.styles.spatial_table)]
             return [self._placeholder("image unavailable", page_idx=page_idx, block=block, width=self.available_width)]
@@ -281,7 +285,7 @@ class OriginalPdfRenderer(_PdfRenderer):
         url: str | None = None,
     ) -> Paragraph:
         """用可测量段落展示缺失内容，避免固定高度的占位表格产生文字外溢。"""
-        self._warning("pdf_content_placeholder", label, page_idx, block)
+        self._diagnostic("pdf_content_placeholder", label, page_idx, block)
         spans = [TextSpan(type="text", content=label[:320] or "content unavailable")]
         if url:
             spans = [HyperlinkSpan(type="hyperlink", url=url, content=spans)]
@@ -322,11 +326,11 @@ class OriginalPdfRenderer(_PdfRenderer):
         """只绘制已经确认的测量结果，正文不重新排版，标题使用独立的安全绘制框。"""
         fit = item.fit
         if fit.small_text:
-            self._warning(
+            self._diagnostic(
                 "pdf_layout_small_text", f"Block fitted below 6 pt (scale={fit.scale:.4f})", item.page_idx, item.block
             )
         if fit.scale < 0.999:
-            self._warning("pdf_layout_scaled", f"Block fitted at scale={fit.scale:.4f}", item.page_idx, item.block)
+            self._diagnostic("pdf_layout_scaled", f"Block fitted at scale={fit.scale:.4f}", item.page_idx, item.block)
         rect = item.draw_rect or item.original_rect
         canvas.saveState()
         try:

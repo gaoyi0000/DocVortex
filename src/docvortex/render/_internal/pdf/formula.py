@@ -356,7 +356,7 @@ def _local_name(tag: str) -> str:
 
 
 def _formula_preview(latex: str) -> str:
-    """为告警生成有界 LaTeX 摘要，避免超长公式污染日志。"""
+    """为诊断生成有界 LaTeX 摘要，避免超长公式污染日志。"""
     return latex if len(latex) <= 200 else f"{latex[:197]}..."
 
 

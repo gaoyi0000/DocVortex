@@ -1,4 +1,4 @@
-"""验证 PDF 日志分级不改变结构化诊断及其去重行为。"""
+"""验证 PDF 渲染诊断统一使用 DEBUG 且结构化结果不变。"""
 
 from __future__ import annotations
 
@@ -9,20 +9,29 @@ from docvortex.render._internal.pdf.diagnostics import collect_pdf_diagnostics, 
 from docvortex.result import Diagnostic
 
 
-@pytest.mark.parametrize(
-    "code,level",
-    [
-        ("pdf_title_layout_expanded", "DEBUG"),
-        ("pdf_layout_scaled", "DEBUG"),
-        ("pdf_layout_small_text", "WARNING"),
-        ("pdf_title_geometry_conflict", "WARNING"),
-        ("pdf_image_unavailable", "WARNING"),
-        ("pdf_formula_fallback", "WARNING"),
-        ("unknown_diagnostic", "WARNING"),
-    ],
+_PDF_RENDER_DIAGNOSTIC_CODES = (
+    "pdf_layout_font_exception",
+    "pdf_layout_small_text",
+    "pdf_layout_scaled",
+    "pdf_title_geometry_conflict",
+    "pdf_title_clearance_unavailable",
+    "pdf_title_layout_expanded",
+    "pdf_layout_approximate",
+    "pdf_layout_visual_fallback",
+    "pdf_layout_reflow_fallback",
+    "pdf_formula_fallback",
+    "pdf_table_fallback",
+    "pdf_image_unavailable",
+    "pdf_content_placeholder",
+    "pdf_duplicate_anchor",
+    "pdf_unmatched_link",
+    "unknown_diagnostic",
 )
-def test_log_level_preserves_structured_diagnostics(code: str, level: str) -> None:
-    """按真实日志级别捕获输出，重复诊断仍只在结构化列表保存一次。"""
+
+
+@pytest.mark.parametrize("code", _PDF_RENDER_DIAGNOSTIC_CODES)
+def test_all_pdf_render_diagnostics_use_debug(code: str) -> None:
+    """所有 PDF 渲染诊断均为 DEBUG，重复日志不改变结构化诊断去重结果。"""
     records: list[str] = []
     warnings: list[str] = []
     debug_sink = logger.add(records.append, level="DEBUG", format="{level.name}|{message}")
@@ -32,8 +41,8 @@ def test_log_level_preserves_structured_diagnostics(code: str, level: str) -> No
             report_pdf_diagnostic(code, "example", 4)
             report_pdf_diagnostic(code, "example", 4)
         assert items == [Diagnostic(code, "example", 4)]
-        assert [str(message).strip() for message in records] == [f"{level}|{code}: example"] * 2
-        assert len(warnings) == (2 if level == "WARNING" else 0)
+        assert [str(message).strip() for message in records] == [f"DEBUG|{code}: example"] * 2
+        assert warnings == []
     finally:
         logger.remove(debug_sink)
         logger.remove(warning_sink)

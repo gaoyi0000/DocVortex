@@ -43,7 +43,7 @@ class PdfAnchorRegistry:
         return self._names.get(normalized) if normalized else None
 
     def attach_markup(self, anchor: str | None) -> str:
-        """返回首个目标的 Paragraph anchor 标签，重复目标仅记录告警。"""
+        """返回首个目标的 Paragraph anchor 标签，重复目标仅记录诊断。"""
         normalized = (anchor or "").strip()
         name = self.resolve(normalized)
         if name is None:
@@ -85,7 +85,7 @@ class PdfInlineContext:
     next_formula_id: int = 0
 
     def location(self, page_idx: int, block_index: int | None, block_type: str) -> str:
-        """返回稳定的 page/block 告警定位文本。"""
+        """返回稳定的 page/block 诊断定位文本。"""
         return f"page_idx={page_idx}, block_index={block_index}, block_type={block_type}"
 
     def register_formula(self, image: InlineFormulaImage) -> str:

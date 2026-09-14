@@ -332,7 +332,7 @@ class _PdfRenderer:
                 flowable.spaceAfter = 7
                 return [flowable]
             except PdfFormulaError as exc:
-                self._warning("pdf_formula_fallback", str(exc), page_idx, block)
+                self._diagnostic("pdf_formula_fallback", str(exc), page_idx, block)
         if _has_image_payload(block):
             image = self._try_prepared_block_image(block, page_idx)
             if image is not None:
@@ -433,7 +433,7 @@ class _PdfRenderer:
                         rendered.extend(self._html_tables(content, page_idx=page_idx, block=child))
                         continue
                     except PdfTableError as exc:
-                        self._warning("pdf_table_fallback", str(exc), page_idx, child)
+                        self._diagnostic("pdf_table_fallback", str(exc), page_idx, child)
                     if _has_image_payload(child):
                         image = self._try_prepared_block_image(child, page_idx)
                         if image is not None:
@@ -473,7 +473,7 @@ class _PdfRenderer:
                     try:
                         rendered.extend(self._html_tables(content, page_idx=page_idx, block=child))
                     except PdfTableError as exc:
-                        self._warning("pdf_table_fallback", str(exc), page_idx, child)
+                        self._diagnostic("pdf_table_fallback", str(exc), page_idx, child)
                         if not image_succeeded:
                             rendered.append(self._preformatted(_plain_html_text(content), page_idx, child, self.styles.body))
                 elif content and not image_succeeded:
@@ -573,7 +573,7 @@ class _PdfRenderer:
             try:
                 prepared = prepare_html_image(source, self.asset_resolver)
             except PdfAssetError as exc:
-                self._warning("pdf_image_unavailable", str(exc), page_idx, block)
+                self._diagnostic("pdf_image_unavailable", str(exc), page_idx, block)
                 return self._placeholder(
                     f"image unavailable: {alt_text}",
                     block=block,
@@ -616,11 +616,11 @@ class _PdfRenderer:
         )
 
     def _try_prepared_block_image(self, block: ImagePayloadBlock, page_idx: int) -> PreparedImage | None:
-        """尝试离线准备图片并把所有素材错误降级为 warning。"""
+        """尝试离线准备图片，并把素材错误统一记录为 DEBUG 诊断。"""
         try:
             return prepare_block_image(block, self.asset_resolver)
         except PdfAssetError as exc:
-            self._warning("pdf_image_unavailable", str(exc), page_idx, block)
+            self._diagnostic("pdf_image_unavailable", str(exc), page_idx, block)
             return None
 
     def _prepared_image_flowable(
@@ -659,7 +659,7 @@ class _PdfRenderer:
         url: str | None = None,
     ) -> Table:
         """创建带浅色边框、可选远程链接和定位文本的稳定占位框。"""
-        self._warning("pdf_content_placeholder", label, page_idx, block)
+        self._diagnostic("pdf_content_placeholder", label, page_idx, block)
         normalized = re.sub(r"\s+", " ", label).strip()[:_MAX_PLACEHOLDER_TEXT] or "content unavailable"
         markup = render_plain_text_markup(normalized)
         if url:
@@ -688,11 +688,11 @@ class _PdfRenderer:
 
     @staticmethod
     def _location(page_idx: int, block: BlockBase) -> str:
-        """返回 PDF 告警与占位使用的稳定 page/block 定位。"""
+        """返回 PDF 诊断与占位使用的稳定 page/block 定位。"""
         return f"page_idx={page_idx}, block_index={block.index}, block_type={block.type}"
 
-    def _warning(self, code: str, message: str, page_idx: int, block: BlockBase) -> None:
-        """用统一位置格式同时报告日志与结构化 PDF 诊断。"""
+    def _diagnostic(self, code: str, message: str, page_idx: int, block: BlockBase) -> None:
+        """用统一位置格式同时报告 DEBUG 日志与结构化 PDF 诊断。"""
         report_pdf_diagnostic(code, f"{message} ({self._location(page_idx, block)})", page_idx)
 
 

@@ -27,9 +27,8 @@ def collect_pdf_diagnostics() -> Iterator[list[Diagnostic]]:
 
 
 def report_pdf_diagnostic(code: str, message: str, page_index: int | None = None) -> None:
-    """正常布局适配使用 DEBUG，其余使用 WARNING；结构化诊断保持完整。"""
-    level = "DEBUG" if code in _DEBUG_DIAGNOSTIC_CODES else "WARNING"
-    logger.log(level, "{}: {}", code, message)
+    """PDF 渲染诊断统一使用 DEBUG 日志，结构化诊断保持完整。"""
+    logger.debug("{}: {}", code, message)
     items = _diagnostics.get()
     if items is not None:
         diagnostic = Diagnostic(code, message, page_index)
