@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import re
 from threading import RLock
 from typing import Any
@@ -14,6 +14,9 @@ from reportlab.graphics.shapes import Drawing, Group, Path, Rect
 from reportlab.lib.colors import Color, toColor
 from reportlab.platypus import Flowable
 import ziamath
+from ziamath.tex import tex2mml
+
+from .diagnostics import report_pdf_diagnostic
 
 MAX_FORMULA_CHARACTERS = 20_000
 MAX_CACHED_FORMULAS = 512
@@ -37,6 +40,8 @@ class FormulaVector:
     height: float
     ascent: float
     descent: float
+    axis_height: float = 0.0
+    multiline: bool = False
 
     def scaled(self, factor: float) -> FormulaVector:
         """返回仅调整展示几何、不复制 Drawing 的等比公式对象。"""
@@ -46,6 +51,8 @@ class FormulaVector:
             height=self.height * factor,
             ascent=self.ascent * factor,
             descent=self.descent * factor,
+            axis_height=self.axis_height * factor,
+            multiline=self.multiline,
         )
 
 
@@ -92,47 +99,113 @@ class FormulaRenderer:
 class DisplayFormulaFlowable(Flowable):
     """在可用行宽内居中绘制公式，并把可选编号贴到右边界。"""
 
-    def __init__(self, formula: FormulaVector, tag: FormulaVector | None = None) -> None:
+    def __init__(
+        self,
+        formula: FormulaVector,
+        tag: FormulaVector | None = None,
+        *,
+        font_size: float = 10.5,
+        location: str = "",
+        page_index: int | None = None,
+    ) -> None:
         """保存公式、可选编号以及延迟到 wrap 阶段计算的缩放参数。"""
         super().__init__()
         self.formula = formula
         self.tag = tag
+        self.font_size = font_size
+        self.location = location
+        self.page_index = page_index
         self._available_width = formula.width
         self._formula_scale = 1.0
         self._tag_scale = 1.0
         self.width = formula.width
         self.height = formula.height
+        self.formula_rect = (0.0, 0.0, formula.width, formula.height)
+        self.tag_rect: tuple[float, float, float, float] | None = None
+
+    @property
+    def effective_font_size(self) -> float:
+        """返回公式本体在最终绘制时的基准字号。"""
+        return self.font_size * self._formula_scale
+
+    @property
+    def effective_tag_font_size(self) -> float | None:
+        """返回独立缩放后的序号字号，无序号时返回空值。"""
+        return self.font_size * self._tag_scale if self.tag is not None else None
 
     def wrap(self, avail_width: float, _avail_height: float) -> tuple[float, float]:
-        """按正文宽度缩放主公式和编号，避免二者重叠或水平裁切。"""
-        self._available_width = max(1.0, avail_width)
-        tag_width = self.tag.width if self.tag is not None else 0.0
-        tag_gap = 10.0 if self.tag is not None else 0.0
-        main_limit = self._available_width if self.tag is None else max(1.0, self._available_width - tag_width - tag_gap)
-        self._formula_scale = min(1.0, main_limit / max(self.formula.width, 1.0))
-        if self.tag is not None and tag_width > self._available_width * 0.25:
-            self._tag_scale = min(1.0, self._available_width * 0.25 / max(tag_width, 1.0))
-            main_limit = max(1.0, self._available_width - tag_width * self._tag_scale - tag_gap)
-            self._formula_scale = min(self._formula_scale, main_limit / max(self.formula.width, 1.0))
-        formula_height = self.formula.height * self._formula_scale
-        tag_height = self.tag.height * self._tag_scale if self.tag is not None else 0.0
-        self.width = self._available_width
-        self.height = max(formula_height, tag_height, 1.0)
+        """重排版只按行宽试排，页尾剩余高度交给分页器处理。"""
+        self.fit_to_box(avail_width, font_size=self.font_size)
         return self.width, self.height
 
-    def draw(self) -> None:
-        """把缩放后的主公式居中，并在同一垂直中心绘制右侧编号。"""
-        formula_width = self.formula.width * self._formula_scale
-        formula_height = self.formula.height * self._formula_scale
-        formula_x = max(0.0, (self._available_width - formula_width) / 2)
-        formula_y = max(0.0, (self.height - formula_height) / 2)
-        _draw_vector(self.canv, self.formula, formula_x, formula_y, self._formula_scale)
+    def fit_to_box(self, width: float, *, font_size: float, max_height: float | None = None) -> None:
+        """每次从原始矢量重新试排；高度不足优先缩小本体，始终保留整栏坐标。"""
+        self.width = self._available_width = max(0.001, width)
+        target_scale = font_size / self.font_size
+        gap = font_size if self.tag is not None else 0.0
+        tag_scale = min(target_scale, self.width / self.tag.width) if self.tag is not None else target_scale
+        tag_width = self.tag.width * tag_scale if self.tag is not None else 0.0
+        # 编号很长或栏宽小于一个字时，独占末行比把编号压成微小文字更可读。
+        stacked = self.tag is not None and (tag_width > self.width * 0.4 or self.width - tag_width - gap < font_size)
+        main_limit = self.width if stacked else max(0.001, self.width - tag_width - gap)
+        formula_scale = min(target_scale, main_limit / self.formula.width)
+        self._position(formula_scale, tag_scale, gap, stacked)
+        if max_height is None or self.height <= max_height:
+            return
+        height_limit = max(0.001, max_height)
+        # 先判断序号本身是否能保留目标字号；极窄矮框才同比缩小序号及行间隔。
+        self._position(0.0, tag_scale, gap, stacked)
+        if self.height >= height_limit:
+            ratio = height_limit / max(self.height, 0.001) * 0.5
+            tag_scale *= ratio
+            gap *= ratio
+        low, high = 0.0, formula_scale
+        for _ in range(40):
+            candidate = (low + high) / 2
+            self._position(candidate, tag_scale, gap, stacked)
+            if self.height <= height_limit:
+                low = candidate
+            else:
+                high = candidate
+        self._position(low, tag_scale, gap, stacked)
+
+    def _position(self, formula_scale: float, tag_scale: float, gap: float, stacked: bool) -> None:
+        """统一计算本体和序号的最终矩形，单行使用数学轴，多行使用垂直中心。"""
+        self._formula_scale, self._tag_scale = formula_scale, tag_scale
+        fw, fh = self.formula.width * formula_scale, self.formula.height * formula_scale
+        fx, fy = max(0.0, (self.width - fw) / 2), 0.0
+        self.tag_rect = None
+        self.height = fh
         if self.tag is not None:
-            tag_width = self.tag.width * self._tag_scale
-            tag_height = self.tag.height * self._tag_scale
-            tag_x = max(0.0, self._available_width - tag_width)
-            tag_y = max(0.0, (self.height - tag_height) / 2)
-            _draw_vector(self.canv, self.tag, tag_x, tag_y, self._tag_scale)
+            tw, th = self.tag.width * tag_scale, self.tag.height * tag_scale
+            tx = self.width - tw
+            if stacked:
+                fy, ty = th + gap, 0.0
+            else:
+                fx = max(0.0, min(fx, tx - gap - fw))
+                if self.formula.multiline:
+                    ty = (fh - th) / 2
+                else:
+                    ty = (self.formula.descent + self.formula.axis_height) * formula_scale
+                    ty -= (self.tag.descent + self.tag.axis_height) * tag_scale
+                fy = max(0.0, -ty)
+                ty += fy
+            self.tag_rect = (tx, ty, tx + tw, ty + th)
+            self.height = max(fy + fh, ty + th)
+        self.formula_rect = (fx, fy, fx + fw, fy + fh)
+
+    def draw(self) -> None:
+        """使用最后一次试排结果绘制；过小公式在两种版式中均报告可读性诊断。"""
+        if min(self.effective_font_size, self.effective_tag_font_size or self.effective_font_size) < 6 - 0.001:
+            report_pdf_diagnostic(
+                "pdf_layout_small_text",
+                f"Formula below 6 pt: formula={self.effective_font_size:.4f}, "
+                f"tag={self.effective_tag_font_size}, {self.location}",
+                self.page_index,
+            )
+        _draw_vector(self.canv, self.formula, *self.formula_rect[:2], self._formula_scale)
+        if self.tag is not None and self.tag_rect is not None:
+            _draw_vector(self.canv, self.tag, *self.tag_rect[:2], self._tag_scale)
 
 
 class _ReportLabPathPen(BasePen):
@@ -207,15 +280,40 @@ def _render_ziamath_formula(latex: str, *, inline: bool, font_size: float, color
             previous_svg2 = ziamath.config.svg2
             ziamath.config.svg2 = False
             try:
-                formula = ziamath.Latex(latex, inline=inline, size=font_size, color=color, margin=0)
+                if inline:
+                    formula = ziamath.Latex(latex, inline=True, size=font_size, color=color, margin=0)
+                else:
+                    # 使用 ZiaMath 自身的转换保留 aligned、运算符等现有 LaTeX 预处理。
+                    mathml = ElementTree.fromstring(tex2mml(latex, inline=False))
+                    _normalize_display_mathml(mathml)
+                    mathml.set("mathcolor", color)
+                    formula = ziamath.Math(mathml, size=font_size, margin=0)
                 root = formula.svgxml()
+                axis_height = font_size * formula.font.math.consts.axisHeight / formula.font.info.layout.unitsperem
             finally:
                 ziamath.config.svg2 = previous_svg2
-        return _svg_root_to_vector(root)
+        return replace(
+            _svg_root_to_vector(root),
+            axis_height=axis_height,
+            multiline=bool(re.search(r"\\begin\s*\{(?:aligned|align\*?|gathered|gather\*?|split|eqnarray\*?)\}", latex)),
+        )
     except PdfFormulaError:
         raise
     except Exception as exc:
         raise PdfFormulaError(f"LaTeX formula cannot be rendered: {_formula_preview(latex)!r}") from exc
+
+
+def _normalize_display_mathml(element: ElementTree.Element, displaystyle: bool = True) -> None:
+    """在临时树中补充分数子项的紧凑样式，保留显式样式及 limits 的节点结构。"""
+    displaystyle = element.get("displaystyle", str(displaystyle).lower()) == "true"
+    name = _local_name(element.tag)
+    if name == "mo" and element.text == "∑" and not displaystyle:
+        element.attrib.setdefault("stretchy", "false")
+    for child in element:
+        if name == "mfrac":
+            # 显式 displaystyle 属性及后代 mstyle 可覆盖默认继承，不改原 LaTeX。
+            child.attrib.setdefault("displaystyle", "false")
+        _normalize_display_mathml(child, displaystyle)
 
 
 def _svg_root_to_vector(root: ElementTree.Element) -> FormulaVector:

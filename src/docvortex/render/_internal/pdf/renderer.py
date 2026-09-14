@@ -323,11 +323,16 @@ class _PdfRenderer:
         if content:
             formula, tag = split_formula_tag(content)
             try:
-                vector = self.inline_context.formulas.render(formula or content, inline=False, font_size=14)
+                font_size = self.styles.body.fontSize
+                vector = self.inline_context.formulas.render(formula or content, inline=False, font_size=font_size)
                 tag_vector = None
                 if tag:
-                    tag_vector = self.inline_context.formulas.render(f"({tag})", inline=True, font_size=9)
-                flowable = DisplayFormulaFlowable(vector, tag_vector)
+                    # 普通编号采用正体；编号中的显式数学命令仍由原 LaTeX 处理。
+                    tag_latex = rf"\mathrm{{({tag})}}" if re.fullmatch(r"[\w .,:+\-/]+", tag) else f"({tag})"
+                    tag_vector = self.inline_context.formulas.render(tag_latex, inline=True, font_size=font_size)
+                flowable = DisplayFormulaFlowable(
+                    vector, tag_vector, font_size=font_size, location=self._location(page_idx, block), page_index=page_idx
+                )
                 flowable.spaceBefore = 5
                 flowable.spaceAfter = 7
                 return [flowable]

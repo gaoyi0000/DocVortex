@@ -36,6 +36,7 @@ from ..common.planner import PlannedBlock
 from .assets import PreparedImage
 from .inline import PdfAnchorRegistry
 from .font_plan import BlockFit, PreparedBlock, plan_font_sizes, record_font_plans
+from .formula_layout import display_formula, place_formulas
 from .title_layout import TitleContent, place_title
 from .renderer import _PdfCanvas, _PdfRenderer, _flatten_non_link_spans, _has_image_payload, _plain_html_text
 from .table import PdfTableError
@@ -86,7 +87,7 @@ class OriginalPdfRenderer(_PdfRenderer):
         by_page = {page.page_idx: [] for page in self.middle_json.pages}
         for item in blocks:
             by_page[item.page_idx].append(item)
-            if item.group is None:
+            if item.group is None and display_formula(item) is None:
                 item.fit = self._fit_block(canvas, item.flowables, item.width, item.height)
                 if item.body_base_font_size is not None:
                     item.body_font_size = item.body_base_font_size * item.fit.scale
@@ -160,6 +161,7 @@ class OriginalPdfRenderer(_PdfRenderer):
                 }
             )
         for page in self.middle_json.pages:
+            place_formulas(by_page[page.page_idx], self.page_sizes[page.page_idx][0], self.styles.body.fontSize)
             canvas.setPageSize(self.page_sizes[page.page_idx])
             for item in by_page[page.page_idx]:
                 self._draw_fitted(canvas, item)
