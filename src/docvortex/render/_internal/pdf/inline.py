@@ -16,6 +16,7 @@ from reportlab.platypus.paraparser import ParaParser
 from ....schema import CodeInlineSpan, EquationInlineSpan, HyperlinkSpan, InlineSpan, TextSpan
 from .formula import FormulaRenderer, InlineFormulaImage, PdfFormulaError
 from .diagnostics import report_pdf_diagnostic
+from .paragraph import MeasuredParagraph
 from .styles import ACCENT_COLOR, HAN_FONT, JAPANESE_FONT, KOREAN_FONT, MONO_FONT, UNICODE_FALLBACK_FONT
 
 _BOOKMARK_SAFE_RE = re.compile(r"[^A-Za-z0-9_]+")
@@ -83,6 +84,7 @@ class PdfInlineContext:
     anchors: PdfAnchorRegistry
     formula_images: dict[str, InlineFormulaImage] = field(default_factory=dict)
     next_formula_id: int = 0
+    cache_paragraphs: bool = False
 
     def location(self, page_idx: int, block_index: int | None, block_type: str) -> str:
         """返回稳定的 page/block 诊断定位文本。"""
@@ -161,7 +163,14 @@ def build_pdf_paragraph(
     bullet_text = None
     if bullet_fragments:
         bullet_text = "".join(getattr(fragment, "text", "") for fragment in bullet_fragments)
-    return Paragraph("", parsed_style, bulletText=bullet_text, frags=fragments)
+    # 短 Latin 单元格原生换行很便宜，状态快照反而更慢；只缓存 CJK 或较长的普通段落。
+    cache_measurement = (
+        context.cache_paragraphs
+        and not getattr(style, "keepWithNext", False)
+        and (parsed_style.wordWrap == "CJK" or sum(len(getattr(fragment, "text", "")) for fragment in fragments) >= 256)
+    )
+    paragraph_class = MeasuredParagraph if cache_measurement else Paragraph
+    return paragraph_class("", parsed_style, bulletText=bullet_text, frags=fragments)
 
 
 def render_pdf_inline_markup(

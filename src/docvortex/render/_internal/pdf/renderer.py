@@ -176,6 +176,7 @@ class _PdfRenderer:
         self.inline_context = PdfInlineContext(
             formulas=FormulaRenderer(),
             anchors=PdfAnchorRegistry(_iter_document_anchors(middle_json)),
+            cache_paragraphs=True,
         )
 
     def render(self) -> bytes:
@@ -211,6 +212,8 @@ class _PdfRenderer:
                 story.extend(rendered)
         if not story:
             story.append(Spacer(1, 1))
+        # 重排 story 已经完整物化，分页只需要实际 Flowable，无需继续保留 HTML 解析缓存。
+        self._table_contents.clear()
 
         output = BytesIO()
         document = BaseDocTemplate(

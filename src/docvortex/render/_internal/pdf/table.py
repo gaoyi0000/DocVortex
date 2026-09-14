@@ -220,12 +220,13 @@ def _cell_flowables(
     depth: int,
     spatial: SpatialTableOptions | None = None,
     prepared: PdfTableContent,
+    measure: bool = False,
 ) -> list[Flowable]:
     """把单元格文本、图片与直接嵌套表按安全顺序转换为 Flowable。"""
     flowables: list[Flowable] = []
     content = prepared.cell(cell)
     if content.spans:
-        flowables.append(content.paragraph(build_paragraph, style, max_width, prepared.style_key(style)))
+        flowables.append(content.paragraph(build_paragraph, style, max_width, prepared.style_key(style), consume=not measure))
     for source, alt in content.images:
         flowables.append(build_image(source, max_width, alt))
     for nested in content.nested:
@@ -242,7 +243,7 @@ def _cell_flowables(
             )
         )
     if not flowables:
-        flowables.append(content.paragraph(build_paragraph, style, max_width, prepared.style_key(style)))
+        flowables.append(content.paragraph(build_paragraph, style, max_width, prepared.style_key(style), consume=not measure))
     return flowables
 
 
@@ -297,6 +298,7 @@ def _cell_widths(cell, width, style, styles, build_paragraph, build_image, depth
         depth=depth,
         spatial=spatial,
         prepared=prepared,
+        measure=True,
     )
     min_width = natural_width = 0.0
     for flow in flows:

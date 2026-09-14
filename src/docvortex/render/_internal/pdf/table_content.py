@@ -29,7 +29,7 @@ class PreparedCell:
         """只有普通文本能安全复用解析片段，不跳过公式或链接产生的定位诊断。"""
         return not self.images and not self.nested and all(isinstance(span, TextSpan) for span in self.spans)
 
-    def paragraph(self, build: Callable, style: ParagraphStyle, width: float, key: tuple) -> Paragraph:
+    def paragraph(self, build: Callable, style: ParagraphStyle, width: float, key: tuple, *, consume: bool) -> Paragraph:
         """从未参与试排的文本模板复制片段；每个候选得到独立 Paragraph 和 fragment。"""
         if not self.plain:
             return build(self.spans, style, width)
@@ -38,6 +38,11 @@ class PreparedCell:
             self.template = build(spans, style, width)
             self.template_key = key
         template = self.template
+        if consume:
+            # 列宽测量完成后把未 wrap 的模板交给实际单元格，避免同时持有模板和最终段落。
+            self.template = None
+            self.template_key = None
+            return template
         return type(template)(
             "", template.style, bulletText=template.bulletText, frags=[copy(fragment) for fragment in template.frags]
         )

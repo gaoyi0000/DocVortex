@@ -65,6 +65,8 @@ class OriginalPdfRenderer(_PdfRenderer):
         }
         self.current_page_idx = 0
         self.inline_context.anchors = PdfAnchorRegistry(_original_anchors(middle_json))
+        # 富标题会调整段落墨迹行高；本轮缓存只用于重排路径的普通段落。
+        self.inline_context.cache_paragraphs = False
         # 固定布局的代码框不增加源文档中不存在的背景、边框和内边距。
         self.styles.code.backColor = None
         self.styles.code.borderWidth = 0

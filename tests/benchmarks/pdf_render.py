@@ -119,6 +119,7 @@ def worker(args) -> None:
     """在独立进程中测量单个输入和布局，纯 Python 回退只在此测试进程内模拟。"""
     if args.backend == "python":
         sys.modules["_rl_accel"] = None
+    import docvortex
     from docvortex import render_artifact
     from docvortex.render import PdfLayout, PdfRenderOptions
     from loguru import logger
@@ -166,6 +167,8 @@ def worker(args) -> None:
             dependencies[name] = version(name)
         except PackageNotFoundError:
             dependencies[name] = None
+    implementation = Path(docvortex.__file__).resolve()
+    revision = subprocess.run(["git", "-C", str(implementation.parent), "rev-parse", "HEAD"], capture_output=True, text=True)
     record = {
         "source": args.source[0],
         "layout": args.layout,
@@ -173,6 +176,8 @@ def worker(args) -> None:
         "backend": backend,
         "native_functions": sorted(rl_accel._c_funcs),
         "dependencies": dependencies,
+        "implementation": str(implementation),
+        "implementation_revision": revision.stdout.strip() if revision.returncode == 0 else None,
         "first_seconds": first,
         "warm_seconds": times,
         "median_seconds": statistics.median(times) if times else None,
