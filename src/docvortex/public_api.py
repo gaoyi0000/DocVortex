@@ -165,6 +165,7 @@ PUBLIC_API: dict[str, tuple[str, ...]] = {
         "attach_visual_block_images",
         "attach_visual_block_images_from_pdf",
     ),
+    "docvortex.export": ("materialize_middle", "validate_materialized_assets"),
     "docvortex.errors": (
         "DocumentError",
         "InvalidRequestError",

@@ -58,7 +58,11 @@ def _prepare_export_copy(middle_json: MiddleJson) -> tuple[MiddleJson, dict[str,
                 block.image_base64 = None  # type: ignore[attr-defined]
 
             content = getattr(block, "content", None)
-            if not isinstance(content, str) or "data:image/" not in content:
+            if (
+                str(block.type) not in {"table_body", "chart_body", "image_body"}
+                or not isinstance(content, str)
+                or "data:image/" not in content
+            ):
                 continue
             if block.index is None:
                 raise ValueError(f"HTML image carrier requires index: page_idx={page.page_idx}, type={block.type}")

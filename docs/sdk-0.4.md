@@ -18,6 +18,12 @@ MinerU 使用 `docvortex>=0.4.0,<0.5.0`。本轮调整 Python 模块边界，保
 
 `docvortex.public_api.PUBLIC_API` 是静态模块及符号清单。新增跨库依赖必须同时更新清单、文档和契约测试；不能通过基础实现、私有模块或动态别名绕过边界。
 
+## 结果包素材导出（0.4.3）
+
+跨库调用方可通过 `docvortex.export.materialize_middle(middle_json, assets=None)` 获取图片外置后的文档副本与 `AssetStore`，再通过 `validate_materialized_assets(document, assets)` 验证所有图片引用。直接图片和视觉 HTML 内嵌图片使用安全相对路径，原始图片字节及布局方向扩展保持不变；代码字面量不作为 HTML 素材处理。
+
+调用方负责将该副本及素材写入自己的结果包，不应先省略图片再从源 PDF 重裁。缺失引用、未物化网络图片或同名素材冲突会显式失败。物化不修改输入对象、不读取源 PDF、不下载网络资源；已有外部素材须通过 `AssetStore` 显式提供。
+
 ## 行为与资源所有权
 
 `prepare_text_evidence` 返回具名的 `PDFTextEvidence`，`apply_text_evidence` 统一完成链接、样式、脚本与 InlineSpan 物化。MinerU 仍决定调用时机、公式排除区域、超大字符页和 OCR 回退。

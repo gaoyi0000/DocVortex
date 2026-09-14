@@ -12,6 +12,7 @@ from ....result import Diagnostic
 
 
 _diagnostics: ContextVar[list[Diagnostic] | None] = ContextVar("pdf_diagnostics", default=None)
+_DEBUG_DIAGNOSTIC_CODES = frozenset({"pdf_title_layout_expanded", "pdf_layout_scaled"})
 
 
 @contextmanager
@@ -26,8 +27,9 @@ def collect_pdf_diagnostics() -> Iterator[list[Diagnostic]]:
 
 
 def report_pdf_diagnostic(code: str, message: str, page_index: int | None = None) -> None:
-    """将同一条定位信息写入日志与当前高层产物的诊断列表。"""
-    logger.warning("{}: {}", code, message)
+    """正常布局适配使用 DEBUG，其余使用 WARNING；结构化诊断保持完整。"""
+    level = "DEBUG" if code in _DEBUG_DIAGNOSTIC_CODES else "WARNING"
+    logger.log(level, "{}: {}", code, message)
     items = _diagnostics.get()
     if items is not None:
         diagnostic = Diagnostic(code, message, page_index)
