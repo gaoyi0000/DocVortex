@@ -68,3 +68,31 @@ def test_public_pipeline_benchmark_freezes_all_outputs(tmp_path: Path) -> None:
     assert set(output["renders"]) == {"markdown", "html", "latex", "docx", "epub", "pdf", "structured_content"}
     assert (tmp_path / "candidate/00/bundle/manifest.json").is_file()
     assert json.loads((tmp_path / "candidate/comparison.json").read_text(encoding="utf-8"))[0]["equal"]
+
+
+def test_pdf_benchmark_compares_both_layouts_and_python_fallback(tmp_path: Path) -> None:
+    """独立进程重放公式和重复图片，检查回退后端、视觉签名及严格基线比较。"""
+    root = Path(__file__).parents[1]
+    for name in ("baseline", "candidate"):
+        command = [
+            sys.executable,
+            str(root / "tests/benchmarks/pdf_render.py"),
+            "--runs",
+            "0",
+            "--backend",
+            "python",
+            "--output",
+            str(tmp_path / name),
+        ]
+        if name == "candidate":
+            command.extend(["--baseline", str(tmp_path / "baseline")])
+        result = subprocess.run(command, cwd=root, capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+    report = json.loads((tmp_path / "candidate/report.json").read_text())
+    assert {item["layout"] for item in report["records"]} == {"original", "reflow"}
+    for record in report["records"]:
+        assert record["backend"] == "python"
+        assert not record["native_functions"]
+        assert record["memory"]["parent_peak_rss_bytes"] > 0
+        assert (tmp_path / "candidate" / record["artifact"] / "signature.json").is_file()
+    assert all(item["equal"] for item in json.loads((tmp_path / "candidate/comparison.json").read_text()))
