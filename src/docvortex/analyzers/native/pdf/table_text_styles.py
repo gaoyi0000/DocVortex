@@ -81,8 +81,12 @@ def _cell_visual_lines(
             chars=chars,
             visual_row_id=visual_row,
         )
-        _fill_native_typography(line, page_size)
         lines.append(line)
+    # 排版特征只供多行二维合并使用；单行会原样进入字符脚本判定，
+    # 该路径只读取 chars/angle/公式区域，不读取行级字体或高度统计。
+    if len(lines) > 1:
+        for line in lines:
+            _fill_native_typography(line, page_size)
     return lines
 
 

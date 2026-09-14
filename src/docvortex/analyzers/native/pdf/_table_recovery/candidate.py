@@ -143,6 +143,14 @@ def _choose_cell_for_glyph_indexed(
         0,
         min(rows - 1, bisect_left(index.y_tracks, glyph.bbox[3]) - 1),
     )
+    if left_col == right_col and top_row == bottom_row:
+        # 只覆盖一个原子格时仍执行原面积/中心判定，省去候选集合与排序。
+        cell_index = index.owners[top_row][left_col]
+        bbox = specs[cell_index].bbox
+        if glyph_overlap_ratio(glyph, bbox) > 0:
+            return cell_index, False
+        center_x, center_y = bbox_center(glyph.bbox)
+        return (cell_index, False) if bbox[0] <= center_x <= bbox[2] and bbox[1] <= center_y <= bbox[3] else (None, False)
     candidate_indices = {
         index.owners[row][col] for row in range(top_row, bottom_row + 1) for col in range(left_col, right_col + 1)
     }

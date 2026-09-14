@@ -47,6 +47,78 @@ class _CanonicalTrack:
     aliases: tuple[float, ...]
 
 
+class _IndexedRules(list[_MergedRule]):
+    """保存单次候选构造中的只读线段及轨道区间缓存，使用期间不修改线段。"""
+
+    def __init__(self, rules: list[_MergedRule]) -> None:
+        """按方向分组并保留原始线段顺序，缓存随当前表格调用释放。"""
+        super().__init__(rules)
+        self._oriented = {
+            orientation: tuple(rule for rule in rules if rule.orientation == orientation)
+            for orientation in ("horizontal", "vertical")
+        }
+        self._intervals: dict[tuple[str, tuple[float, ...], float], list[tuple[float, float]]] = {}
+        self._coverages: dict[tuple[str, tuple[float, ...], float, float, float], float] = {}
+
+    def coverage(self, orientation: str, aliases: tuple[float, ...], start: float, end: float, tolerance: float) -> float:
+        """复用轨道匹配和相同查询，区间覆盖仍执行原有裁剪与浮点累加。"""
+        key = orientation, aliases, tolerance
+        coverage_key = (*key, start, end)
+        cached = self._coverages.get(coverage_key)
+        if cached is not None:
+            return cached
+        intervals = self._intervals.get(key)
+        if intervals is None:
+            oriented = self._oriented.get(orientation, ())
+            if len(aliases) == 1:
+                coordinate = aliases[0]
+                intervals = [(rule.start, rule.end) for rule in oriented if abs(rule.coordinate - coordinate) <= tolerance]
+            else:
+                intervals = [
+                    (rule.start, rule.end)
+                    for rule in oriented
+                    if any(abs(rule.coordinate - alias) <= tolerance for alias in aliases)
+                ]
+            self._intervals[key] = intervals
+        result = covered_interval_ratio(intervals, start, end)
+        self._coverages[coverage_key] = result
+        return result
+
+
+@dataclass(frozen=True, slots=True)
+class _RulePreparation:
+    """保存相同裁剪范围的线段与原始轨道，供 raw/supported 假设复用。"""
+
+    fragments: list[_MergedRule]
+    rules: _IndexedRules
+    inferred: tuple[list[float], list[float], list[float]]
+
+
+def _prepare_rule_evidence(
+    table_input: NativeTableInput,
+    snap_tolerance: float,
+    join_gap: float,
+    width: float,
+    height: float,
+    *,
+    include_drawing: bool,
+    include_rectangles: bool,
+    evidence_halo: float,
+) -> _RulePreparation:
+    """一次构造裁剪、合并和原始轨道证据，不缓存后续假设判定。"""
+    fragments = _local_rule_fragments(
+        table_input,
+        snap_tolerance,
+        include_drawing=include_drawing,
+        include_rectangles=include_rectangles,
+        evidence_halo=evidence_halo,
+    )
+    if evidence_halo == 0.0 and (not fragments or len(fragments) > MAX_PRIMITIVES_PER_TABLE):
+        return _RulePreparation(fragments, _IndexedRules([]), ([], [], []))
+    rules = _IndexedRules(_merge_rule_fragments(fragments, snap_tolerance, join_gap))
+    return _RulePreparation(fragments, rules, _infer_grid_tracks(rules, snap_tolerance, width, height))
+
+
 @dataclass(frozen=True, slots=True)
 class _PhysicalRowEvidence:
     """保存一个原子行由 drawing 独立验证的边界可靠度。"""
@@ -710,6 +782,8 @@ def _separator_coverage_for_track(
 ) -> float:
     """按规范轨道全部 alias 合并计算 separator 覆盖率。"""
 
+    if isinstance(rules, _IndexedRules):
+        return rules.coverage(orientation, track.aliases, start, end, snap_tolerance)
     intervals = [
         (rule.start, rule.end)
         for rule in rules
@@ -787,6 +861,8 @@ def _separator_coverage(
 ) -> float:
     """计算指定潜在隔断被同轴物理线段覆盖的比例。"""
 
+    if isinstance(rules, _IndexedRules):
+        return rules.coverage(orientation, (coordinate,), start, end, snap_tolerance)
     intervals = [
         (rule.start, rule.end)
         for rule in rules
@@ -1196,6 +1272,7 @@ def _build_vector_tracks(
     include_rectangles: bool,
     prune_unsupported_horizontal: bool,
     diagnostics: dict[str, Any] | None,
+    rule_cache: dict[tuple[bool, bool, float], _RulePreparation] | None = None,
 ) -> _VectorTracks | None:
     """构造并规范化轨道，保持 halo、别名及物理行数的原有拒绝顺序。"""
 
@@ -1225,26 +1302,26 @@ def _build_vector_tracks(
         table_bbox,
         normalize_angle(table_input.angle),
     )
-    exact_fragments = _local_rule_fragments(
-        table_input,
-        snap_tolerance,
-        include_drawing=include_drawing,
-        include_rectangles=include_rectangles,
-        evidence_halo=0.0,
-    )
+    if rule_cache is None:
+        rule_cache = {}
+    exact_key = include_drawing, include_rectangles, 0.0
+    exact = rule_cache.get(exact_key)
+    if exact is None:
+        exact = _prepare_rule_evidence(
+            table_input,
+            snap_tolerance,
+            join_gap,
+            local_width,
+            local_height,
+            include_drawing=include_drawing,
+            include_rectangles=include_rectangles,
+            evidence_halo=0.0,
+        )
+        rule_cache[exact_key] = exact
+    exact_fragments = exact.fragments
     if not exact_fragments or len(exact_fragments) > MAX_PRIMITIVES_PER_TABLE:
         return _reject_vector_candidate(diagnostics, "raw_fragments")
-    exact_rules = _merge_rule_fragments(
-        exact_fragments,
-        snap_tolerance,
-        join_gap,
-    )
-    exact_x_tracks, exact_y_tracks, _removed = _infer_grid_tracks(
-        exact_rules,
-        snap_tolerance,
-        local_width,
-        local_height,
-    )
+    exact_x_tracks, exact_y_tracks, _removed = exact.inferred
     # 多行表格保持原始 bbox 裁剪；halo 只服务可能退化为单物理行的
     # 边界片段，避免吸入相邻行或页外端点改变既有拓扑。
     single_column_halo_hint = (
@@ -1278,29 +1355,29 @@ def _build_vector_tracks(
         else 0.0
     )
     if evidence_halo > 0:
-        raw_fragments = _local_rule_fragments(
-            table_input,
-            snap_tolerance,
-            include_drawing=include_drawing,
-            include_rectangles=include_rectangles,
-            evidence_halo=evidence_halo,
-        )
-        rules = _merge_rule_fragments(
-            raw_fragments,
-            snap_tolerance,
-            join_gap,
-        )
+        halo_key = include_drawing, include_rectangles, evidence_halo
+        prepared = rule_cache.get(halo_key)
+        if prepared is None:
+            prepared = _prepare_rule_evidence(
+                table_input,
+                snap_tolerance,
+                join_gap,
+                local_width,
+                local_height,
+                include_drawing=include_drawing,
+                include_rectangles=include_rectangles,
+                evidence_halo=evidence_halo,
+            )
+            rule_cache[halo_key] = prepared
     else:
-        raw_fragments = exact_fragments
-        rules = exact_rules
+        prepared = exact
+    raw_fragments, rules = prepared.fragments, prepared.rules
     if diagnostics is not None:
         diagnostics["raw_fragment_count"] = len(raw_fragments)
-    inferred_x_tracks, inferred_y_tracks, removed_horizontal_tracks = _infer_grid_tracks(
-        rules,
-        snap_tolerance,
-        local_width,
-        local_height,
-        prune_unsupported_horizontal=prune_unsupported_horizontal,
+    inferred_x_tracks, inferred_y_tracks, removed_horizontal_tracks = (
+        _infer_grid_tracks(rules, snap_tolerance, local_width, local_height, prune_unsupported_horizontal=True)
+        if prune_unsupported_horizontal
+        else prepared.inferred
     )
     if diagnostics is not None:
         diagnostics["track_hypothesis"] = "supported" if prune_unsupported_horizontal else "raw"
@@ -1824,6 +1901,7 @@ def _build_vector_candidate(
     evidence_label: str,
     prune_unsupported_horizontal: bool = False,
     diagnostics: dict[str, Any] | None = None,
+    rule_cache: dict[tuple[bool, bool, float], _RulePreparation] | None = None,
 ) -> NativeTableCandidate | None:
     """按轨道、拓扑、文本落格及评分的固定顺序构造矢量候选。"""
 
@@ -1836,6 +1914,7 @@ def _build_vector_candidate(
         include_rectangles=include_rectangles,
         prune_unsupported_horizontal=prune_unsupported_horizontal,
         diagnostics=diagnostics,
+        rule_cache=rule_cache,
     )
     if tracks is None:
         return None
@@ -1853,6 +1932,7 @@ def build_vector_candidates(
     """分别从 drawing 中心线和矩形晶格生成矢量网格候选。"""
 
     candidates: list[NativeTableCandidate] = []
+    rule_cache: dict[tuple[bool, bool, float], _RulePreparation] = {}
     raw_line_diagnostics: dict[str, Any] | None = {} if diagnostics is not None else None
     line_candidate = _build_vector_candidate(
         table_input,
@@ -1861,6 +1941,7 @@ def build_vector_candidates(
         include_rectangles=False,
         evidence_label="line_grid",
         diagnostics=raw_line_diagnostics,
+        rule_cache=rule_cache,
     )
     line_hypotheses = [raw_line_diagnostics] if raw_line_diagnostics is not None else []
     selected_line_diagnostics = raw_line_diagnostics
@@ -1874,6 +1955,7 @@ def build_vector_candidates(
             evidence_label="line_grid",
             prune_unsupported_horizontal=True,
             diagnostics=supported_line_diagnostics,
+            rule_cache=rule_cache,
         )
         if supported_line_diagnostics is not None:
             removed_tracks = supported_line_diagnostics.get(
@@ -1900,6 +1982,7 @@ def build_vector_candidates(
         include_rectangles=True,
         evidence_label="rect_grid",
         diagnostics=rect_diagnostics,
+        rule_cache=rule_cache,
     )
     if diagnostics is not None and rect_diagnostics is not None:
         diagnostics.append(rect_diagnostics)

@@ -2,18 +2,24 @@
 
 from __future__ import annotations
 
+from ....document.pdf.text._contracts import Bbox
 from ....schema import BBox
 
 
 def normalize_bbox(value: object) -> BBox | None:
     """把任意四元组规范为有效浮点 bbox，异常或退化框返回空。"""
 
+    # 自有 Bbox 的下标协议仅转发底层数组，直接读取可避免每个框五次 Python 调用。
+    # 只匹配精确类型，第三方可迭代对象及覆盖下标行为的子类仍走原协议。
+    if type(value) is Bbox:
+        value = value.bbox
     try:
         x0, y0, x1, y1 = [float(item) for item in value]  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return None
-    left, right = sorted((x0, x1))
-    top, bottom = sorted((y0, y1))
+    # 与两个元素的稳定排序使用相同比较方向，保留相等值及 NaN 的顺序。
+    left, right = (x1, x0) if x1 < x0 else (x0, x1)
+    top, bottom = (y1, y0) if y1 < y0 else (y0, y1)
     if right <= left or bottom <= top:
         return None
     return left, top, right, bottom

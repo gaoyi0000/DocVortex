@@ -32,7 +32,7 @@ def _select_pending_glyphs(table_input: NativeTableInput) -> list[_PendingGlyph]
     table_bbox = normalize_bbox(table_input.table_bbox)
     if table_bbox is None:
         return []
-    selected: list[tuple[int, int, Char]] = []
+    selected: list[tuple[int, int, Char, BBox]] = []
     for fallback_index, char in enumerate(table_input.chars):
         char_bbox = normalize_bbox(char.get("bbox"))
         if char_bbox is None:
@@ -44,14 +44,14 @@ def _select_pending_glyphs(table_input: NativeTableInput) -> list[_PendingGlyph]
             source_index = int(char.get("char_idx", fallback_index))
         except (TypeError, ValueError):
             source_index = fallback_index
-        selected.append((source_index, fallback_index, char))
+        selected.append((source_index, fallback_index, char, char_bbox))
 
     selected.sort(key=lambda item: (item[0], item[1]))
     output: list[_PendingGlyph] = []
     angle = normalize_angle(table_input.angle)
     pending_space = False
     pending_break = False
-    for _source_sort, fallback_index, char in selected:
+    for source_index, _fallback_index, char, absolute_bbox in selected:
         raw_text = str(char.get("char") or "")
         if not raw_text:
             continue
@@ -66,9 +66,6 @@ def _select_pending_glyphs(table_input: NativeTableInput) -> list[_PendingGlyph]
         text = _normalize_table_text(raw_text)
         if not text or text.isspace():
             continue
-        absolute_bbox = normalize_bbox(char.get("bbox"))
-        if absolute_bbox is None:
-            continue
         local_bbox = page_bbox_to_table_local(
             absolute_bbox,
             table_bbox,
@@ -76,10 +73,6 @@ def _select_pending_glyphs(table_input: NativeTableInput) -> list[_PendingGlyph]
         )
         if local_bbox is None or local_bbox[3] - local_bbox[1] < 0.5:
             continue
-        try:
-            source_index = int(char.get("char_idx", fallback_index))
-        except (TypeError, ValueError):
-            source_index = fallback_index
         output.append(
             _PendingGlyph(
                 glyph_id=len(output),
@@ -153,7 +146,14 @@ def _assign_visual_rows(
             )
         else:
             rows[best_index].append(glyph)
-            row_bboxes[best_index] = bbox_union([row_bboxes[best_index], glyph.bbox])
+            # 两框合并保持原 min/max 顺序，避免为每个字符建立通用迭代器。
+            previous_bbox = row_bboxes[best_index]
+            row_bboxes[best_index] = (
+                min(previous_bbox[0], glyph.bbox[0]),
+                min(previous_bbox[1], glyph.bbox[1]),
+                max(previous_bbox[2], glyph.bbox[2]),
+                max(previous_bbox[3], glyph.bbox[3]),
+            )
             for row_index in range(best_index, len(row_bboxes)):
                 prefix_max_bottoms[row_index] = max(
                     prefix_max_bottoms[row_index - 1] if row_index > 0 else row_bboxes[row_index][3],
@@ -170,7 +170,11 @@ def _assign_visual_rows(
 def _contains_cjk(text: str) -> bool:
     """判断文本是否包含常见中日韩统一表意字符。"""
 
-    return any("\u3400" <= char <= "\u9fff" for char in text)
+    # 组行热路径通常只传入相邻两个字符，直接遍历避免逐次创建生成器。
+    for char in text:
+        if "\u3400" <= char <= "\u9fff":
+            return True
+    return False
 
 
 def _join_glyph_line(
@@ -248,12 +252,14 @@ def _cell_row_separator(
 def _glyph_line_parts(
     glyphs: list[NativeTableGlyph] | list[_PendingGlyph],
     median_height: float,
+    *,
+    presorted: bool = False,
 ) -> list[tuple[str, int | None]]:
     """重建单行文本片段，并保留每个可见片段的原字符索引。"""
 
     if not glyphs:
         return []
-    ordered = sorted(glyphs, key=lambda glyph: (glyph.bbox[0], glyph.bbox[1], glyph.glyph_id))
+    ordered = glyphs if presorted else sorted(glyphs, key=lambda glyph: (glyph.bbox[0], glyph.bbox[1], glyph.glyph_id))
     parts: list[tuple[str, int | None]] = [(ordered[0].text, ordered[0].source_index)]
     previous = ordered[0]
     for glyph in ordered[1:]:
@@ -292,7 +298,8 @@ def _tokenize_row(
             groups[-1].append(glyph)
     tokens: list[NativeTableToken] = []
     for group in groups:
-        content = _join_glyph_line(group, median_height)
+        # group 是视觉行按同一排序键切出的连续片段，不必再次排序。
+        content = "".join(text for text, _source_index in _glyph_line_parts(group, median_height, presorted=True))
         if not content:
             continue
         tokens.append(

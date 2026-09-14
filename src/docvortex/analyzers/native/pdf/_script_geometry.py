@@ -208,42 +208,46 @@ def _cluster_baselines(
     median_loose_height = statistics.median(feature.loose_height for feature in anchors)
     tolerance = max(SCRIPT_BASELINE_ABSOLUTE_TOLERANCE, median_loose_height * SCRIPT_BASELINE_LOOSE_HEIGHT_RATIO)
     groups: list[list[int]] = []
+    group_origins: list[list[float]] = []
     for feature in sorted(anchors, key=lambda item: item.origin[1] if item.origin is not None else 0.0):
         baseline = feature.origin[1] if feature.origin is not None else 0.0
         if not groups:
             groups.append([feature.index])
+            group_origins.append([baseline])
             continue
-        previous_baseline = statistics.median(
-            features[index].origin[1] for index in groups[-1] if features[index].origin is not None
-        )
+        previous_baseline = _sorted_origin_median(group_origins[-1])
         if abs(baseline - previous_baseline) <= tolerance:
             groups[-1].append(feature.index)
+            group_origins[-1].append(baseline)
         else:
             groups.append([feature.index])
+            group_origins.append([baseline])
     return (
         [
             ScriptBaselineCluster(
-                baseline=statistics.median(features[index].origin[1] for index in group if features[index].origin is not None),
+                baseline=_sorted_origin_median(origins),
                 member_indices=tuple(group),
             )
-            for group in groups
+            for group, origins in zip(groups, group_origins, strict=True)
         ],
         tolerance,
     )
 
 
+def _sorted_origin_median(origins: list[float]) -> float:
+    """原始字符已按 origin 排序，直接使用与 statistics.median 相同的中位运算。"""
+    middle = len(origins) // 2
+    return origins[middle] if len(origins) % 2 else (origins[middle - 1] + origins[middle]) / 2
+
+
 def _cluster_tight_height(features: list[ScriptCharFeature], cluster: ScriptBaselineCluster) -> float:
     """返回基线簇的高分位 tight 高度。"""
-    return _quantile(
-        [features[index].tight_height for index in cluster.member_indices if features[index].tight_height > 0], 0.9
-    )
+    return _quantile([height for index in cluster.member_indices if (height := features[index].tight_height) > 0], 0.9)
 
 
 def _cluster_loose_height(features: list[ScriptCharFeature], cluster: ScriptBaselineCluster) -> float:
     """返回基线簇的高分位 loose 高度。"""
-    return _quantile(
-        [features[index].loose_height for index in cluster.member_indices if features[index].loose_height > 0], 0.9
-    )
+    return _quantile([height for index in cluster.member_indices if (height := features[index].loose_height) > 0], 0.9)
 
 
 def _cluster_tight_center(features: list[ScriptCharFeature], cluster: ScriptBaselineCluster) -> float:
@@ -283,29 +287,33 @@ def _cluster_has_consistent_displacement(
 def _choose_body_band(
     features: list[ScriptCharFeature],
     clusters: list[ScriptBaselineCluster],
+    heights: dict[ScriptBaselineCluster, tuple[float, float]] | None = None,
 ) -> tuple[ScriptBodyBand, ScriptBaselineCluster] | None:
     """在接近最高字形的基线簇中按字符数选择正文基线。"""
     if not clusters:
         return None
-    maximum_height = max(_cluster_tight_height(features, cluster) for cluster in clusters)
+    if heights is None:
+        heights = {
+            cluster: (_cluster_tight_height(features, cluster), _cluster_loose_height(features, cluster))
+            for cluster in clusters
+        }
+    maximum_height = max(heights[cluster][0] for cluster in clusters)
     comparable = [
-        cluster
-        for cluster in clusters
-        if _cluster_tight_height(features, cluster) >= maximum_height * SCRIPT_BODY_COMPARABLE_HEIGHT_RATIO
+        cluster for cluster in clusters if heights[cluster][0] >= maximum_height * SCRIPT_BODY_COMPARABLE_HEIGHT_RATIO
     ]
     body_cluster = max(
         comparable,
         key=lambda cluster: (
             len(cluster.member_indices),
-            _cluster_tight_height(features, cluster),
-            _cluster_loose_height(features, cluster),
+            heights[cluster][0],
+            heights[cluster][1],
         ),
     )
     return (
         ScriptBodyBand(
             baseline=body_cluster.baseline,
-            tight_height=_cluster_tight_height(features, body_cluster),
-            loose_height=_cluster_loose_height(features, body_cluster),
+            tight_height=heights[body_cluster][0],
+            loose_height=heights[body_cluster][1],
             member_indices=frozenset(body_cluster.member_indices),
         ),
         body_cluster,
@@ -508,6 +516,7 @@ def _recheck_weak_clusters_with_local_font_body(
     component_indices: list[int],
     body_band: ScriptBodyBand,
     cluster_roles: dict[ScriptBaselineCluster, ScriptRole],
+    heights: dict[ScriptBaselineCluster, tuple[float, float]],
 ) -> None:
     """用同字体局部正文撤销弱误判；不制造角标，不让撤销结果成为新参考。"""
     initial_roles = dict(cluster_roles)
@@ -543,7 +552,7 @@ def _recheck_weak_clusters_with_local_font_body(
             continue
         shift = cluster.baseline - reference.baseline
         strong_shift = abs(shift) >= height * SCRIPT_STRONG_SHIFT_RATIO
-        tight_ratio = _cluster_tight_height(features, cluster) / height
+        tight_ratio = heights[cluster][0] / height
         if abs(shift) < max(SCRIPT_ORIGIN_MIN_SHIFT_ABSOLUTE, height * SCRIPT_ORIGIN_MIN_SHIFT_RATIO) or (
             tight_ratio > SCRIPT_TIGHT_HEIGHT_RATIO and not (strong_shift and tight_ratio <= SCRIPT_STRONG_MAX_HEIGHT_RATIO)
         ):
@@ -559,7 +568,11 @@ def _assign_component(
 ) -> None:
     """在单个视觉组件内按 origin 基线簇和双 bbox 一致性分配角色。"""
     clusters, tolerance = _cluster_baselines(features, component_indices)
-    body_result = _choose_body_band(features, clusters)
+    # 基线簇在本次组件判定内不变，高度分位数可供正文选择与各角标规则共享。
+    heights = {
+        cluster: (_cluster_tight_height(features, cluster), _cluster_loose_height(features, cluster)) for cluster in clusters
+    }
+    body_result = _choose_body_band(features, clusters, heights)
     if body_result is None:
         return
     body_band, body_cluster = body_result
@@ -570,8 +583,8 @@ def _assign_component(
         if cluster is body_cluster:
             continue
         shift = cluster.baseline - body_band.baseline
-        tight_ratio = _cluster_tight_height(features, cluster) / body_band.tight_height
-        loose_ratio = _cluster_loose_height(features, cluster) / body_band.loose_height
+        tight_ratio = heights[cluster][0] / body_band.tight_height
+        loose_ratio = heights[cluster][1] / body_band.loose_height
         minimum_shift = max(SCRIPT_ORIGIN_MIN_SHIFT_ABSOLUTE, body_band.tight_height * SCRIPT_ORIGIN_MIN_SHIFT_RATIO)
         strong_shift = abs(shift) >= body_band.tight_height * SCRIPT_STRONG_SHIFT_RATIO
         if (
@@ -587,7 +600,7 @@ def _assign_component(
             cluster_roles[cluster] = "body"
         else:
             cluster_roles[cluster] = _script_role(shift)
-    _recheck_weak_clusters_with_local_font_body(features, font_keys, component_indices, body_band, cluster_roles)
+    _recheck_weak_clusters_with_local_font_body(features, font_keys, component_indices, body_band, cluster_roles, heights)
     for index in component_indices:
         feature = features[index]
         if (
