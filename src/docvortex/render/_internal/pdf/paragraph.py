@@ -3,8 +3,69 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from types import FunctionType
 
 from reportlab.platypus import Paragraph
+from reportlab.platypus import paragraph as rl_paragraph
+from reportlab.platypus.paraparser import ParaFrag
+
+
+_STYLE_FIELDS = ("fontName", "fontSize", "textColor", "rise", "us_lines", "link", "backColor", "nobr")
+_MISSING = object()
+
+
+def _same_plain_style(first, second) -> bool:
+    """普通片段按身份或样式字典比较，避免逐字符触发动态属性查找和缺失属性异常。"""
+    if first is second:
+        return True
+    left, right = first.__dict__, second.__dict__
+    # 保留原生比较中「属性不存在」与「属性值为 None」的区别。
+    return [left.get(name, _MISSING) for name in _STYLE_FIELDS] == [right.get(name, _MISSING) for name in _STYLE_FIELDS]
+
+
+def _plain_cjk_breaker():
+    """仅为自有段落绑定局部比较函数，不复制断行算法，也不修改 ReportLab 模块全局。"""
+    replacement = _same_plain_style
+    for function, dependency in (
+        (getattr(rl_paragraph, "makeCJKParaLine", None), "sameFrag"),
+        (getattr(rl_paragraph, "cjkFragSplit", None), "makeCJKParaLine"),
+        (Paragraph.breakLinesCJK, "cjkFragSplit"),
+    ):
+        # ReportLab 内部实现变化或已被外部包装时，保守回到其原有入口。
+        if not isinstance(function, FunctionType) or dependency not in function.__code__.co_names:
+            return None
+        namespace = function.__globals__.copy()
+        namespace[dependency] = replacement
+        replacement = FunctionType(function.__code__, namespace, function.__name__, function.__defaults__, function.__closure__)
+        replacement.__kwdefaults__ = function.__kwdefaults__
+    return replacement
+
+
+_PLAIN_CJK_BREAK = _plain_cjk_breaker()
+
+
+class PlainCJKParagraph(Paragraph):
+    """仅普通 CJK 组行使用局部比较，复杂内容和拆分后的段落仍交给原入口。"""
+
+    def breakLinesCJK(self, maxWidths):
+        """每次检查当前片段，内容变更后不沿用旧资格或样式比较缓存。"""
+        if (
+            _PLAIN_CJK_BREAK is not None
+            and len(self.frags) > 1
+            and not self.bulletText
+            and not self.style.endDots
+            and not getattr(self, "_splitpara", False)
+            and all(
+                type(fragment) is ParaFrag
+                and type(getattr(fragment, "text", None)) is str
+                and "cbDefn" not in fragment.__dict__
+                and "lineBreak" not in fragment.__dict__
+                and not any(fragment.__dict__.get(name) for name in ("link", "us_lines", "rise", "nobr"))
+                for fragment in self.frags
+            )
+        ):
+            return _PLAIN_CJK_BREAK(self, maxWidths)
+        return super().breakLinesCJK(maxWidths)
 
 
 class MeasuredParagraph(Paragraph):
@@ -56,3 +117,7 @@ class MeasuredParagraph(Paragraph):
             super().draw()
         finally:
             self._measurement_cache = None
+
+
+class MeasuredCJKParagraph(MeasuredParagraph, PlainCJKParagraph):
+    """组合普通 CJK 比较与原有测量复用，拆分段落继续拥有独立排版状态。"""

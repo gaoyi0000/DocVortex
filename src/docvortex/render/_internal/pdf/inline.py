@@ -16,7 +16,7 @@ from reportlab.platypus.paraparser import ParaParser
 from ....schema import CodeInlineSpan, EquationInlineSpan, HyperlinkSpan, InlineSpan, TextSpan
 from .formula import FormulaRenderer, InlineFormulaImage, PdfFormulaError
 from .diagnostics import report_pdf_diagnostic
-from .paragraph import MeasuredParagraph
+from .paragraph import MeasuredCJKParagraph, MeasuredParagraph, PlainCJKParagraph
 from .styles import ACCENT_COLOR, HAN_FONT, JAPANESE_FONT, KOREAN_FONT, MONO_FONT, UNICODE_FALLBACK_FONT
 
 _BOOKMARK_SAFE_RE = re.compile(r"[^A-Za-z0-9_]+")
@@ -170,6 +170,14 @@ def build_pdf_paragraph(
         and (parsed_style.wordWrap == "CJK" or sum(len(getattr(fragment, "text", "")) for fragment in fragments) >= 256)
     )
     paragraph_class = MeasuredParagraph if cache_measurement else Paragraph
+    if (
+        parsed_style.wordWrap == "CJK"
+        and not anchor
+        and not getattr(style, "keepWithNext", False)
+        and block_type not in ("code_body", "algorithm_body")
+        and all(isinstance(span, TextSpan) and not span.styles for span in spans)
+    ):
+        paragraph_class = MeasuredCJKParagraph if cache_measurement else PlainCJKParagraph
     return paragraph_class("", parsed_style, bulletText=bullet_text, frags=fragments)
 
 
