@@ -65,7 +65,8 @@ def _same_mapping(previous: Char, current: Char) -> bool:
         previous.get("text_object_id") is not None
         and previous.get("text_object_id") == current.get("text_object_id")
         and max(previous.get("source_indices", (previous["char_idx"],))) + 1 == current["char_idx"]
-        and abs(float(previous["rotation"]) - float(current["rotation"])) <= _GEOMETRY_EPSILON
+        and previous["font"] == current["font"]
+        and previous["rotation"] == current["rotation"]
         and _close_values(previous.get("origin"), current.get("origin"), _GEOMETRY_EPSILON)
         and _close_values(char_bbox_values(previous["bbox"]), char_bbox_values(current["bbox"]), _GEOMETRY_EPSILON)
         and bool(previous["char"].strip())

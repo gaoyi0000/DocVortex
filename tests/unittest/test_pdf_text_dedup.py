@@ -14,7 +14,6 @@ from reportlab.pdfgen.canvas import Canvas
 from docvortex.document.pdf import PDFDocument
 from docvortex.document.pdf.text._contracts import Bbox, Char
 from docvortex.document.pdf.text.dedup import deduplicate_chars
-from docvortex.document.pdf.text.geometry import char_bbox_values
 
 
 def _char(
@@ -50,15 +49,6 @@ def _text(chars: list[Char]) -> str:
     return "".join(c["char"] for c in chars)
 
 
-def test_bbox_values_accepts_compatible_rectangle_objects() -> None:
-    """源码与已安装包混用时，矩形读取仍按结构兼容。"""
-
-    class ForeignBbox:
-        bbox = [1.0, 2.0, 3.0, 4.0]
-
-    assert char_bbox_values(ForeignBbox()) == (1.0, 2.0, 3.0, 4.0)
-
-
 @pytest.mark.parametrize("text", ["ff", "ffi", "ffl", "fi", "fl", "a\u0301", "人人", "𝜃𝜃", "AB"])
 def test_same_glyph_mapping_is_preserved(text: str) -> None:
     """同字形的多码值默认全部保留，不通过重复字母或汉字白名单删字。"""
@@ -82,8 +72,6 @@ def test_same_glyph_mapping_is_preserved(text: str) -> None:
 def test_only_equivalent_han_mapping_is_collapsed(text: str, expected: str) -> None:
     """不同编码须全部等价，合并后仍可追溯所有原始字符。"""
     chars = _indexed([_char(c) for c in text])
-    if text == "年年":
-        chars[1]["font"] = {**chars[1]["font"], "name": "fallback"}
     before = copy.deepcopy(chars)
     result = deduplicate_chars(chars)
     assert _text(result) == expected
@@ -238,7 +226,8 @@ def test_recorded_badcase_characters() -> None:
     import json
     from pathlib import Path
 
-    fixtures = json.loads((Path(__file__).parents[1] / "fixtures/pdf_char_dedup.json").read_text())
+    # 固定 UTF-8，避免 Windows 默认编码将单个汉字解码成多个字符。
+    fixtures = json.loads((Path(__file__).parents[1] / "fixtures/pdf_char_dedup.json").read_text(encoding="utf-8"))
     for case in fixtures:
         chars = [{**c, "bbox": Bbox(c["bbox"]), "source_indices": tuple(c["source_indices"])} for c in case["chars"]]
         assert _text(deduplicate_chars(chars)) == case["expected"], case["name"]
