@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 _COORD_NAMES = ("x0", "y0", "x1", "y1")
 _GRID = 1000
@@ -71,6 +72,7 @@ def compare_document(reference: dict, candidate: dict) -> dict:
 
 def main() -> None:
     """输出参考/候选的逐块差异报告；仅内容指纹变化视为回归并以非零码退出。"""
+    sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("reference", type=Path)
     parser.add_argument("candidate", type=Path)

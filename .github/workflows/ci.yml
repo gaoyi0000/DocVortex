@@ -134,12 +134,14 @@ jobs:
         with:
           pattern: history-geometry-*
           path: history
-      - name: Diff history geometry against the macOS reference
-        run: |
-          uv run --no-project python tools/diff_history_geometry.py history/history-geometry-macos-latest history/history-geometry-ubuntu-latest --output history-diff-ubuntu-latest.json
-          uv run --no-project python tools/diff_history_geometry.py history/history-geometry-macos-latest history/history-geometry-windows-latest --output history-diff-windows-latest.json
-          uv run --no-project python tools/diff_history_geometry.py history/history-geometry-macos-latest history/history-geometry-ubuntu-pdfium-current --output history-diff-ubuntu-pdfium-current.json
+      - name: Diff history geometry against the macOS reference (ubuntu-latest)
+        run: uv run --no-project python tools/diff_history_geometry.py history/history-geometry-macos-latest history/history-geometry-ubuntu-latest --output history-diff-ubuntu-latest.json
+      - name: Diff history geometry against the macOS reference (windows-latest)
+        run: uv run --no-project python tools/diff_history_geometry.py history/history-geometry-macos-latest history/history-geometry-windows-latest --output history-diff-windows-latest.json
+      - name: Diff history geometry against the macOS reference (ubuntu pdfium-current)
+        run: uv run --no-project python tools/diff_history_geometry.py history/history-geometry-macos-latest history/history-geometry-ubuntu-pdfium-current --output history-diff-ubuntu-pdfium-current.json
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
           name: history-geometry-diff
           path: history-diff-*.json

@@ -67,6 +67,7 @@ def build_comparison(output: Path, baseline: Path) -> None:
 
 def main() -> None:
     """隔离导入指定 checkout，保存完整历史输出和变化页清单。"""
+    sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--output", type=Path, required=True)
