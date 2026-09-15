@@ -1,4 +1,4 @@
-"""验证发布门禁：自身绿灯直接通过；借用绿灯祖先须仅差版本文件，夹带改动或无绿灯即拒绝。"""
+"""验证发布门禁：自身绿灯直接通过；借用绿灯祖先须在 main 上、仅差版本文件且只改顶层 __version__ 字面量。"""
 
 from __future__ import annotations
 
@@ -16,6 +16,8 @@ from tools.verify_release_ci_gate import (
     successful_push_shas,
     verify,
 )
+
+_VERSION_MODULE = '__version__ = "0.4.7"\n\n__all__ = ["__version__"]\n'
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -40,6 +42,15 @@ def _write(repo: Path, relative: str, content: str) -> None:
     _git(repo, "add", relative)
 
 
+def _bump(repo: Path, version: str = "0.4.8") -> None:
+    _write(repo, "src/docvortex/version.py", f'__version__ = "{version}"\n\n__all__ = ["__version__"]\n')
+
+
+def _push_main(repo: Path) -> None:
+    """模拟把 main 当前 HEAD 推送到远端，同步 origin/main 引用。"""
+    _git(repo, "update-ref", "refs/remotes/origin/main", "main")
+
+
 @pytest.fixture()
 def repo(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
@@ -47,7 +58,8 @@ def repo(tmp_path: Path) -> Path:
     _git(repo, "init", "-b", "main")
     _git(repo, "config", "user.email", "test@example.com")
     _git(repo, "config", "user.name", "test")
-    _write(repo, "src/docvortex/version.py", '__version__ = "0.4.7"\n')
+    _write(repo, "src/docvortex/version.py", _VERSION_MODULE)
+    _commit(repo, "initial")
     return repo
 
 
@@ -59,8 +71,9 @@ def test_release_commit_green_passes(repo: Path) -> None:
 
 def test_version_only_bump_borrows_green_ancestor(repo: Path) -> None:
     green = _commit(repo, "merge pull request")
-    _write(repo, "src/docvortex/version.py", '__version__ = "0.4.8"\n')
+    _bump(repo)
     release = _commit(repo, "Prepare release")
+    _push_main(repo)
     passed, message = verify(str(repo), release, {green})
     assert passed
     assert green[:12] in message
@@ -68,20 +81,55 @@ def test_version_only_bump_borrows_green_ancestor(repo: Path) -> None:
 
 def test_changes_beyond_version_file_are_rejected(repo: Path) -> None:
     green = _commit(repo, "merge pull request")
-    _write(repo, "src/docvortex/version.py", '__version__ = "0.4.8"\n')
+    _bump(repo)
     _write(repo, "src/docvortex/parser.py", "x = 1\n")
     release = _commit(repo, "Prepare release with extra change")
+    _push_main(repo)
     passed, message = verify(str(repo), release, {green})
     assert not passed
     assert "src/docvortex/parser.py" in message
+
+
+def test_smuggled_statement_in_version_file_is_rejected(repo: Path) -> None:
+    green = _commit(repo, "merge pull request")
+    _write(
+        repo,
+        "src/docvortex/version.py",
+        '__version__ = "0.4.8"\n\n__all__ = ["__version__"]\n\nimport os\nos.system("echo arbitrary code")\n',
+    )
+    release = _commit(repo, "Prepare release")
+    _push_main(repo)
+    passed, message = verify(str(repo), release, {green})
+    assert not passed
+    assert "__version__" in message
+
+
+def test_collateral_change_in_version_file_is_rejected(repo: Path) -> None:
+    green = _commit(repo, "merge pull request")
+    _write(repo, "src/docvortex/version.py", '__version__ = "0.4.8"\n\n__all__ = ["__version__", "extra"]\n')
+    release = _commit(repo, "Prepare release")
+    _push_main(repo)
+    passed, message = verify(str(repo), release, {green})
+    assert not passed
+    assert "__version__" in message
+
+
+def test_non_literal_version_assignment_is_rejected(repo: Path) -> None:
+    green = _commit(repo, "merge pull request")
+    _write(repo, "src/docvortex/version.py", '__version__ = compute_version()\n\n__all__ = ["__version__"]\n')
+    release = _commit(repo, "Prepare release")
+    _push_main(repo)
+    passed, _ = verify(str(repo), release, {green})
+    assert not passed
 
 
 def test_stale_green_ancestor_is_rejected(repo: Path) -> None:
     green = _commit(repo, "old green")
     _write(repo, "src/docvortex/parser.py", "x = 1\n")
     _commit(repo, "unverified change")
-    _write(repo, "src/docvortex/version.py", '__version__ = "0.4.8"\n')
+    _bump(repo)
     release = _commit(repo, "Prepare release")
+    _push_main(repo)
     passed, message = verify(str(repo), release, {green})
     assert not passed
     assert "src/docvortex/parser.py" in message
@@ -89,7 +137,7 @@ def test_stale_green_ancestor_is_rejected(repo: Path) -> None:
 
 def test_no_green_ancestor_fails(repo: Path) -> None:
     _commit(repo, "merge pull request")
-    _write(repo, "src/docvortex/version.py", '__version__ = "0.4.8"\n')
+    _bump(repo)
     release = _commit(repo, "Prepare release")
     passed, _ = verify(str(repo), release, set())
     assert not passed
@@ -100,10 +148,22 @@ def test_green_off_first_parent_chain_is_not_borrowed(repo: Path) -> None:
     _git(repo, "checkout", "-b", "feature")
     feature_green = _commit(repo, "feature head with green PR run")
     _git(repo, "checkout", "main")
-    _write(repo, "src/docvortex/version.py", '__version__ = "0.4.8"\n')
+    _bump(repo)
     release = _commit(repo, "Prepare release")
     passed, _ = verify(str(repo), release, {feature_green})
     assert not passed
+
+
+def test_side_branch_release_is_rejected(repo: Path) -> None:
+    green = _commit(repo, "green on main")
+    _git(repo, "checkout", "-b", "side")
+    _bump(repo)
+    release = _commit(repo, "side-branch bump never pushed to main")
+    _git(repo, "checkout", "main")
+    _push_main(repo)
+    passed, message = verify(str(repo), release, {green})
+    assert not passed
+    assert "origin/main" in message
 
 
 def test_first_parent_chain_is_bounded(repo: Path) -> None:
@@ -116,7 +176,7 @@ def test_first_parent_chain_is_bounded(repo: Path) -> None:
 
 def test_changed_files_lists_relative_paths(repo: Path) -> None:
     base = _commit(repo, "base")
-    _write(repo, "src/docvortex/version.py", '__version__ = "0.4.8"\n')
+    _bump(repo)
     _write(repo, "docs/note.md", "# Note\n")
     tip = _commit(repo, "two files")
     assert changed_files(str(repo), base, tip) == ["docs/note.md", "src/docvortex/version.py"]
