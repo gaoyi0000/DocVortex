@@ -82,6 +82,8 @@ def test_same_glyph_mapping_is_preserved(text: str) -> None:
 def test_only_equivalent_han_mapping_is_collapsed(text: str, expected: str) -> None:
     """不同编码须全部等价，合并后仍可追溯所有原始字符。"""
     chars = _indexed([_char(c) for c in text])
+    if text == "年年":
+        chars[1]["font"] = {**chars[1]["font"], "name": "fallback"}
     before = copy.deepcopy(chars)
     result = deduplicate_chars(chars)
     assert _text(result) == expected
