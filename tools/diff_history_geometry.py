@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import math
 from pathlib import Path
 import sys
 
@@ -14,20 +16,33 @@ _GRID = 1000
 def _read_summary(directory: Path) -> dict[str, dict]:
     """按文档名索引捕获 summary，缺失即视为捕获不完整。"""
     documents = json.loads((directory / "summary.json").read_text(encoding="utf-8"))
-    return {document["name"]: document for document in documents}
+    return index_summary(documents)
+
+
+def index_summary(documents: list[dict]) -> dict[str, dict]:
+    """拒绝空捕获和重复文档名，避免索引时静默丢失诊断记录。"""
+    indexed = {document["name"]: document for document in documents}
+    assert indexed and len(indexed) == len(documents), "empty capture or duplicate document names"
+    return indexed
+
+
+def summary_fingerprint(documents: dict[str, dict]) -> str:
+    """绑定完整参考捕获，忽略 JSON 排版及文档排列，保留版本、指纹与坐标身份。"""
+    payload = json.dumps(documents, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _steps(bbox: list[float]) -> list[int]:
     """按 0.001 输出量化网格取整数刻度，避免浮点表示差造成边界误判。"""
+    assert isinstance(bbox, (list, tuple)) and len(bbox) == 4, "bbox must hold four coordinates"
+    assert all(type(value) in (int, float) and math.isfinite(value) and 0 <= value <= 1 for value in bbox), "invalid bbox"
+    assert all(math.isclose(value * _GRID, round(value * _GRID), rel_tol=0, abs_tol=1e-8) for value in bbox), "bbox is off grid"
     return [round(value * _GRID) for value in bbox]
 
 
 def _coordinate_points(delta_steps: dict[str, int], page_size: list[float]) -> dict[str, float]:
     """把刻度差换算为 PDF point，横向用页宽、纵向用页高。"""
-    return {
-        name: round(delta_steps[name] / _GRID * page_size[0 if name.startswith("x") else 1], 3)
-        for name in _COORD_NAMES
-    }
+    return {name: round(delta_steps[name] / _GRID * page_size[0 if name.startswith("x") else 1], 3) for name in _COORD_NAMES}
 
 
 def compare_document(reference: dict, candidate: dict) -> dict:
@@ -37,6 +52,8 @@ def compare_document(reference: dict, candidate: dict) -> dict:
     max_steps = 0
     content_changed = 0
     for index, (ref_page, cand_page) in enumerate(zip(reference["pages"], candidate["pages"], strict=True)):
+        assert ref_page["page_index"] == cand_page["page_index"] == index, ("page index differs", reference["name"])
+        assert ref_page["page_size"] == cand_page["page_size"], ("page size differs", reference["name"], index + 1)
         ref_blocks, cand_blocks = ref_page["blocks"], cand_page["blocks"]
         page_content_changed = ref_page["fingerprint"] != cand_page["fingerprint"] or len(ref_blocks) != len(cand_blocks)
         content_changed += page_content_changed
@@ -64,9 +81,32 @@ def compare_document(reference: dict, candidate: dict) -> dict:
             pages.append({"page": index + 1, "content_changed": page_content_changed, "blocks": entries})
     return {
         "name": reference["name"],
+        "sha256": reference["sha256"],
+        "page_count": len(reference["pages"]),
+        "candidate_code_sha256": candidate["code_sha256"],
         "max_abs_steps": max_steps,
         "content_changed_pages": content_changed,
         "changed_pages": pages,
+    }
+
+
+def build_report(reference: dict[str, dict], candidate: dict[str, dict]) -> dict:
+    """生成可回溯到完整参考捕获的报告，并检查各文档来自同一运行环境。"""
+    assert reference and reference.keys() == candidate.keys(), "captured document sets differ"
+    reference_environment = next(iter(reference.values()))["environment"]
+    candidate_environment = next(iter(candidate.values()))["environment"]
+    assert all(document["environment"] == reference_environment for document in reference.values()), (
+        "mixed reference environments"
+    )
+    assert all(document["environment"] == candidate_environment for document in candidate.values()), (
+        "mixed candidate environments"
+    )
+    return {
+        "schema_version": 2,
+        "reference_sha256": summary_fingerprint(reference),
+        "reference_environment": reference_environment,
+        "candidate_environment": candidate_environment,
+        "documents": [compare_document(reference[name], candidate[name]) for name in sorted(reference)],
     }
 
 
@@ -79,12 +119,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     reference, candidate = _read_summary(args.reference), _read_summary(args.candidate)
-    assert reference.keys() == candidate.keys(), "captured document sets differ"
-    report = {
-        "reference_environment": next(iter(reference.values()))["environment"],
-        "candidate_environment": next(iter(candidate.values()))["environment"],
-        "documents": [compare_document(reference[name], candidate[name]) for name in sorted(reference)],
-    }
+    report = build_report(reference, candidate)
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     total_content = sum(document["content_changed_pages"] for document in report["documents"])
     affected = [document["name"] for document in report["documents"] if document["changed_pages"]]

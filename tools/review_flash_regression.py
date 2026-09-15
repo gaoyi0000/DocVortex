@@ -27,6 +27,7 @@ def _capture_environment(root: Path) -> dict:
     return {
         "commit": commit.stdout.strip() or "unknown",
         "platform": platform.platform(),
+        "sys_platform": sys.platform,
         "python": platform.python_version(),
         "pypdfium2": version("pypdfium2"),
         "pdfium_build": str(pypdfium2.PDFIUM_INFO),
