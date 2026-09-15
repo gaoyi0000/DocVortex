@@ -712,7 +712,7 @@ def _fill_native_typography(line: _LineItem, page_size: tuple[float, float]) -> 
             font_weight = float(font.get("weight"))
         except (TypeError, ValueError):
             font_weight = math.nan
-        if math.isfinite(font_weight):
+        if math.isfinite(font_weight) and font_weight > 0:
             font_weights.setdefault(signature, []).append(font_weight)
             glyph_typography.append((local_bbox, signature, font_weight))
         else:
@@ -736,6 +736,25 @@ def _fill_native_typography(line: _LineItem, page_size: tuple[float, float]) -> 
     line.leading_typography_width = _detect_leading_typography_width(
         glyph_typography,
     )
+    line.paragraph_terminal = _native_sentence_terminal(line)
+
+
+def _native_sentence_terminal(line: _LineItem) -> bool:
+    """识别真正句尾及其后的小字号引用，普通小数或同字号数字不能充当句末引用。"""
+    if re.search(r"[.!?。！？][\]\)}）】》”’'\"]*$", line.text.rstrip()):
+        return True
+    match = re.search(r"[.!?。！？](?P<references>\d[\d,–—-]*)$", line.text.rstrip())
+    if match is None:
+        return False
+    chars = [char for char in line.chars if str(char.get("char", "")).strip()]
+    count = len(match.group("references"))
+    if len(chars) <= count:
+        return False
+    # 一些嵌入字体把字号固定为 1 再用矩阵缩放，实际字形高度才反映引用的缩小比例。
+    axis = 0 if line.angle in {90, 270} else 1
+    sizes = [float(char["bbox"][axis + 2] - char["bbox"][axis]) for char in chars]
+    body = [size for size in sizes[:-count] if size > 0]
+    return bool(body) and all(0 < size <= 0.8 * statistics.median(body) for size in sizes[-count:])
 
 
 def _is_detached_inline_script_candidate(

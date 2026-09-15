@@ -499,8 +499,8 @@ def test_explicit_pdf_fixtures_keep_expected_txt_block_inventory() -> None:
                     "image": 2,
                     "index": 1,
                     "page_number": 4,
-                    "paragraph_title": 2,
-                    "text": 12,
+                    # 无效字重不再把两条句末中文说明误判为标题，原页均为普通正文。
+                    "text": 14,
                 }
             ),
         ),

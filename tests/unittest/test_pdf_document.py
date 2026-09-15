@@ -1184,7 +1184,7 @@ def test_native_page_snapshot_opens_once_and_closes_after_failure(monkeypatch: p
         assert opened[0].raw is None
 
         def fail_text(
-            page: pdf_document.pdfium.PdfPage, *, include_extended_geometry: bool
+            page: pdf_document.pdfium.PdfPage, *, include_extended_geometry: bool, visible_only: bool = False
         ) -> pdf_document.PDFPageTextGeometry:
             """模拟字符提取失败，验证页面生命周期仍由外层上下文管理。"""
 

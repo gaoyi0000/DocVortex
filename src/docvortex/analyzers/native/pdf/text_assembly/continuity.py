@@ -240,6 +240,11 @@ def merge_overlapping_member_blocks(blocks: list[dict], page_size: tuple) -> lis
                             continue
                         ab, bb = a.ink_bbox or a.bbox, b.ink_bbox or b.bbox
                         em = max(_line_effective_height(a, ab), _line_effective_height(b, bb))
+                        # 两条完整文字行横向分离时是相邻栏，外接矩形重叠不能让它们互相认领。
+                        # 小型上下标、公式碎片仍可依靠邻接归入宿主正文。
+                        across_columns = ab[2] <= page_size[0] / 2 <= bb[0] or bb[2] <= page_size[0] / 2 <= ab[0]
+                        if across_columns and max(ab[0] - bb[2], bb[0] - ab[2]) > 0.5 * em:
+                            continue
                         if (
                             _bbox_axis_overlap_ratio(ab, bb, axis="y") >= 0.25
                             and max(0.0, ab[0] - bb[2], bb[0] - ab[2]) <= 5 * em

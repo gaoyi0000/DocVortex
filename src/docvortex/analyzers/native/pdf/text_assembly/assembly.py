@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import statistics
+import re
 from typing import Any, Sequence
 
 from .....foundation._text import is_hyphen_at_line_end
 from .....schema import BBox
-from ..geometry import _bbox_union_many, _rotate_bbox_to_upright, _transform_axis_lines
+from ..geometry import _bbox_axis_overlap_ratio, _bbox_union_many, _rotate_bbox_to_upright, _transform_axis_lines
 from ..line_layout import (
     _estimate_lane_gap,
     _infer_text_lanes,
@@ -18,7 +19,7 @@ from ..line_layout import (
 )
 from ..models import _AxisLine, _LineItem
 from ..native_text import _normalize_native_run_text
-from .common import _PARAGRAPH_FORMULA_CONTEXT_MARKER, _merge_text_line_content
+from .common import _FIGURE_CAPTION_MARKER_RE, _PARAGRAPH_FORMULA_CONTEXT_MARKER, _merge_text_line_content
 from .footnotes import _build_grouped_page_footnote_blocks
 from .merging import (
     _merge_inline_math_fragment_text_blocks,
@@ -38,6 +39,7 @@ from .rows import (
     _front_matter_keyword_break_sources,
     _infer_local_text_lane_map,
     _isolated_indented_paragraph_break_sources,
+    _prose_paragraph_break_sources,
     _leading_typography_reset_break_sources,
     _local_tight_output_line_bboxes,
     _starts_structural_reference_entry,
@@ -127,6 +129,7 @@ def _build_text_blocks(
                 )
             )
             explicit_break_sources = _explicit_text_break_sources(lane)
+            explicit_break_sources.update(_prose_paragraph_break_sources(lane, regular_gap, gap_mad))
             protected_break_sources.update(explicit_break_sources)
             structured_break_sources.update(
                 protected_break_sources,
@@ -311,6 +314,68 @@ def _build_text_blocks(
         blocks,
         page_size,
     )
+
+
+def _restore_caption_wrap_text(
+    blocks: list[dict[str, Any]], image_bboxes: list[BBox], page_size: tuple[float, float]
+) -> list[dict[str, Any]]:
+    """图旁窄栏正文恢复同栏续行；图注下方重新变宽的尾行独立成块，避免正文外框压住图注。"""
+    output = list(blocks)
+    captions = [block for block in blocks if _FIGURE_CAPTION_MARKER_RE.match(str(block.get("content", "")))]
+    for caption in captions:
+        cb = caption["bbox"]
+        for block in list(output):
+            lines = sorted(block.get("_text_lines", []), key=lambda line: (line.bbox[1], line.bbox[0]))
+            if block.get("type") != "text" or block is caption or len(lines) < 3:
+                continue
+            if any(line.angle != 0 or line.paragraph_group is not None or line.semantic_type is not None for line in lines):
+                continue
+            narrow, tail = lines[:-1], lines[-1]
+            em = statistics.median(_line_effective_height(line, line.bbox) for line in lines)
+            nb, tb = _bbox_union_many([line.bbox for line in narrow]), tail.bbox
+            if not (
+                nb[2] <= cb[0] + 0.25 * em
+                and nb[3] > cb[1]
+                and cb[3] - 0.25 * em <= tb[1] <= cb[3] + em
+                and abs(tb[0] - nb[0]) <= 0.5 * em
+                and tb[2] - tb[0] >= 1.5 * (nb[2] - nb[0])
+                and tb[2] > cb[0] + 3 * em
+                and any(
+                    0 <= cb[1] - image[3] <= 3 * em and _bbox_axis_overlap_ratio(cb, image, axis="x") >= 0.75
+                    for image in image_bboxes
+                )
+            ):
+                continue
+            consumed = [block]
+            first = block
+            # 只向前连接同栏且句子尚未结束的碎片，已有自然段和横线边界仍有效。
+            while not (first.get("_explicit_break_before") or first.get("_rule_break_before")):
+                preceding = [
+                    other
+                    for other in output
+                    if all(other is not item for item in consumed)
+                    and other.get("type") == "text"
+                    and other.get("_text_lines")
+                    and abs(other["bbox"][0] - nb[0]) <= 0.5 * em
+                    and other["bbox"][2] <= cb[0] + 0.25 * em
+                    and 0 <= nb[1] - other["bbox"][3] <= 0.6 * em
+                ]
+                if not preceding:
+                    break
+                previous = max(preceding, key=lambda item: item["bbox"][3])
+                if re.search(r"[.!?。！？][\])’\"']*$", str(previous.get("content", "")).rstrip()):
+                    break
+                consumed.append(previous)
+                narrow = previous["_text_lines"] + narrow
+                nb = _bbox_union_many([line.bbox for line in narrow])
+                first = previous
+            rebuilt = _build_text_blocks(narrow, [], page_size)
+            tail_blocks = _build_text_blocks([tail], [], page_size)
+            for tail_block in tail_blocks:
+                tail_block["_explicit_break_before"] = True
+            output = [item for item in output if all(item is not member for member in consumed)]
+            output.extend(rebuilt + tail_blocks)
+    return output
 
 
 __all__ = ["_build_text_blocks"]

@@ -557,7 +557,7 @@ class PDFDocument:
             return _PDFPageSnapshot(
                 page_size=_drawing_page_size(page_bbox, raw_rotation),
                 rotation=cast(Literal[0, 90, 180, 270], rotation),
-                text_geometry=_extract_page_text_geometry(page, include_extended_geometry=True),
+                text_geometry=_extract_page_text_geometry(page, include_extended_geometry=True, visible_only=True),
                 drawing_lines=drawings,
                 path_infos=paths,
                 image_infos=_extract_page_image_infos(page, page_bbox, raw_rotation),

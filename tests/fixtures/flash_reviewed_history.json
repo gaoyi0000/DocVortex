@@ -35,7 +35,7 @@
         {
           "page_index": 0,
           "fingerprint": "9004558bc9889b49bb0ea7e39df7ac6126cc74d0d57137a94f46165916b7a61a",
-          "bbox_fingerprint": "80e7f92efa19a35af92e735ab30b2ea03b8f8dcc2f12e9adc27f95fde92c40d4"
+          "bbox_fingerprint": "796b29e11acec3d325325cc4d24faa3c2780a530eae7693b27e4e38d1cfe58ff"
         },
         {
           "page_index": 1,
@@ -54,8 +54,8 @@
         },
         {
           "page_index": 4,
-          "fingerprint": "33ca67bfe8c43eeb43e74c6044d9428a96a5322b09204a0f3576f8115bc224e2",
-          "bbox_fingerprint": "b17995445ceb38d0dc4f9f5945dad840656d90c4f9f01b04c0920be9234516b2"
+          "fingerprint": "65af7215b507dee4f6357668363f81f03904d3e0b396f0f05cc315f293b4ca18",
+          "bbox_fingerprint": "02923263b2c3f92c5d414f46a0d82c28af5e5ff2c74cc5e0dbee48ece9abb116"
         },
         {
           "page_index": 5,
@@ -976,5 +976,6 @@
         }
       ]
     }
-  ]
+  ],
+  "round2_review_record": "docs/flash-round2-annotations-2026-09-15.md"
 }

@@ -51,6 +51,8 @@ class _LineItem:
     style_scale_repaired: bool = False
     inline_math_regions: list[BBox] = field(default_factory=list)
     paragraph_group: int | None = None
+    paragraph_terminal: bool = False
+    caption_start: bool = False
 
     def __post_init__(self) -> None:
         """为旧调用与合成测试补齐可选来源几何字段。"""
@@ -174,6 +176,7 @@ class _PageSource:
     signature_bboxes: list[BBox] = field(default_factory=list)
     form_bboxes: list[BBox] = field(default_factory=list)
     path_infos: list[PDFPathInfo] = field(default_factory=list)
+    page_index: int | None = None
 
 
 @dataclass(slots=True)

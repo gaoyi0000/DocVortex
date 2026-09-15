@@ -107,7 +107,7 @@ from .text_assembly.annotations import (
     _merge_multiline_title_blocks,
     _merge_repeated_compact_title_continuations,
 )
-from .text_assembly.assembly import _build_text_blocks
+from .text_assembly.assembly import _build_text_blocks, _restore_caption_wrap_text
 from .text_assembly.common import _merge_internal_text_block_group
 from .text_assembly.continuity import (
     group_front_matter_lines,
@@ -119,6 +119,7 @@ from .title_analysis.body_profile import _infer_document_body_profile
 from .title_analysis.document_profile import _infer_document_title_profile
 from .title_analysis.page_titles import _classify_page_titles
 from .title_analysis.structural import (
+    _classify_recurrent_unknown_weight_titles,
     _classify_body_height_section_titles,
     _classify_document_structural_titles,
     _classify_explicit_section_titles,
@@ -340,6 +341,7 @@ def _collect_document_sources(pdf_doc: NativePdfSource) -> _DocumentSources:
         )
         source = _PageSource(
             page_size=page_size,
+            page_index=page_idx,
             lines=lines,
             chars=chars,
             drawing_lines=drawing_lines,
@@ -450,6 +452,7 @@ def _classify_document_text(prepared_pages: list[_PreparedPage]) -> _DocumentTex
         legacy_body_profile=document_body_profile,
         document_title_profile=document_title_profile,
     )
+    _classify_recurrent_unknown_weight_titles(prepared_pages)
     return _DocumentTextProfiles(document_body_profile, canonical_body_profile, document_title_profile)
 
 
@@ -557,6 +560,13 @@ def _build_caption_supported_graphics(source: _PageSource) -> tuple[list[dict[st
     return _build_caption_graphic_blocks(
         source, caption_line_indices=caption_indices, table_bboxes=table_bboxes, code_bboxes=code_bboxes
     )
+
+
+def _mark_native_caption_starts(lines: list[_LineItem]) -> None:
+    """保存图题首行身份以阻止向左吞并邻栏正文，完整图题仍由后续绑定流程分类。"""
+    for line in lines:
+        if line.angle == 0 and _is_strong_caption_text(line.text):
+            line.caption_start = True
 
 
 def _prepare_page_source(
@@ -755,6 +765,7 @@ def _prepare_page_source(
     early_visual_bboxes = [
         block["bbox"] for block in caption_graphics + form_image_blocks + graphic_blocks + raster_image_blocks
     ]
+    _mark_native_caption_starts(remaining_lines)
     _classify_image_footnotes(remaining_lines, early_visual_bboxes, table_bboxes, source.drawing_lines, source.page_size)
     early_footnote_groups = _classify_page_footnotes(
         remaining_lines,
@@ -1068,6 +1079,11 @@ def _finalize_prepared_page(
         [block["bbox"] for block in prepared.fixed_blocks if block.get("type") == "image"],
     )
     text_blocks = _merge_fragmented_header_blocks(text_blocks)
+    text_blocks = _restore_caption_wrap_text(
+        text_blocks,
+        [block["bbox"] for block in prepared.fixed_blocks if block.get("type") == "image"],
+        prepared.page_size,
+    )
     text_blocks = _merge_repeated_compact_title_continuations(
         text_blocks,
         prepared.page_size,

@@ -1,0 +1,2654 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "b56d294",
+  "documents": [
+    {
+      "name": "nougat",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/nougat.pdf",
+      "original_name": "2308.13418v1.pdf",
+      "sha256": "679be336ce8010d3dc86b9530f0a30d4d5ea2a13153c6f274601b40f4382745b",
+      "page_count": 17,
+      "cases": [
+        {
+          "id": "nougat-05-r2-01",
+          "page": 5,
+          "operation": "footnote",
+          "original_indices": [
+            14,
+            15,
+            16
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.127,
+                0.819,
+                0.359,
+                0.833
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "8",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " "
+                },
+                {
+                  "type": "hyperlink",
+                  "url": "https://github.com/phfaist/pylatexenc",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "https://github.com/phfaist/pylatexenc",
+                      "styles": []
+                    }
+                  ]
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.127,
+                    0.819,
+                    0.359,
+                    0.833
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "bbox": [
+                0.127,
+                0.832,
+                0.251,
+                0.846
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "9",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " "
+                },
+                {
+                  "type": "hyperlink",
+                  "url": "https://mupdf.com/",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "https://mupdf.com/",
+                      "styles": []
+                    }
+                  ]
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.127,
+                    0.832,
+                    0.251,
+                    0.846
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "bbox": [
+                0.123,
+                0.845,
+                0.37,
+                0.859
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "10"
+                },
+                {
+                  "type": "hyperlink",
+                  "url": "https://github.com/taleinat/fuzzysearch",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "https",
+                      "styles": [
+                        "subscript"
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "content": "://github.com/taleinat/fuzzysearch",
+                      "styles": []
+                    }
+                  ]
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.123,
+                    0.845,
+                    0.37,
+                    0.859
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-07-r2-02",
+          "page": 7,
+          "operation": "split",
+          "original_indices": [
+            7
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.105,
+                0.677,
+                0.895,
+                0.859
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "We present our results in Table 1. As expected, the mathematical expressions have the worst agreement with the ground truth. For the plain text, most discrepancies come from formatting ambiguities and missing text due to inline math, as described above. The output format of GROBID is an XML file, which we convert into a compatible markup language, similar to the PMC or arXiv files. To some extent, GROBID provides support for formulas in its output, but it identifies and stores them as the Unicode representations embedded in the PDF. We replace each Unicode symbol with its corresponding LaTeX command to increase the similarity. Additionally, GROBID mislabels small inline expressions as text. For identified formulas, GROBID stores the bounding box coordinates. We modify the program by sending the snippet to the external formula recognition software LaTeX-OCR [20]. This way we can also get a signal for math modality. The reported results in this section are quite poor, primarily due to the amount of missed formulas by GROBID and the equation prediction accuracy is affected by the quality of the bounding boxes. The performance of the embedded PDF text alone is better than GROBID, which is due to formatting differences for the title page or reference section. Both Nougat small and base are able to outperform the other approach and achieve high scores in all metrics. We note that the performance of the smaller model is on par with the larger base model."
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.105,
+                    0.677,
+                    0.894,
+                    0.691
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.69,
+                    0.894,
+                    0.703
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.703,
+                    0.894,
+                    0.716
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.716,
+                    0.895,
+                    0.729
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.729,
+                    0.895,
+                    0.742
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.742,
+                    0.894,
+                    0.755
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.755,
+                    0.894,
+                    0.768
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.768,
+                    0.895,
+                    0.781
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.781,
+                    0.895,
+                    0.794
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.794,
+                    0.894,
+                    0.807
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.807,
+                    0.894,
+                    0.82
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.82,
+                    0.159,
+                    0.831
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.833,
+                    0.894,
+                    0.846
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.846,
+                    0.636,
+                    0.859
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-09-r2-03",
+          "page": 9,
+          "operation": "split",
+          "original_indices": [
+            7
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.105,
+                0.292,
+                0.895,
+                0.434
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Utility",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " The utility of the model is limited by a number of factors. First, the problem with repetitions outlined in section 5.4. The model is trained on research papers, which means it works particularly well on documents with a similar structure. However, it can still accurately convert other types of documents. Nearly every dataset sample is in English. Initial tests on a small sample suggest that the model’s performance with other Latin-based languages is satisfactory, although any special characters from these languages will be replaced with the closest equivalent from the Latin alphabet. Non-Latin script languages result in instant repetitions. "
+                },
+                {
+                  "type": "text",
+                  "content": "Generation Speed",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " On a machine with a NVIDIA A10G graphics card with 24GB VRAM we can process 6 pages in parallel. The generation speed depends heavily on the amount of text on any given page. With an average number of tokens of ≈ 1400 we get an mean generation time of 19.5s per batch for the base model without any inference optimization. Compared to classical approaches (GROBID 10.6 PDF/s [4]) this is very slow, but it is not limited to digital-born PDFs and can correctly parse mathematical expressions."
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.105,
+                    0.292,
+                    0.895,
+                    0.305
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.305,
+                    0.895,
+                    0.318
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.318,
+                    0.664,
+                    0.331
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.33,
+                    0.895,
+                    0.344
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.343,
+                    0.895,
+                    0.356
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.356,
+                    0.79,
+                    0.369
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.369,
+                    0.894,
+                    0.382
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.382,
+                    0.895,
+                    0.395
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.395,
+                    0.894,
+                    0.408
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.408,
+                    0.894,
+                    0.421
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.421,
+                    0.567,
+                    0.434
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-09-r2-04",
+          "page": 9,
+          "operation": "split",
+          "original_indices": [
+            8
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.105,
+                0.434,
+                0.897,
+                0.523
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Future work",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " The model is trained on one page at a time without knowledge about other pages in the document. This results in inconsistencies across the document. Most notably in the bibliography where the model was trained on different styles or section titles where sometimes numbers are skipped or hallucinated. Though handling each page separately significantly improves parallelization and scalability, it may diminish the quality of the merged document text. The primary challenge to solve is the tendency for the model to collapse into a repeating loop, which is left for future work."
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.105,
+                    0.434,
+                    0.897,
+                    0.447
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.447,
+                    0.895,
+                    0.46
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.46,
+                    0.894,
+                    0.473
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.106,
+                    0.473,
+                    0.895,
+                    0.486
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.487,
+                    0.136,
+                    0.497
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.499,
+                    0.894,
+                    0.512
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.105,
+                    0.512,
+                    0.145,
+                    0.523
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-17-r2-05",
+          "page": 17,
+          "operation": "visibility",
+          "original_indices": [
+            25,
+            26
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.553,
+                0.864,
+                0.585,
+                0.869
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "3.86.159.32"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.553,
+                    0.864,
+                    0.585,
+                    0.869
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "bbox": [
+                0.913,
+                0.864,
+                0.923,
+                0.869
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "1/1"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.913,
+                    0.864,
+                    0.923,
+                    0.869
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mmlu_redux",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/mmlu_redux.pdf",
+      "original_name": "2406.04127v2.pdf",
+      "sha256": "792e5e4578f0e9c98181a86a845fd67d2febf6d7c2de977afb8ad39b5ccb7586",
+      "page_count": 21,
+      "cases": [
+        {
+          "id": "mmlu_redux-02-r2-01",
+          "page": 2,
+          "operation": "image",
+          "original_indices": [
+            5,
+            6
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "image",
+              "bbox": [
+                0.503,
+                0.348,
+                0.82,
+                0.541
+              ],
+              "angle": 0,
+              "content": "Erroneous Instances in MMLU\nWhat is the current best option for preventing\nfuture outbreaks of Ebola?\nCorrect\nA. Rebuild scientific, medical and nursing\nanswer, from a\ninfrastructure and train staff\nHuman Virology\n5e quiz\nB. Early and accurate diagnosis with molecular\nkits\nC. Develop effective vaccines\nIncorrect\nD. Arrange rapid intervention into West Africa with\nanswer, from\nMMLU Virology\nEU and USA army teams\nIncorrect\nThe number of energy levels for the 55Mn nuclide\nanswer, from\nare:\nMMLU College\nA. 3        B. 5        C. 8        D. 4\nChemistry\nThe woman who conducted a longitudinal study\nAmbiguous\nquestion, from\non herself and found increased retrieval di\nfficulty\nMMLU Human\nas she got older was named\nAging"
+            },
+            {
+              "type": "text",
+              "bbox": [
+                0.505,
+                0.538,
+                0.749,
+                0.548
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "A. Clark B. Smith C. Whitebear D. Ebbinghaus"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.505,
+                    0.538,
+                    0.749,
+                    0.548
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mmlu_redux-02-r2-02",
+          "page": 2,
+          "operation": "caption",
+          "original_indices": [
+            7
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.5,
+                0.564,
+                0.824,
+                0.603
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Figure 1: Three examples of erroneous instances from MMLU Virology, College Chemistry, and Human Aging."
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.5,
+                    0.564,
+                    0.824,
+                    0.575
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.5,
+                    0.578,
+                    0.824,
+                    0.589
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.5,
+                    0.591,
+                    0.597,
+                    0.603
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mmlu_redux-02-r2-03",
+          "page": 2,
+          "operation": "wrap_text",
+          "original_indices": [
+            4,
+            5,
+            6
+          ],
+          "baseline_source_sha256": "01af67ce40bb054092b14b86547ae9da583864696b6abf7d5331c20c6b3e12db",
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.176,
+                0.499,
+                0.486,
+                0.566
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "We identify numerous errors in the MMLU questions, ranging from simple parsing mistakes – where the ground truth label differs from the correct answer in the original source (e.g., the answer from the source is B, but it is annotated"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.176,
+                    0.499,
+                    0.481,
+                    0.511
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.513,
+                    0.486,
+                    0.524
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.527,
+                    0.484,
+                    0.538
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.541,
+                    0.484,
+                    0.552
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.554,
+                    0.484,
+                    0.566
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "bbox": [
+                0.176,
+                0.568,
+                0.484,
+                0.579
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "as C in MMLU) – to more complex issues such"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.176,
+                    0.568,
+                    0.484,
+                    0.579
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "bbox": [
+                0.176,
+                0.582,
+                0.755,
+                0.621
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "as missing context. These errors appear randomly, and due to the lack of comprehensive documentation, it is difficult to trace back and identify the root causes of these problems."
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.176,
+                    0.582,
+                    0.481,
+                    0.593
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.596,
+                    0.484,
+                    0.607
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.609,
+                    0.755,
+                    0.621
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "frames_v1",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/frames_v1.pdf",
+      "original_name": "2409.12941v1.pdf",
+      "sha256": "1b0bd4a7812b31a340ac1f82871c8441528de6bd0e9c40bd6bf9958d7c1b6cb9",
+      "page_count": 14,
+      "cases": [
+        {
+          "id": "frames_v1-01-r2-01",
+          "page": 1,
+          "operation": "split",
+          "original_indices": [
+            9
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.176,
+                0.648,
+                0.826,
+                0.874
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Recent advancements in Large Language Models (LLMs) have significantly enhanced their capabilities across various natural language processing tasks, especially in systems that demand both factual accuracy and sophisticated reasoning for complex queries (Zhao et al., 2023). Retrievalaugmented generation (RAG) techniques (Lewis et al., 2020; Fan et al., 2019; Guu et al., 2020) have become a powerful approach by leveraging the strengths of retrieval systems and the generative capabilities of LLMs. These techniques are particularly effective for tasks requiring multi-hop reasoning, factual grounding, and synthesizing information from diverse knowledge domains (Gao et al., 2023). However, despite this progress, the evaluation of RAG systems remains fragmented and insufficient, as existing benchmarks typically assess components like retrieval, factual correctness, and reasoning in isolation (Yu et al., 2024a). This piecemeal approach fails to capture the holistic performance of these systems in real-world applications (Yu et al., 2024b). To bridge this gap, we introduce a novel evaluation framework, "
+                },
+                {
+                  "type": "text",
+                  "content": "FRAMES",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " (Factuality, Retrieval, And reasoning "
+                },
+                {
+                  "type": "text",
+                  "content": "ME",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "asurement Set), designed to rigorously test LLMs on all three core capabilities—fact retrieval, reasoning across multiple constraints, and accurate synthesis of information into coherent responses. Unlike existing datasets such as TruthfulQA (Lin et al., 2021), HotpotQA (Yang et al., 2018b), or GSM8k (Cobbe et al., 2021), which focus on isolated aspects of LLM performance,"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.176,
+                    0.648,
+                    0.824,
+                    0.659
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.662,
+                    0.824,
+                    0.673
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.676,
+                    0.821,
+                    0.687
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.69,
+                    0.824,
+                    0.701
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.703,
+                    0.824,
+                    0.715
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.717,
+                    0.824,
+                    0.729
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.731,
+                    0.824,
+                    0.742
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.745,
+                    0.824,
+                    0.756
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.759,
+                    0.826,
+                    0.77
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.773,
+                    0.824,
+                    0.784
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.786,
+                    0.662,
+                    0.798
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.806,
+                    0.824,
+                    0.819
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.822,
+                    0.824,
+                    0.833
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.835,
+                    0.824,
+                    0.847
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.849,
+                    0.826,
+                    0.861
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.176,
+                    0.863,
+                    0.826,
+                    0.874
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v1-08-r2-02",
+          "page": 8,
+          "operation": "code_image",
+          "original_indices": [
+            2,
+            3
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "code",
+              "bbox": [
+                0.176,
+                0.136,
+                0.824,
+                0.322
+              ],
+              "angle": 0,
+              "content": "1: Input: Initial question Q, number of iterations n, number of queries k, number of documents\n   n_docs\n2: Output: Final response R\n3: Initialize context C ← {Q}\n4: for iteration i = 1 to n do\n5:   for query j = 1 to k do\n6:      Generate search query Qij based on context C\n7:      Retrieve top n_docs documents Dij using BM25 based on Qij\n8:      C ← C ∪ (Dij \\ C) {Add only new documents to context}"
+            },
+            {
+              "type": "image",
+              "bbox": [
+                0.176,
+                0.266,
+                0.824,
+                0.593
+              ],
+              "angle": 0,
+              "content": "9:    end for\n10: end for\n11: Generate final response R using context C\n12: return R"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "frames_v2",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/frames_v2.pdf",
+      "original_name": "2409.12941v2.pdf",
+      "sha256": "5e0da5450d0f548f0030a6bfe2097d7a4839ce9c5d27c9ba6df7bba702c9c602",
+      "page_count": 15,
+      "cases": [
+        {
+          "id": "frames_v2-01-r2-01",
+          "page": 1,
+          "operation": "split",
+          "original_indices": [
+            10
+          ],
+          "optional": true,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.513,
+                0.477,
+                0.883,
+                0.878
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "To bridge this gap, we introduce a novel evaluation framework, "
+                },
+                {
+                  "type": "text",
+                  "content": "FRAMES",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " (Factuality, Retrieval, And reasoning "
+                },
+                {
+                  "type": "text",
+                  "content": "ME",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "asurement Set), designed to rigorously test LLMs on all three core capabilities—fact retrieval, reasoning across multiple constraints, and accurate synthesis of information into coherent responses. Unlike existing datasets such as TruthfulQA (Lin et al., 2021), HotpotQA (Yang et al., 2018a), or GSM8k (Cobbe et al., 2021), which focus on isolated aspects of LLM performance, "
+                },
+                {
+                  "type": "text",
+                  "content": "FRAMES",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " provides an integrated evaluation that challenges models across these dimensions simultaneously. This approach offers a more accurate reflection of how these systems perform as end-to-end reasoning solutions, especially in scenarios requiring multi-document retrieval and complex reasoning. For example, our dataset includes questions like: \"How many years earlier would Punxsutawney Phil have to be canonically alive to have made a Groundhog Day prediction in the same state as the US capitol?\" This demands temporal and numerical reasoning based on information from multiple retrieved articles. Figure 1 provides another such example."
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.533,
+                    0.477,
+                    0.881,
+                    0.489
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.491,
+                    0.78,
+                    0.505
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.8,
+                    0.494,
+                    0.883,
+                    0.505
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.51,
+                    0.883,
+                    0.521
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.526,
+                    0.881,
+                    0.537
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.542,
+                    0.881,
+                    0.553
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.558,
+                    0.882,
+                    0.57
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.574,
+                    0.881,
+                    0.586
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.59,
+                    0.883,
+                    0.602
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.606,
+                    0.881,
+                    0.618
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.622,
+                    0.881,
+                    0.634
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.638,
+                    0.881,
+                    0.65
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.654,
+                    0.881,
+                    0.666
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.671,
+                    0.881,
+                    0.682
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.687,
+                    0.881,
+                    0.698
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.703,
+                    0.883,
+                    0.714
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.719,
+                    0.881,
+                    0.731
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.735,
+                    0.883,
+                    0.747
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.751,
+                    0.881,
+                    0.763
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.767,
+                    0.881,
+                    0.779
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.783,
+                    0.881,
+                    0.795
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.513,
+                    0.799,
+                    0.881,
+                    0.811
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.815,
+                    0.881,
+                    0.827
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.832,
+                    0.881,
+                    0.843
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.514,
+                    0.848,
+                    0.875,
+                    0.859
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.533,
+                    0.866,
+                    0.881,
+                    0.878
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nash_review",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/nash_review.pdf",
+      "original_name": "7061196.pdf",
+      "sha256": "4b539d83625d73b52a1825fa07116510af6ac873d0aeaab85ac1ca5a01108aa2",
+      "page_count": 15,
+      "cases": [
+        {
+          "id": "nash_review-01-r2-01",
+          "page": 1,
+          "operation": "split",
+          "original_indices": [
+            9
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.07,
+                0.506,
+                0.491,
+                0.781
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Non-alcoholic fatty liver disease (NAFLD) is the most common chronic liver disease in the world and its prevalence is increasing. While approximately 25% of the global population were affected by NAFLD in 2016, this number increased to about 30% in 2019, with the highest rates in Latin America and the Middle East."
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " The natural course of NAFLD is heterogeneous, with substantial inter-patient variability, which is influenced by several non-modifiable (age, sex, race/ethnicity, family history, genetics) and modifiable (lifestyle/diet/exercise, comorbidities, drugs, alcohol) risk factors."
+                },
+                {
+                  "type": "text",
+                  "content": "2,3",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " NAFLD can be broadly sub-classified into two categories, either non-alcoholic fatty liver (NAFL), the non-progressive form of NAFLD, or non-alcoholic steatohepatitis (NASH), the progressive form of NAFLD."
+                },
+                {
+                  "type": "text",
+                  "content": "4",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " NAFL is characterised by the presence of hepatic steatosis typically in zone 3, with or without mild inflammation. Progression to NASH, is histologically characterised by the presence of three cardinal features, namely steatosis, lobular inflammation and hepatocyte ballooning, with or without fibrosis, which is typically perisinusoidal but can become panlobular as the disease"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.071,
+                    0.506,
+                    0.491,
+                    0.519
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.52,
+                    0.491,
+                    0.533
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.071,
+                    0.534,
+                    0.491,
+                    0.547
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.547,
+                    0.491,
+                    0.56
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.561,
+                    0.491,
+                    0.574
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.573,
+                    0.486,
+                    0.588
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.071,
+                    0.589,
+                    0.485,
+                    0.602
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.603,
+                    0.49,
+                    0.616
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.616,
+                    0.49,
+                    0.63
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.628,
+                    0.37,
+                    0.643
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.091,
+                    0.644,
+                    0.49,
+                    0.657
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.658,
+                    0.491,
+                    0.671
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.672,
+                    0.485,
+                    0.685
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.683,
+                    0.485,
+                    0.699
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.699,
+                    0.491,
+                    0.712
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.071,
+                    0.713,
+                    0.491,
+                    0.726
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.727,
+                    0.49,
+                    0.74
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.071,
+                    0.741,
+                    0.491,
+                    0.754
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.071,
+                    0.755,
+                    0.485,
+                    0.768
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.768,
+                    0.491,
+                    0.781
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-01-r2-02",
+          "page": 1,
+          "operation": "split",
+          "original_indices": [
+            7
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.508,
+                0.486,
+                0.93,
+                0.775
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "advances. Resolution of NASH back to NAFL can be highly dynamic and may occur even within a short time frame."
+                },
+                {
+                  "type": "text",
+                  "content": "5",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " Among individuals with NASH, fibrosis progresses rapidly in some but relatively slowly in others."
+                },
+                {
+                  "type": "text",
+                  "content": "4",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " For most at-risk patients, as well as for most patients with NAFLD, liver fat content is a prognostic marker of cardio- and cerebro-vascular risk, while inflammatory and cellular injury can drive NASH and fibrosis; the latter is critical because fibrosis stage is predictive of liverspecific morbidity and mortality. Ultimately, those with NASH and fibrosis may develop end-stage complications such as cirrhosis, portal hypertension or hepatocellular carcinoma (HCC), which portend a much worse prognosis."
+                },
+                {
+                  "type": "text",
+                  "content": "6–1",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "0 The development of a therapy for NASH has been surprisingly challenging, as no drug is currently approved for the treatment of NASH.11 However, recent positive phase III clinical trial data for two agents, the farnesoid X receptor (FXR) agonist obeticholic acid and the thyroid hormone receptor (THR)-b agonist, resmetirom, offer hope of the first drug approvals for this serious illness. Two key regulatory agencies, the FDA and EMA, have agreed that a substantial histological improvement, defined as resolution of NASH and/or improvement in fibrosis"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.509,
+                    0.486,
+                    0.93,
+                    0.499
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.498,
+                    0.894,
+                    0.513
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.528,
+                    0.513,
+                    0.929,
+                    0.527
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.525,
+                    0.929,
+                    0.54
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.541,
+                    0.93,
+                    0.554
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.555,
+                    0.93,
+                    0.568
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.569,
+                    0.929,
+                    0.582
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.508,
+                    0.583,
+                    0.925,
+                    0.596
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.596,
+                    0.929,
+                    0.609
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.61,
+                    0.93,
+                    0.623
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.624,
+                    0.93,
+                    0.637
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.636,
+                    0.857,
+                    0.651
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.528,
+                    0.652,
+                    0.924,
+                    0.665
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.665,
+                    0.93,
+                    0.678
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.508,
+                    0.677,
+                    0.929,
+                    0.692
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.508,
+                    0.693,
+                    0.93,
+                    0.706
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.707,
+                    0.93,
+                    0.72
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.721,
+                    0.93,
+                    0.734
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.508,
+                    0.735,
+                    0.929,
+                    0.748
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.748,
+                    0.929,
+                    0.761
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.762,
+                    0.93,
+                    0.775
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-11-r2-03",
+          "page": 11,
+          "operation": "footnote",
+          "original_indices": [
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.153,
+                0.876,
+                0.667,
+                0.886
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Division of Liver Diseases, Icahn School of Medicine at Mount Sinai, New York, NY, United States"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.153,
+                    0.876,
+                    0.667,
+                    0.886
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "page_footnote",
+              "bbox": [
+                0.07,
+                0.837,
+                0.14,
+                0.847
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Affiliations"
+                }
+              ]
+            },
+            {
+              "type": "page_footnote",
+              "bbox": [
+                0.07,
+                0.851,
+                0.9,
+                0.875
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " Department of Hepatology & Gastroenterology, Charité - Universitätsmedizin Berlin, Campus Virchow-Klinikum and Campus Charité Mitte, Berlin, Germany; 2 Institute of Health, Berlin, Germany; 3"
+                }
+              ]
+            },
+            {
+              "type": "page_footnote",
+              "bbox": [
+                0.267,
+                0.853,
+                0.93,
+                0.875
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Berlin NAFLD Research Center, Division of Gastroenterology and Hepatology, University of California at San Diego, San Diego, CA,"
+                }
+              ]
+            },
+            {
+              "type": "page_footnote",
+              "bbox": [
+                0.07,
+                0.874,
+                0.155,
+                0.886
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "United States; 4"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-04-r2-04",
+          "page": 4,
+          "operation": "title",
+          "original_indices": [
+            4
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.509,
+                0.074,
+                0.865,
+                0.102
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Organ crosstalk in NAFLD: targeting extrahepatic inflammatory signals"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.509,
+                    0.074,
+                    0.865,
+                    0.087
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.089,
+                    0.66,
+                    0.102
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-06-r2-05",
+          "page": 6,
+          "operation": "title",
+          "original_indices": [
+            2
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.07,
+                0.215,
+                0.491,
+                0.243
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Targeting the activation of inflammation: inhibition of TLRs, inflammasome or inflammatory signalling"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.07,
+                    0.215,
+                    0.491,
+                    0.228
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.071,
+                    0.23,
+                    0.368,
+                    0.243
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-06-r2-06",
+          "page": 6,
+          "operation": "title",
+          "original_indices": [
+            7
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.509,
+                0.421,
+                0.877,
+                0.449
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Targeting immune cell recruitment: chemokine and chemokine receptor inhibition"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.509,
+                    0.421,
+                    0.877,
+                    0.434
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.436,
+                    0.725,
+                    0.449
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-07-r2-07",
+          "page": 7,
+          "operation": "title",
+          "original_indices": [
+            1
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.071,
+                0.297,
+                0.458,
+                0.325
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Modulating immune cell crosstalk: targeting platelets, neutrophils and lymphocytes"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.071,
+                    0.297,
+                    0.458,
+                    0.31
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.071,
+                    0.312,
+                    0.279,
+                    0.325
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-07-r2-08",
+          "page": 7,
+          "operation": "title",
+          "original_indices": [
+            5
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.509,
+                0.504,
+                0.93,
+                0.53
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Targeting soluble mediators: inhibiting cytokines and other effector molecules"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.509,
+                    0.504,
+                    0.93,
+                    0.517
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.519,
+                    0.645,
+                    0.53
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-09-r2-09",
+          "page": 9,
+          "operation": "title",
+          "original_indices": [
+            1
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.07,
+                0.324,
+                0.469,
+                0.352
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Targeting signals promoting HSC activation: TGF-b and integrin inhibitors"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.07,
+                    0.324,
+                    0.469,
+                    0.338
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.071,
+                    0.34,
+                    0.198,
+                    0.352
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-09-r2-10",
+          "page": 9,
+          "operation": "title",
+          "original_indices": [
+            5
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.509,
+                0.172,
+                0.93,
+                0.2
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Targeting HSC activation: lipid metabolism, autophagy and nuclear receptors"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.509,
+                    0.172,
+                    0.93,
+                    0.185
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.188,
+                    0.638,
+                    0.2
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-10-r2-11",
+          "page": 10,
+          "operation": "title",
+          "original_indices": [
+            3
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.07,
+                0.449,
+                0.443,
+                0.477
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Nanoparticle-mediated drug delivery to HSCs: gene silencing or activation"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.071,
+                    0.449,
+                    0.443,
+                    0.462
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.07,
+                    0.464,
+                    0.23,
+                    0.477
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-10-r2-12",
+          "page": 10,
+          "operation": "title",
+          "original_indices": [
+            8
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.509,
+                0.55,
+                0.809,
+                0.578
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Cell therapy-based anti-inflammatory and antifibrotic approaches"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.509,
+                    0.55,
+                    0.809,
+                    0.563
+                  ]
+                },
+                {
+                  "bbox": [
+                    0.509,
+                    0.566,
+                    0.678,
+                    0.578
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-12-r2-13",
+          "page": 12,
+          "operation": "title",
+          "original_indices": [
+            1
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.07,
+                0.074,
+                0.159,
+                0.084
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Abbreviations"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.07,
+                    0.074,
+                    0.159,
+                    0.084
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-12-r2-14",
+          "page": 12,
+          "operation": "title",
+          "original_indices": [
+            3
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.071,
+                0.273,
+                0.183,
+                0.285
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Financial support"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.071,
+                    0.273,
+                    0.183,
+                    0.285
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-12-r2-15",
+          "page": 12,
+          "operation": "title",
+          "original_indices": [
+            5
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.07,
+                0.393,
+                0.192,
+                0.403
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Conflict of interest"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.07,
+                    0.393,
+                    0.192,
+                    0.403
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-12-r2-16",
+          "page": 12,
+          "operation": "title",
+          "original_indices": [
+            8
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.07,
+                0.694,
+                0.214,
+                0.703
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Authors’ contributions"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.07,
+                    0.694,
+                    0.214,
+                    0.703
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-12-r2-17",
+          "page": 12,
+          "operation": "title",
+          "original_indices": [
+            12
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.07,
+                0.879,
+                0.2,
+                0.89
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Supplementary data"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.07,
+                    0.879,
+                    0.2,
+                    0.89
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-12-r2-18",
+          "page": 12,
+          "operation": "title",
+          "original_indices": [
+            14
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.509,
+                0.074,
+                0.584,
+                0.084
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "References"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.509,
+                    0.074,
+                    0.584,
+                    0.084
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "k2_treap",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/k2_treap.pdf",
+      "original_name": "公式密集span不规范论文.pdf",
+      "sha256": "9218df208183211c6ecbd97f7250283658290cffdbd73f44dcf4fe7680af14d2",
+      "page_count": 16,
+      "cases": [
+        {
+          "id": "k2_treap-01-r2-01",
+          "page": 1,
+          "operation": "front_matter_table",
+          "original_indices": [
+            10
+          ],
+          "optional": true,
+          "anchors": [
+            {
+              "type": "table",
+              "bbox": [
+                0.074,
+                0.35,
+                0.932,
+                0.565
+              ],
+              "angle": 0,
+              "content": "a r t i c l e i n f o                         a b s t r a c t\nArticle history:                              Efficient processing of aggregated range queries on two-dimensional grids is a common\nReceived 25 February 2016                     requirement in information retrieval and data mining systems, for example in Geographic\nReceived in revised form                      Information Systems and OLAP cubes. We introduce a technique to represent grids sup-\n4 March 2016                                  porting aggregated range queries that requires little space when the data points in the\nAccepted 5 March 2016                         grid are clustered, which is common in practice. We show how this general technique can\nRecommended by: D. Shasha\nAvailable online 16 March 2016                be used to support two important types of aggregated queries, which are ranked range\n                                              queries and counting range queries. Our experimental evaluation shows that this tech-\nKeywords:                                     nique can speed up aggregated queries up to more than an order of magnitude, with a\nCompact data structures                       small space overhead.\nGrids\n                                                                                              & 2016 Elsevier Ltd. All rights reserved.\nQuery processing\nAggregated queries\nClustered points"
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-10-r2-02",
+          "page": 10,
+          "operation": "footnote",
+          "original_indices": [
+            8,
+            14
+          ],
+          "optional": false,
+          "anchors": [
+            {
+              "type": "text",
+              "bbox": [
+                0.307,
+                0.91,
+                0.476,
+                0.921
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": ", which allow us to use it for"
+                }
+              ],
+              "lines": [
+                {
+                  "bbox": [
+                    0.307,
+                    0.91,
+                    0.476,
+                    0.921
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "page_footnote",
+              "bbox": [
+                0.066,
+                0.908,
+                0.307,
+                0.932
+              ],
+              "angle": 0,
+              "content": [
+                {
+                  "type": "text",
+                  "content": "3 The dataset belongs to SkillupChile"
+                },
+                {
+                  "type": "text",
+                  "content": "s",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " our research."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

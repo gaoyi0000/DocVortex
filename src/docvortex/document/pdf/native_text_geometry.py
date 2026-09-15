@@ -13,6 +13,7 @@ from .native_contracts import (
     PDFPageTextGeometry,
 )
 from .native_lifecycle import _try_close
+from .native_objects import _text_object_visibility
 from .text._contracts import Char
 from .text.dedup import deduplicate_chars
 from .text.extract import get_chars
@@ -128,6 +129,7 @@ def _extract_page_text_geometry(
     page: pdfium.PdfPage,
     *,
     include_extended_geometry: bool,
+    visible_only: bool = False,
 ) -> PDFPageTextGeometry:
     """在调用方持有的页面和锁内读取字符，使批量提取与独立接口共用实现。"""
     textpage = None
@@ -139,7 +141,9 @@ def _extract_page_text_geometry(
             page_rotation = page.get_rotation()
         except Exception:
             pass
-        chars = get_chars(textpage, raw_page_bbox, page_rotation, include_geometry=include_extended_geometry)
+        visibility = _text_object_visibility(page, tuple(raw_page_bbox), page_rotation) if visible_only else None
+        options = {"visibility_by_object": visibility} if visible_only else {}
+        chars = get_chars(textpage, raw_page_bbox, page_rotation, include_geometry=include_extended_geometry, **options)
         raw_codes = {char["char_idx"]: char["raw_code"] for char in chars}
         chars = _restore_pdfium_surrogate_pairs(chars, textpage, raw_codes=raw_codes)
         chars = deduplicate_chars(chars)

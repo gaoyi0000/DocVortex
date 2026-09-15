@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from loguru import logger
@@ -111,6 +112,9 @@ def _materialize_table_blocks(
             )
         if content:
             logger.debug(f"Flash native table recovery accepted: bbox={body_bbox}, angle={candidate.angle}")
+        elif _restore_front_matter_text_panel(source, body_bbox):
+            # 只有结构恢复失败的弱候选才撤销；已验证的 HTML 单元格表保持原判定。
+            continue
         try:
             if not content:
                 # 使用完整原始字符流保留 PDF 物理换行；行索引仅负责表体与注释的所有权认领。
@@ -140,6 +144,42 @@ def _materialize_table_blocks(
     table_blocks.sort(key=lambda block: (block["bbox"][1], block["bbox"][0]))
     annotation_blocks.sort(key=lambda block: (block["bbox"][1], block["bbox"][0]))
     return table_blocks, annotation_blocks, claimed
+
+
+def _restore_front_matter_text_panel(source: _PageSource, bbox: BBox) -> bool:
+    """首页并列的文章信息与摘要不是数据表，凭独立分区标题和正文续行撤销弱表认领。"""
+    width, height = source.page_size
+    if source.page_index != 0 or not 0.15 * height <= bbox[1] < bbox[3] <= 0.7 * height or bbox[2] - bbox[0] < 0.6 * width:
+        return False
+    lines = [
+        line
+        for line in source.lines
+        if line.angle == 0 and _point_in_bbox((_bbox_center_x(line.bbox), _bbox_center_y(line.bbox)), bbox)
+    ]
+    headings = {re.sub(r"\s+", "", line.text).casefold(): line for line in lines}
+    if not {"articleinfo", "abstract"} <= headings.keys():
+        return False
+    info, abstract = headings["articleinfo"], headings["abstract"]
+    em = max(info.effective_height, abstract.effective_height)
+    if abs(info.bbox[1] - abstract.bbox[1]) > 0.5 * em or abstract.bbox[0] - info.bbox[2] < em:
+        return False
+    prose = [
+        line
+        for line in lines
+        if line.bbox[1] > abstract.bbox[3] and abs(line.bbox[0] - abstract.bbox[0]) < em and len(line.text.split()) >= 8
+    ]
+    fields = [
+        line
+        for line in lines
+        if line.bbox[2] < abstract.bbox[0]
+        and re.match(r"^(?:article history|received|accepted|available online|keywords)\b", line.text, re.IGNORECASE)
+    ]
+    if len(prose) < 3 or len(fields) < 3:
+        return False
+    for line in (info, abstract):
+        line.semantic_type = "paragraph_title"
+        line.explicit_section_title = True
+    return True
 
 
 def _materialize_table_annotations(

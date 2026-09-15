@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import statistics
 import unicodedata
+from dataclasses import replace
 from difflib import SequenceMatcher
 from typing import Literal
 
@@ -295,6 +296,49 @@ def _image_footnote_members(
     return {line.source_index for line, _bbox in members}
 
 
+def _footnote_visual_rows(
+    geometry: list[tuple[_LineItem, BBox]],
+) -> tuple[list[tuple[_LineItem, BBox]], dict[int, set[int]]]:
+    """按紧邻端点与同基线重建脚注判定用的视觉行，保留原始成员供最终认领。"""
+    groups: list[list[tuple[_LineItem, BBox]]] = []
+    for item in sorted(geometry, key=lambda item: (_bbox_center_y(item[1]), item[1][0])):
+        line, bbox = item
+        joined = None
+        for group in reversed(groups):
+            reference = _bbox_union_many([b for _, b in group])
+            height = min(
+                _line_effective_height(line, bbox),
+                statistics.median(_line_effective_height(member, bounds) for member, bounds in group),
+            )
+            if _bbox_center_y(bbox) - _bbox_center_y(reference) > 2 * height:
+                break
+            if (
+                abs(_bbox_center_y(bbox) - _bbox_center_y(reference)) <= 0.4 * height
+                and _bbox_axis_overlap_ratio(bbox, reference, axis="y") >= 0.6
+                and min(abs(bbox[0] - reference[2]), abs(reference[0] - bbox[2])) <= 0.75 * height
+            ):
+                joined = group
+                break
+        if joined is None:
+            groups.append([item])
+        else:
+            joined.append(item)
+    output = []
+    members = {}
+    for group in groups:
+        first = min((line for line, _ in group), key=lambda line: line.source_index)
+        members[first.source_index] = {line.source_index for line, _ in group}
+        if len(group) == 1:
+            output.append(group[0])
+        else:
+            height = statistics.median(_line_effective_height(line, bbox) for line, bbox in group)
+            merged = replace(
+                first, bbox=_bbox_union_many([line.bbox for line, _ in group]), effective_height=height, em_height=height
+            )
+            output.append((merged, _bbox_union_many([bbox for _, bbox in group])))
+    return output, members
+
+
 def _classify_page_footnotes(
     lines: list[_LineItem],
     table_bboxes: list[BBox],
@@ -323,6 +367,12 @@ def _classify_page_footnotes(
     if not line_geometry:
         return []
 
+    # 分式证据使用原始墨迹，脚注栏与续行则使用恢复后的整条物理行。
+    ink_bboxes = [
+        _rotate_bbox_to_upright(line.ink_bbox or line.bbox, page_size, dominant_angle) for line, _bbox in line_geometry
+    ]
+    line_geometry, row_members = _footnote_visual_rows(line_geometry)
+
     local_page_size = (page_size[1], page_size[0]) if dominant_angle in {90, 270} else page_size
     local_page_width, local_page_height = local_page_size
     if local_page_width <= 0 or local_page_height <= 0:
@@ -344,9 +394,6 @@ def _classify_page_footnotes(
 
     candidate_groups: list[set[int]] = []
     visual_bboxes = visual_bboxes or []
-    ink_bboxes = [
-        _rotate_bbox_to_upright(line.ink_bbox or line.bbox, page_size, dominant_angle) for line, _bbox in line_geometry
-    ]
     for axis_line in local_axis_lines:
         if axis_line.orientation != "horizontal":
             continue
@@ -362,6 +409,7 @@ def _classify_page_footnotes(
             for bbox in ink_bboxes
             if 0.4 * rule_width <= bbox[2] - bbox[0] <= rule_width + median_height
             and _bbox_axis_overlap_ratio(bbox, axis_line.bbox, axis="x") >= 0.8
+            and abs(_bbox_center_x(bbox) - _bbox_center_x(axis_line.bbox)) <= 0.15 * rule_width
         ]
         if (
             rule_width < 0.25 * local_page_width
@@ -435,6 +483,7 @@ def _classify_page_footnotes(
         line_geometry,
         median_height,
     )
+    page_footnote_groups = [set().union(*(row_members[index] for index in group)) for group in page_footnote_groups]
     footnote_source_indices = set().union(*page_footnote_groups) if page_footnote_groups else set()
     for line in available:
         if line.source_index in footnote_source_indices:

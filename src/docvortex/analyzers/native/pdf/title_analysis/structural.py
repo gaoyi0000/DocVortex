@@ -1079,3 +1079,79 @@ __all__ = [
     "_classify_body_height_section_titles",
     "_body_height_section_followers",
 ]
+
+
+def _classify_recurrent_unknown_weight_titles(pages: list[_PreparedPage]) -> None:
+    """字重不可用时，以跨页独立短行组和字体切换恢复标题，普通连续正文样式不能成为种子。"""
+    candidates = []
+    body_styles = set()
+    for page_index, page in enumerate(pages):
+        if page_index == 0:
+            continue
+        width, height = page.page_size
+        containers = [block["bbox"] for block in page.fixed_blocks]
+        for left, right in ((0.0, width / 2), (width / 2, width)):
+            rows = sorted(
+                [
+                    line
+                    for line in page.remaining_lines
+                    if line.angle == 0
+                    and left <= _bbox_center_x(line.bbox) < right
+                    and line.bbox[1] >= 0.06 * height
+                    and line.bbox[3] <= 0.93 * height
+                    and line.semantic_type in {None, "paragraph_title"}
+                    and not any(_line_inside_visual_container(line.bbox, [bbox]) for bbox in containers)
+                ],
+                key=lambda line: (line.bbox[1], line.bbox[0]),
+            )
+            if len(rows) < 4:
+                continue
+            em = statistics.median(_line_effective_height(line, line.bbox) for line in rows)
+            i = 0
+            while i < len(rows):
+                first = rows[i]
+                j = i + 1
+                while (
+                    j < len(rows)
+                    and rows[j].font_signature == first.font_signature
+                    and abs(rows[j].bbox[0] - first.bbox[0]) <= 0.5 * em
+                    and -0.25 * em <= rows[j].bbox[1] - rows[j - 1].bbox[3] <= 0.8 * em
+                ):
+                    j += 1
+                group = rows[i:j]
+                signature = first.font_signature
+                if len(group) >= 4:
+                    body_styles.add(signature)
+                words = " ".join(line.text for line in group).split()
+                heading_text = (
+                    2 <= len(words) <= 30
+                    or len(words) == 1
+                    and first.text.strip().isalpha()
+                    and 5 <= len(first.text.strip()) <= 25
+                )
+                if (
+                    signature is not None
+                    and len(group) <= 3
+                    and j < len(rows)
+                    and heading_text
+                    and all(line.dominant_font_weight is None and line.font_coverage >= 0.75 for line in group)
+                    and not any(line.paragraph_terminal for line in group)
+                    and rows[j].font_signature != signature
+                    and rows[j].bbox[2] - rows[j].bbox[0] >= 0.25 * (right - left)
+                    and len(re.findall(r"[A-Za-z]{2,}", rows[j].text)) >= 4
+                    and abs(rows[j].bbox[0] - first.bbox[0]) <= em
+                    and -0.1 * em <= rows[j].bbox[1] - group[-1].bbox[3] <= 1.5 * em
+                    and (i == 0 or first.bbox[1] - rows[i - 1].bbox[3] >= 0.3 * em)
+                ):
+                    candidates.append((page_index, signature, group))
+                i = j
+    by_style = {}
+    for index, signature, group in candidates:
+        by_style.setdefault(signature, []).append((index, group))
+    for signature, groups in by_style.items():
+        if signature in body_styles or len(groups) < 3 or len({index for index, _ in groups}) < 2:
+            continue
+        for _, group in groups:
+            for line in group:
+                line.semantic_type = "paragraph_title"
+                line.structural_title = True

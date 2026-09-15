@@ -377,6 +377,82 @@ def _structured_text_break_sources(
     return break_sources
 
 
+def _prose_paragraph_break_sources(lane: _TextLane, regular_gap: float, gap_mad: float) -> set[int]:
+    """用句末、可容纳下一首词的短尾及重复首行缩进确认自然段，保护公式和已有条目归组。"""
+    rows = sorted(lane.lines, key=lambda item: (item[1][1], item[1][0]))
+    width = max(0.1, lane.right - lane.left)
+    body = [
+        (line, bbox)
+        for line, bbox in rows
+        if line.semantic_type is None and line.paragraph_group is None and bbox[2] - bbox[0] >= 0.7 * width
+    ]
+    if len(body) < 3:
+        return set()
+    em = statistics.median(_line_effective_height(line, bbox) for line, bbox in body)
+    indent_starts = [bbox[0] for _, bbox in body if 0.65 * em <= bbox[0] - lane.left <= 3 * em]
+    output = set()
+    inside_item = False
+    caption_left = None
+    for index, (previous, current) in enumerate(zip(rows, rows[1:])):
+        first, fb = previous
+        line, bbox = current
+        if first.semantic_type is not None or bbox[1] - fb[3] > 3 * em:
+            inside_item = False
+            caption_left = None
+        if first.caption_start:
+            caption_left = fb[0]
+        if caption_left is not None and abs(bbox[0] - caption_left) > em:
+            caption_left = None
+        if re.match(r"^\s*(?:[•●▪]|\d+[.)](?:\s|$))", first.text) or _REFERENCE_ENTRY_RE.match(first.text):
+            inside_item = True
+        if (
+            first.angle != 0
+            or line.angle != 0
+            or first.semantic_type is not None
+            or line.semantic_type is not None
+            or first.paragraph_group is not None
+            or line.paragraph_group is not None
+            or first.formula_candidate_only
+            or line.formula_candidate_only
+            or first.compact_formula_cluster
+            or line.compact_formula_cluster
+            or inside_item
+            or caption_left is not None
+            or not (first.paragraph_terminal or re.search(r"[.!?。！？][\])’\"']*$", first.text.rstrip()))
+            or re.match(r"^[A-Z][A-Za-z]+\b", line.text.strip()) is None
+            or bbox[2] - bbox[0] < 0.7 * width
+        ):
+            continue
+        gap = _effective_body_text_row_gap(previous, current)
+        first_ink, current_ink = first.ink_bbox or fb, line.ink_bbox or bbox
+        if current_ink[1] < first_ink[3] - 0.15 * em:
+            continue
+        if not -0.25 * em <= gap <= regular_gap + max(0.75 * em, 3 * gap_mad):
+            continue
+        following = rows[index + 2] if index + 2 < len(rows) else None
+        repeated_indent = sum(abs(left - bbox[0]) <= 0.25 * em for left in indent_starts) >= 2
+        returns_to_left = (
+            following is not None
+            and following[0].semantic_type is None
+            and abs(following[1][0] - lane.left) <= 0.35 * em
+            and following[1][2] - following[1][0] >= 0.65 * width
+            and _title_fonts_compatible(line, following[0])
+        )
+        indented = 0.65 * em <= bbox[0] - lane.left <= 3 * em and (returns_to_left or repeated_indent)
+        word = re.match(r"\S+", line.text.strip()).group()
+        word_width = len(word) * (line.median_glyph_width or 0.5 * em)
+        short_tail = (
+            abs(bbox[0] - lane.left) <= 0.35 * em
+            and abs(fb[0] - lane.left) <= 0.35 * em
+            and fb[2] - fb[0] <= 0.8 * width
+            and lane.right - fb[2] >= word_width + 2 * em
+            and _title_fonts_compatible(first, line)
+        )
+        if indented or short_tail:
+            output.add(line.source_index)
+    return output
+
+
 def _isolated_indented_paragraph_break_sources(
     lane: _TextLane,
     regular_gap: float,

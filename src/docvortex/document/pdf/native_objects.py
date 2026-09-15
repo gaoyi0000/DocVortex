@@ -169,6 +169,32 @@ def _clipped_objects_of_type(page: Any, object_type: int) -> Iterator[_ClippedOb
             yield member
 
 
+def _text_object_visibility(page: Any, page_bbox: BBox, rotation: int) -> dict[int, tuple[bool, BBox | None]]:
+    """一次遍历建立文字对象的绘制状态与有效裁剪；地址只在本次页面提取内使用。"""
+    output = {}
+    for member in _clipped_objects_of_type(page, pdfium_c.FPDF_PAGEOBJ_TEXT):
+        address = ctypes.cast(member.raw, ctypes.c_void_p).value
+        if not address:
+            continue
+        mode = int(pdfium_c.FPDFTextObj_GetTextRenderMode(member.raw))
+        visible = mode not in {3, 7}
+        if mode in {0, 1, 2, 4, 5, 6}:
+            visible = (
+                mode in {0, 2, 4, 6}
+                and _get_raw_object_alpha(member.raw, pdfium_c.FPDFPageObj_GetFillColor) > 0
+                or mode in {1, 2, 5, 6}
+                and _get_raw_object_alpha(member.raw, pdfium_c.FPDFPageObj_GetStrokeColor) > 0
+            )
+        clip = member.clip
+        if clip is not None:
+            if clip[2] <= clip[0] or clip[3] <= clip[1]:
+                visible = False
+            else:
+                clip = _transform_object_bbox(clip, lambda point: _transform_drawing_point(point, page_bbox, rotation))
+        output[address] = (visible, clip)
+    return output
+
+
 def _walk_raw_page_objects_with_depth(
     container: Any,
     *,

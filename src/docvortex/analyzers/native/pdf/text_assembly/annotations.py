@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import statistics
+import re
 from typing import Any
 
 from .....schema import BBox
@@ -14,6 +15,22 @@ from .common import _FIGURE_CAPTION_MARKER_RE, _components_share_lane_role, _mer
 def _merge_image_caption_text_blocks(
     blocks: list[dict[str, Any]],
     image_bboxes: list[BBox],
+) -> list[dict[str, Any]]:
+    """逐行恢复图注续文，后续轮次仅延伸尚未结束的图注，不能越过完整句尾吞入正文。"""
+    continuation_only = False
+    while True:
+        merged = _merge_image_caption_text_pass(blocks, image_bboxes, continuation_only=continuation_only)
+        if len(merged) == len(blocks):
+            return merged
+        blocks = merged
+        continuation_only = True
+
+
+def _merge_image_caption_text_pass(
+    blocks: list[dict[str, Any]],
+    image_bboxes: list[BBox],
+    *,
+    continuation_only: bool,
 ) -> list[dict[str, Any]]:
     """在图像邻接已成立后，用通用图注标记确认锚点并吸收同字体续行。"""
 
@@ -41,6 +58,7 @@ def _merge_image_caption_text_blocks(
         index
         for index in text_indices
         if _FIGURE_CAPTION_MARKER_RE.match(str(blocks[index]["content"]).strip())
+        and not (continuation_only and re.search(r"[.!?。！？][\])’\"']*$", str(blocks[index]["content"]).rstrip()))
         and any(
             _caption_seed_matches_image(
                 blocks[index],
@@ -221,6 +239,11 @@ def _caption_tail_matches_seed(
 
     seed_bbox = seed["bbox"]
     candidate_bbox = candidate["bbox"]
+    # 环绕图片的正文可能在末行恢复通栏；其大外框不能充当右栏图注的续行。
+    if candidate_bbox[0] < seed_bbox[0] - median_height and abs(
+        _bbox_center_x(candidate_bbox) - _bbox_center_x(seed_bbox)
+    ) > 0.25 * max(candidate_bbox[2] - candidate_bbox[0], seed_bbox[2] - seed_bbox[0]):
+        return False
     if not _components_share_lane_role(seed, candidate, median_height) and (
         _bbox_axis_overlap_ratio(seed_bbox, candidate_bbox, axis="x") < 0.75
         or abs(seed_bbox[0] - candidate_bbox[0]) > median_height

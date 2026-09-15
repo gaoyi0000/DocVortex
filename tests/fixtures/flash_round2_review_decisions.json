@@ -1,0 +1,386 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "b56d294",
+  "source_code_sha256": "ba0e69f0426fcb6f95ef2d1a726d6996111b64a51beb0ee5f5366f406220894f",
+  "annotations": [
+    {
+      "id": "nougat-05-r2-01",
+      "document": "nougat",
+      "page": 5,
+      "operation": "footnote",
+      "original_indices": [
+        14,
+        15,
+        16
+      ],
+      "status": "修复通过",
+      "reason": "8、9、10 的 URL 均归入 page_footnote；真实分式反例保持。"
+    },
+    {
+      "id": "nougat-07-r2-02",
+      "document": "nougat",
+      "page": 7,
+      "operation": "split",
+      "original_indices": [
+        7
+      ],
+      "status": "修复通过",
+      "reason": "在 Both Nougat small and base 前独立成段。"
+    },
+    {
+      "id": "nougat-09-r2-03",
+      "document": "nougat",
+      "page": 9,
+      "operation": "split",
+      "original_indices": [
+        7
+      ],
+      "status": "修复通过",
+      "reason": "Utility、Nearly every dataset、Generation Speed 分为三个 text，段首粗体保留。"
+    },
+    {
+      "id": "nougat-09-r2-04",
+      "document": "nougat",
+      "page": 9,
+      "operation": "split",
+      "original_indices": [
+        8
+      ],
+      "status": "修复通过",
+      "reason": "Future work 与 The primary challenge 分为两段，段首强调保留。"
+    },
+    {
+      "id": "nougat-17-r2-05",
+      "document": "nougat",
+      "page": 17,
+      "operation": "visibility",
+      "original_indices": [
+        25,
+        26
+      ],
+      "status": "修复通过",
+      "reason": "裁剪隐藏的 IP、1/1、日期和浏览器标题不进入 Flash；可见页码 17 保留。"
+    },
+    {
+      "id": "mmlu_redux-02-r2-01",
+      "document": "mmlu_redux",
+      "page": 2,
+      "operation": "image",
+      "original_indices": [
+        5,
+        6
+      ],
+      "status": "修复通过",
+      "reason": "完整 Form 吸收最后选项行，图片下边界包含 A. Clark 至 D. Ebbinghaus。"
+    },
+    {
+      "id": "mmlu_redux-02-r2-02",
+      "document": "mmlu_redux",
+      "page": 2,
+      "operation": "caption",
+      "original_indices": [
+        7
+      ],
+      "status": "修复通过",
+      "reason": "三行 Figure 1 caption 完整绑定图片，Human Aging. 不再归入邻栏正文。"
+    },
+    {
+      "id": "frames_v1-01-r2-01",
+      "document": "frames_v1",
+      "page": 1,
+      "operation": "split",
+      "original_indices": [
+        9
+      ],
+      "status": "修复通过",
+      "reason": "在 To bridge this gap 前分为两段。"
+    },
+    {
+      "id": "frames_v1-08-r2-02",
+      "document": "frames_v1",
+      "page": 8,
+      "operation": "code_image",
+      "original_indices": [
+        2,
+        3
+      ],
+      "status": "修复通过",
+      "reason": "算法 1～12 行完整且仅属于 code_body；图片起点低于代码底部。"
+    },
+    {
+      "id": "frames_v2-01-r2-01",
+      "document": "frames_v2",
+      "page": 1,
+      "operation": "split",
+      "original_indices": [
+        10
+      ],
+      "status": "修复通过",
+      "reason": "重复首行缩进支持页底 Our work addresses 单行新段；已实现可选拆分。"
+    },
+    {
+      "id": "nash_review-01-r2-01",
+      "document": "nash_review",
+      "page": 1,
+      "operation": "split",
+      "original_indices": [
+        9
+      ],
+      "status": "修复通过",
+      "reason": "NAFLD can be broadly 前分为两段，句末上标引用不再阻断换段。"
+    },
+    {
+      "id": "nash_review-01-r2-02",
+      "document": "nash_review",
+      "page": 1,
+      "operation": "split",
+      "original_indices": [
+        7
+      ],
+      "status": "修复通过",
+      "reason": "续段、Among individuals、The development of a therapy 分为三段。"
+    },
+    {
+      "id": "nash_review-11-r2-03",
+      "document": "nash_review",
+      "page": 11,
+      "operation": "footnote",
+      "original_indices": [
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "status": "修复通过",
+      "reason": "Affiliations 与四个机构恢复为一个 page_footnote，按实际行序连接。"
+    },
+    {
+      "id": "nash_review-04-r2-04",
+      "document": "nash_review",
+      "page": 4,
+      "operation": "title",
+      "original_indices": [
+        4
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-06-r2-05",
+      "document": "nash_review",
+      "page": 6,
+      "operation": "title",
+      "original_indices": [
+        2
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-06-r2-06",
+      "document": "nash_review",
+      "page": 6,
+      "operation": "title",
+      "original_indices": [
+        7
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-07-r2-07",
+      "document": "nash_review",
+      "page": 7,
+      "operation": "title",
+      "original_indices": [
+        1
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-07-r2-08",
+      "document": "nash_review",
+      "page": 7,
+      "operation": "title",
+      "original_indices": [
+        5
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-09-r2-09",
+      "document": "nash_review",
+      "page": 9,
+      "operation": "title",
+      "original_indices": [
+        1
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-09-r2-10",
+      "document": "nash_review",
+      "page": 9,
+      "operation": "title",
+      "original_indices": [
+        5
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-10-r2-11",
+      "document": "nash_review",
+      "page": 10,
+      "operation": "title",
+      "original_indices": [
+        3
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-10-r2-12",
+      "document": "nash_review",
+      "page": 10,
+      "operation": "title",
+      "original_indices": [
+        8
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-12-r2-13",
+      "document": "nash_review",
+      "page": 12,
+      "operation": "title",
+      "original_indices": [
+        1
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-12-r2-14",
+      "document": "nash_review",
+      "page": 12,
+      "operation": "title",
+      "original_indices": [
+        3
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-12-r2-15",
+      "document": "nash_review",
+      "page": 12,
+      "operation": "title",
+      "original_indices": [
+        5
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-12-r2-16",
+      "document": "nash_review",
+      "page": 12,
+      "operation": "title",
+      "original_indices": [
+        8
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-12-r2-17",
+      "document": "nash_review",
+      "page": 12,
+      "operation": "title",
+      "original_indices": [
+        12
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "nash_review-12-r2-18",
+      "document": "nash_review",
+      "page": 12,
+      "operation": "title",
+      "original_indices": [
+        14
+      ],
+      "status": "修复通过",
+      "reason": "重复未知字重样式和独立排版支持整个标题；多行标题完整归入 paragraph_title。"
+    },
+    {
+      "id": "k2_treap-01-r2-01",
+      "document": "k2_treap",
+      "page": 1,
+      "operation": "front_matter_table",
+      "original_indices": [
+        10
+      ],
+      "status": "修复通过",
+      "reason": "article info 与 abstract 恢复两片文本区域；小标题为 paragraph_title，历史、关键词、摘要、版权为 text。"
+    },
+    {
+      "id": "k2_treap-10-r2-02",
+      "document": "k2_treap",
+      "page": 10,
+      "operation": "footnote",
+      "original_indices": [
+        8,
+        14
+      ],
+      "status": "修复通过",
+      "reason": "同行碎片及 our research. 归入一个完整脚注，右栏正文保持独立。"
+    },
+    {
+      "id": "mmlu_redux-02-r2-03",
+      "document": "mmlu_redux",
+      "page": 2,
+      "operation": "wrap_text",
+      "original_indices": [
+        4,
+        5,
+        6
+      ],
+      "status": "修复通过",
+      "reason": "原块 6 的两条窄栏行与原块 4、5 合并；documentation 开始的通栏尾行独立，图题不再被正文外框覆盖。"
+    }
+  ],
+  "history": [
+    {
+      "document": "caibao1",
+      "page": 1,
+      "status": "更新基线",
+      "reason": "原始字符企的右边界为 366.4196pt，有效裁剪右界为 366.31pt；保留字符，仅使用可见范围。归一化段落右界由 0.616 变为 0.615，类型、文字及顺序不变。"
+    },
+    {
+      "document": "caibao1",
+      "page": 5,
+      "status": "更新基线",
+      "reason": "原图上方图表8：四个字符完全被裁剪，在原页不可见。删除隐藏标签后图框只覆盖真实图形，实际图题图表7：保留。"
+    },
+    {
+      "document": "native_cjk_layout_synthetic",
+      "page": 3,
+      "status": "更新类型库存",
+      "reason": "以上普通文本均应保持在基线，不应生成上下标标签。为句末正文；无效字重不再使其误判为标题。"
+    },
+    {
+      "document": "native_cjk_layout_synthetic",
+      "page": 4,
+      "status": "更新类型库存",
+      "reason": "链接均使用保留域名，不指向真实账号或资源。为普通说明，恢复 text。"
+    }
+  ]
+}

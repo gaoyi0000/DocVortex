@@ -21,6 +21,18 @@ from .native_text import _fill_native_typography, _median_native_glyph_width
 from ._script_geometry import classify_char_script_roles, paired_script_roles
 
 
+def _caption_crosses_left_text(members: list[_LineItem]) -> bool:
+    """图题首行不得向左跨栏吞并正文，同栏后续行或右侧字体碎片仍可正常恢复。"""
+    return any(
+        seed.caption_start
+        and other is not seed
+        and other.bbox[2] <= seed.bbox[0] + 0.5 * _line_effective_height(seed, seed.bbox)
+        and other.bbox[0] < seed.bbox[0] - _line_effective_height(seed, seed.bbox)
+        for seed in members
+        for other in members
+    )
+
+
 def _merge_same_baseline_text_lines(
     lines: list[_LineItem],
     page_size: tuple[float, float],
@@ -250,7 +262,7 @@ def _classify_overlapping_inline_cluster(
 ) -> str | None:
     """按正文宿主和紧凑程度区分行内文本簇与独立公式簇。"""
 
-    if len(members) < 2:
+    if len(members) < 2 or _caption_crosses_left_text([line for line, _ in members]):
         return None
     visual_row_ids = {line.visual_row_id for line, _bbox in members if line.visual_row_id is not None}
     if len(visual_row_ids) < 2:
@@ -387,6 +399,8 @@ def _merge_overlapping_inline_cluster(
         median_glyph_width=host.median_glyph_width,
         leading_emphasis_width=ordered_members[0].leading_emphasis_width,
         leading_typography_width=ordered_members[0].leading_typography_width,
+        paragraph_terminal=ordered_members[-1].paragraph_terminal,
+        caption_start=any(member.caption_start for member in ordered_members),
         paragraph_formula_context=any(line.paragraph_formula_context for line in ordered_members),
         split_from_row=any(line.split_from_row for line in ordered_members),
         preserve_split_boundary=any(line.preserve_split_boundary for line in ordered_members),
@@ -440,6 +454,8 @@ def _merge_post_semantic_text_runs(
         first_height = _line_effective_height(first_line, first_bbox)
         for second_index in range(first_index + 1, len(lines)):
             second_line = lines[second_index]
+            if _caption_crosses_left_text([first_line, second_line]):
+                continue
             if second_line.semantic_type is not None or first_line.angle != second_line.angle:
                 continue
             if first_line.formula_candidate_only != second_line.formula_candidate_only:
@@ -537,7 +553,7 @@ def _can_merge_same_baseline_pair(
 ) -> bool:
     """判断两个剩余文本 run 是否属于同一条物理基线。"""
 
-    if first.angle != second.angle:
+    if first.angle != second.angle or _caption_crosses_left_text([first, second]):
         return False
     if first.formula_candidate_only != second.formula_candidate_only:
         return False
@@ -712,6 +728,8 @@ def _merge_same_baseline_group(
         else None,
         leading_emphasis_width=members[0].leading_emphasis_width,
         leading_typography_width=members[0].leading_typography_width,
+        paragraph_terminal=members[-1].paragraph_terminal,
+        caption_start=any(member.caption_start for member in members),
         paragraph_formula_context=any(member.paragraph_formula_context for member in members),
         split_from_row=any(member.split_from_row for member in members),
         preserve_split_boundary=any(member.preserve_split_boundary for member in members),
@@ -817,7 +835,10 @@ def _restore_dense_split_visual_rows(
 def _demote_runin_title_fragments(lines: list[_LineItem], page_size: tuple[float, float]) -> None:
     """同行正文延续的小标题属于段落内强调，保留原始字体证据供行内样式物化。"""
     for line in lines:
-        if line.semantic_type != "paragraph_title":
+        was_title = line.semantic_type == "paragraph_title"
+        if not was_title and not (
+            line.semantic_type is None and (line.dominant_font_weight or 0) >= 550 and len(line.text.split()) <= 8
+        ):
             continue
         bbox = _rotate_bbox_to_upright(line.ink_bbox or line.bbox, page_size, line.angle)
         height = _line_effective_height(line, bbox)
@@ -825,6 +846,10 @@ def _demote_runin_title_fragments(lines: list[_LineItem], page_size: tuple[float
             if other is line or other.angle != line.angle or other.semantic_type is not None:
                 continue
             if other.formula_candidate_only or other.compact_formula_cluster:
+                continue
+            if not was_title and (
+                other.dominant_font_weight is None or line.dominant_font_weight < other.dominant_font_weight + 100
+            ):
                 continue
             other_bbox = _rotate_bbox_to_upright(other.ink_bbox or other.bbox, page_size, other.angle)
             other_height = _line_effective_height(other, other_bbox)
@@ -840,6 +865,9 @@ def _demote_runin_title_fragments(lines: list[_LineItem], page_size: tuple[float
                 and _same_baseline_geometry(bbox, height, other_bbox, other_height, maximum_gap=5 * max(height, other_height))
             ):
                 line.semantic_type = None
+                if bbox[0] < other_bbox[0]:
+                    line.leading_emphasis_width = bbox[2] - bbox[0]
+                    line.leading_typography_width = bbox[2] - bbox[0]
                 line.title_suppressed = True
                 line.structural_title = False
                 line.explicit_section_title = False
@@ -1274,6 +1302,8 @@ def _merge_dense_split_visual_row(
         else None,
         leading_emphasis_width=ordered_members[0].leading_emphasis_width,
         leading_typography_width=ordered_members[0].leading_typography_width,
+        paragraph_terminal=ordered_members[-1].paragraph_terminal,
+        caption_start=any(member.caption_start for member in ordered_members),
         paragraph_formula_context=any(member.paragraph_formula_context for member in ordered_members),
         split_from_row=False,
         preserve_split_boundary=any(member.preserve_split_boundary for member in ordered_members),

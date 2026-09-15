@@ -111,7 +111,12 @@ def _mark_visible_objects(chars: list[Char], handle: Any) -> None:
 
 
 def get_chars(
-    textpage: pdfium.PdfTextPage, page_bbox: list[float], page_rotation: int, *, include_geometry: bool = False
+    textpage: pdfium.PdfTextPage,
+    page_bbox: list[float],
+    page_rotation: int,
+    *,
+    include_geometry: bool = False,
+    visibility_by_object: dict[int, tuple[bool, tuple[float, float, float, float] | None]] | None = None,
 ) -> list[Char]:
     """读取原始字符记录；原始码值始终保留，随后统一解码和去重。"""
     handle = textpage.raw
@@ -169,6 +174,7 @@ def get_chars(
             "origin": None,
         }
         # 只在当前提取期间持有地址键，输出使用页内整数编号，不保存原生句柄。
+        address = None
         try:
             obj = raw.FPDFText_GetTextObject(handle, index)
             address = cast(obj, c_void_p).value
@@ -189,10 +195,37 @@ def get_chars(
         if include_geometry:
             char["loose_bbox"] = visual_bbox(loose, tuple(page_bbox), page_rotation) if loose else None
             char["tight_bbox"] = visual_bbox(tight, tuple(page_bbox), page_rotation) if tight else None
+        if visibility_by_object is not None and address in visibility_by_object:
+            visible, clip = visibility_by_object[address]
+            if not visible:
+                continue
+            if clip is not None and not _clip_visible_character(char, clip):
+                continue
         chars.append(char)
     _assign_writing_angles(chars)
     _mark_visible_objects(chars, handle)
     return chars
+
+
+def _clip_visible_character(char: Char, clip: tuple[float, float, float, float]) -> bool:
+    """只裁剪实际被截断的字形；原点与字符索引保持不变，完全在裁剪区外的文字不进入 Flash。"""
+    ink = char.get("tight_bbox") or char["bbox"]
+    if char["char"].isspace():
+        # PDFium 的空格可能没有墨迹面积，仍须保留可见词之间的原始分隔符。
+        return clip[0] <= (ink[0] + ink[2]) / 2 <= clip[2] and clip[1] <= (ink[1] + ink[3]) / 2 <= clip[3]
+    visible = (max(ink[0], clip[0]), max(ink[1], clip[1]), min(ink[2], clip[2]), min(ink[3], clip[3]))
+    if visible[2] <= visible[0] or visible[3] <= visible[1]:
+        return False
+    if tuple(ink) != visible:
+        for key in ("bbox", "loose_bbox", "tight_bbox"):
+            bbox = char.get(key)
+            if bbox is not None:
+                clipped = (max(bbox[0], clip[0]), max(bbox[1], clip[1]), min(bbox[2], clip[2]), min(bbox[3], clip[3]))
+                if clipped[2] <= clipped[0] or clipped[3] <= clipped[1]:
+                    # 损坏的 loose 框不能推翻有效墨迹证据，使用已确认的可见字形范围。
+                    clipped = visible
+                char[key] = Bbox(list(clipped)) if key == "bbox" else clipped
+    return True
 
 
 __all__ = ["transform_point", "visual_bbox"]

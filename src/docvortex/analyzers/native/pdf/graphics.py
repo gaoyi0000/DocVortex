@@ -77,6 +77,11 @@ def _build_caption_graphic_blocks(
     ]
     blocks: list[dict[str, Any]] = []
     claimed: set[int] = set()
+    code_members = {
+        line.source_index
+        for line in source.lines
+        if any(_bbox_overlap_in_first(line.bbox, code) >= 0.8 for code in code_bboxes)
+    }
     for caption in sorted(captions, key=lambda line: (line.bbox[1], line.bbox[0])):
         cb = caption.bbox
         # 图题中的数学上下标会拆开同一物理行，使用整行投影决定是否跨栏。
@@ -122,6 +127,7 @@ def _build_caption_graphic_blocks(
         ]
         floor = max(barriers, default=0.06 * height)
         floor = max([floor, *(bbox[3] for bbox in table_bboxes if bbox[3] <= cb[1] and bbox[2] > left and bbox[0] < right)])
+        floor = max([floor, *(bbox[3] for bbox in code_bboxes if bbox[3] <= cb[1] and bbox[2] > left and bbox[0] < right)])
         candidates = [
             bbox
             for bbox in primitives
@@ -131,6 +137,7 @@ def _build_caption_graphic_blocks(
             and bbox[0] >= left - em
             and bbox[2] <= right + em
             and not any(_bbox_overlap_in_first(bbox, table) >= 0.25 for table in table_bboxes)
+            and not any(_bbox_overlap_in_first(bbox, code) >= 0.25 for code in code_bboxes)
         ]
         if not candidates:
             continue
@@ -151,6 +158,7 @@ def _build_caption_graphic_blocks(
                 line
                 for line in source.lines
                 if line.source_index not in claimed
+                and line.source_index not in code_members
                 and line not in captions
                 and line.source_index not in caption_line_indices
                 and (line.semantic_type is None or line.angle in {90, 270})
@@ -158,7 +166,14 @@ def _build_caption_graphic_blocks(
                 and line.bbox[3] <= cb[1]
                 and left <= _bbox_center_x(line.bbox) <= right
                 and _bbox_distance(line.ink_bbox or line.bbox, bbox) <= 4 * em
-                and (len(line.text.split()) < 8 or _bbox_overlap_in_first(line.bbox, bbox) >= 0.9)
+                and (
+                    len(line.text.split()) < 8
+                    or _bbox_overlap_in_first(line.bbox, bbox) >= 0.9
+                    or any(
+                        _bbox_overlap_in_first(line.bbox, form) >= 0.95 and _bbox_overlap_in_first(form, bbox) >= 0.75
+                        for form in source.form_bboxes
+                    )
+                )
                 and not (
                     _bbox_overlap_in_first(line.bbox, bbox) < 0.5
                     and (
