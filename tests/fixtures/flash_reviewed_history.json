@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "baseline_revision": "cefa120874954f7c09734309c10ede377dc25cb9",
   "review_record": "docs/flash-manual-annotations-2026-09-15.md",
   "documents": [
@@ -261,7 +261,159 @@
         {
           "page_index": 0,
           "fingerprint": "e6f4ff10dd00a7af6a93d9a6df755a59e8c119dd602759d83118fd68417f4423",
-          "bbox_fingerprint": "e93e2907b0ffd8ab5dbfea3dfa69b1c8e1f0160e99c3f128d587f5ba0bb438f3"
+          "bbox_fingerprint": "e93e2907b0ffd8ab5dbfea3dfa69b1c8e1f0160e99c3f128d587f5ba0bb438f3",
+          "bbox_tolerance": {
+            "platforms": [
+              "linux"
+            ],
+            "reason": "未嵌入 Times-Roman/Helvetica（arXiv 水印与合成样本正文）在 Linux 系统字体回退下的墨迹框垂直偏移，最大 1 刻度",
+            "source": "PR #2 font-platform-consistency history-geometry-diff：ubuntu-latest py3.14 pypdfium2 5.10.1 与 ubuntu pdfium-current py3.13 pypdfium2 5.13.0，参考 macos-latest 捕获",
+            "reference_blocks": [
+              [
+                0.122,
+                0.092,
+                0.878,
+                0.11
+              ],
+              [
+                0.272,
+                0.124,
+                0.419,
+                0.161
+              ],
+              [
+                0.421,
+                0.127,
+                0.549,
+                0.158
+              ],
+              [
+                0.571,
+                0.127,
+                0.731,
+                0.158
+              ],
+              [
+                0.369,
+                0.162,
+                0.636,
+                0.178
+              ],
+              [
+                0.429,
+                0.177,
+                0.577,
+                0.194
+              ],
+              [
+                0.347,
+                0.197,
+                0.649,
+                0.21
+              ],
+              [
+                0.369,
+                0.213,
+                0.637,
+                0.227
+              ],
+              [
+                0.264,
+                0.255,
+                0.341,
+                0.267
+              ],
+              [
+                0.613,
+                0.267,
+                0.782,
+                0.304
+              ],
+              [
+                0.513,
+                0.31,
+                0.857,
+                0.368
+              ],
+              [
+                0.512,
+                0.373,
+                0.884,
+                0.407
+              ],
+              [
+                0.562,
+                0.424,
+                0.834,
+                0.474
+              ],
+              [
+                0.513,
+                0.481,
+                0.882,
+                0.57
+              ],
+              [
+                0.513,
+                0.582,
+                0.88,
+                0.638
+              ],
+              [
+                0.508,
+                0.648,
+                0.885,
+                0.92
+              ],
+              [
+                0.029,
+                0.311,
+                0.063,
+                0.719
+              ],
+              [
+                0.145,
+                0.283,
+                0.461,
+                0.677
+              ],
+              [
+                0.119,
+                0.693,
+                0.26,
+                0.705
+              ],
+              [
+                0.117,
+                0.719,
+                0.487,
+                0.829
+              ],
+              [
+                0.118,
+                0.832,
+                0.488,
+                0.862
+              ],
+              [
+                0.146,
+                0.87,
+                0.412,
+                0.883
+              ],
+              [
+                0.118,
+                0.882,
+                0.49,
+                0.917
+              ]
+            ],
+            "allowances": {
+              "16": {
+                "y0": 1
+              }
+            }
+          }
         },
         {
           "page_index": 1,
@@ -878,42 +1030,477 @@
         {
           "page_index": 0,
           "fingerprint": "b40b329dc2048492e5c23a8748ee52aaf7c2e19b777d7d1bbdeb532589d149d5",
-          "bbox_fingerprint": "bab6f4432413b6e4031d821fa5ab44b75020049220c69e258c31f0f15d1b9a9c"
+          "bbox_fingerprint": "bab6f4432413b6e4031d821fa5ab44b75020049220c69e258c31f0f15d1b9a9c",
+          "bbox_tolerance": {
+            "platforms": [
+              "linux"
+            ],
+            "reason": "未嵌入 Times-Roman/Helvetica（arXiv 水印与合成样本正文）在 Linux 系统字体回退下的墨迹框垂直偏移，最大 1 刻度",
+            "source": "PR #2 font-platform-consistency history-geometry-diff：ubuntu-latest py3.14 pypdfium2 5.10.1 与 ubuntu pdfium-current py3.13 pypdfium2 5.13.0，参考 macos-latest 捕获",
+            "reference_blocks": [
+              [
+                0.091,
+                0.048,
+                0.441,
+                0.068
+              ],
+              [
+                0.091,
+                0.074,
+                0.373,
+                0.086
+              ],
+              [
+                0.121,
+                0.169,
+                0.549,
+                0.183
+              ],
+              [
+                0.121,
+                0.195,
+                0.628,
+                0.209
+              ],
+              [
+                0.496,
+                0.955,
+                0.504,
+                0.967
+              ]
+            ],
+            "allowances": {
+              "0": {
+                "y0": 1
+              },
+              "1": {
+                "y0": 1
+              },
+              "2": {
+                "y0": 1
+              },
+              "3": {
+                "y0": 1,
+                "y1": 1
+              },
+              "4": {
+                "y0": 1
+              }
+            }
+          }
         },
         {
           "page_index": 1,
           "fingerprint": "a7156a7ace57c8b4d5e782d5727b124be42582b37bb7b539ab24109c08875abd",
-          "bbox_fingerprint": "2bd8d77744b40c893a071fd15f98e8f7b1cd8320185d6037f5e436b08c30760d"
+          "bbox_fingerprint": "2bd8d77744b40c893a071fd15f98e8f7b1cd8320185d6037f5e436b08c30760d",
+          "bbox_tolerance": {
+            "platforms": [
+              "linux"
+            ],
+            "reason": "未嵌入 Times-Roman/Helvetica（arXiv 水印与合成样本正文）在 Linux 系统字体回退下的墨迹框垂直偏移，最大 1 刻度",
+            "source": "PR #2 font-platform-consistency history-geometry-diff：ubuntu-latest py3.14 pypdfium2 5.10.1 与 ubuntu pdfium-current py3.13 pypdfium2 5.13.0，参考 macos-latest 捕获",
+            "reference_blocks": [
+              [
+                0.091,
+                0.048,
+                0.47,
+                0.068
+              ],
+              [
+                0.121,
+                0.14,
+                0.339,
+                0.153
+              ],
+              [
+                0.121,
+                0.168,
+                0.877,
+                0.302
+              ],
+              [
+                0.121,
+                0.342,
+                0.323,
+                0.355
+              ],
+              [
+                0.121,
+                0.37,
+                0.877,
+                0.504
+              ],
+              [
+                0.121,
+                0.55,
+                0.608,
+                0.563
+              ],
+              [
+                0.496,
+                0.955,
+                0.504,
+                0.967
+              ]
+            ],
+            "allowances": {
+              "0": {
+                "y0": 1
+              },
+              "1": {
+                "y0": 1,
+                "y1": 1
+              },
+              "3": {
+                "y0": 1
+              },
+              "5": {
+                "y0": 1
+              },
+              "6": {
+                "y0": 1
+              }
+            }
+          }
         },
         {
           "page_index": 2,
           "fingerprint": "f97b7927aa27004a3fac657fc9cd8d7ae98aa28bf2ebb758fc53be3f74c98347",
-          "bbox_fingerprint": "58c25b128f2ace7234b03022a54f8fb6fd462b95adbbb313697f1f1f261735aa"
+          "bbox_fingerprint": "58c25b128f2ace7234b03022a54f8fb6fd462b95adbbb313697f1f1f261735aa",
+          "bbox_tolerance": {
+            "platforms": [
+              "linux"
+            ],
+            "reason": "未嵌入 Times-Roman/Helvetica（arXiv 水印与合成样本正文）在 Linux 系统字体回退下的墨迹框垂直偏移，最大 1 刻度",
+            "source": "PR #2 font-platform-consistency history-geometry-diff：ubuntu-latest py3.14 pypdfium2 5.10.1 与 ubuntu pdfium-current py3.13 pypdfium2 5.13.0，参考 macos-latest 捕获",
+            "reference_blocks": [
+              [
+                0.091,
+                0.048,
+                0.575,
+                0.068
+              ],
+              [
+                0.121,
+                0.14,
+                0.39,
+                0.153
+              ],
+              [
+                0.121,
+                0.168,
+                0.877,
+                0.312
+              ],
+              [
+                0.128,
+                0.356,
+                0.505,
+                0.395
+              ],
+              [
+                0.496,
+                0.955,
+                0.504,
+                0.967
+              ]
+            ],
+            "allowances": {
+              "0": {
+                "y0": 1
+              },
+              "1": {
+                "y0": 1,
+                "y1": 1
+              },
+              "4": {
+                "y0": 1
+              }
+            }
+          }
         },
         {
           "page_index": 3,
           "fingerprint": "1b67449d09d9d7da920b8dd3d1ed74ab3cc625978ae1d6e1b2c33c557ae83ff8",
-          "bbox_fingerprint": "db11fa265514491e1249280c0dc4ecd73a8592b1cb429c4d791f437822f97fa5"
+          "bbox_fingerprint": "db11fa265514491e1249280c0dc4ecd73a8592b1cb429c4d791f437822f97fa5",
+          "bbox_tolerance": {
+            "platforms": [
+              "linux"
+            ],
+            "reason": "未嵌入 Times-Roman/Helvetica（arXiv 水印与合成样本正文）在 Linux 系统字体回退下的墨迹框垂直偏移，最大 1 刻度",
+            "source": "PR #2 font-platform-consistency history-geometry-diff：ubuntu-latest py3.14 pypdfium2 5.10.1 与 ubuntu pdfium-current py3.13 pypdfium2 5.13.0，参考 macos-latest 捕获",
+            "reference_blocks": [
+              [
+                0.091,
+                0.048,
+                0.551,
+                0.068
+              ],
+              [
+                0.121,
+                0.14,
+                0.3,
+                0.153
+              ],
+              [
+                0.121,
+                0.168,
+                0.877,
+                0.331
+              ],
+              [
+                0.496,
+                0.955,
+                0.504,
+                0.967
+              ]
+            ],
+            "allowances": {
+              "0": {
+                "y0": 1
+              },
+              "1": {
+                "y0": 1,
+                "y1": 1
+              },
+              "3": {
+                "y0": 1
+              }
+            }
+          }
         },
         {
           "page_index": 4,
           "fingerprint": "c774d84ecf514f64ebda06f19bc7b6c99e141bc9aab0bdfe8b8be05218eccf81",
-          "bbox_fingerprint": "f6a36101ea7e77a906627fad813e6267a3d32c7d498186528138a7a8f6539fec"
+          "bbox_fingerprint": "f6a36101ea7e77a906627fad813e6267a3d32c7d498186528138a7a8f6539fec",
+          "bbox_tolerance": {
+            "platforms": [
+              "linux"
+            ],
+            "reason": "未嵌入 Times-Roman/Helvetica（arXiv 水印与合成样本正文）在 Linux 系统字体回退下的墨迹框垂直偏移，最大 1 刻度",
+            "source": "PR #2 font-platform-consistency history-geometry-diff：ubuntu-latest py3.14 pypdfium2 5.10.1 与 ubuntu pdfium-current py3.13 pypdfium2 5.13.0，参考 macos-latest 捕获",
+            "reference_blocks": [
+              [
+                0.091,
+                0.048,
+                0.435,
+                0.068
+              ],
+              [
+                0.121,
+                0.158,
+                0.553,
+                0.171
+              ],
+              [
+                0.121,
+                0.182,
+                0.594,
+                0.195
+              ],
+              [
+                0.121,
+                0.205,
+                0.602,
+                0.219
+              ],
+              [
+                0.121,
+                0.253,
+                0.54,
+                0.266
+              ],
+              [
+                0.496,
+                0.955,
+                0.504,
+                0.967
+              ]
+            ],
+            "allowances": {
+              "0": {
+                "y0": 1
+              },
+              "1": {
+                "y0": 1
+              },
+              "2": {
+                "y0": 1
+              },
+              "4": {
+                "y0": 1
+              },
+              "5": {
+                "y0": 1
+              }
+            }
+          }
         },
         {
           "page_index": 5,
           "fingerprint": "7f0382e702bf4d40bfe9e67f7b517134e03dd8d8ab8b8e0356c44126755b6832",
-          "bbox_fingerprint": "b81ccaa8d0fdf137579d8c4a98446343604f7bdd960a27e01dab43754d566f35"
+          "bbox_fingerprint": "b81ccaa8d0fdf137579d8c4a98446343604f7bdd960a27e01dab43754d566f35",
+          "bbox_tolerance": {
+            "platforms": [
+              "linux"
+            ],
+            "reason": "未嵌入 Times-Roman/Helvetica（arXiv 水印与合成样本正文）在 Linux 系统字体回退下的墨迹框垂直偏移，最大 1 刻度",
+            "source": "PR #2 font-platform-consistency history-geometry-diff：ubuntu-latest py3.14 pypdfium2 5.10.1 与 ubuntu pdfium-current py3.13 pypdfium2 5.13.0，参考 macos-latest 捕获",
+            "reference_blocks": [
+              [
+                0.091,
+                0.048,
+                0.455,
+                0.068
+              ],
+              [
+                0.121,
+                0.14,
+                0.36,
+                0.153
+              ],
+              [
+                0.121,
+                0.168,
+                0.877,
+                0.312
+              ],
+              [
+                0.128,
+                0.319,
+                0.488,
+                0.33
+              ],
+              [
+                0.496,
+                0.955,
+                0.504,
+                0.967
+              ]
+            ],
+            "allowances": {
+              "0": {
+                "y0": 1
+              },
+              "1": {
+                "y0": 1,
+                "y1": 1
+              },
+              "4": {
+                "y0": 1
+              }
+            }
+          }
         },
         {
           "page_index": 6,
           "fingerprint": "78466fd315bf3c1261e072a11612c12edbe3518a40f91c8d1413769aec136840",
-          "bbox_fingerprint": "b487310a7b56b5357a0d1a46a3b4476eeb509c12a910fb39605fa16d9c118392"
+          "bbox_fingerprint": "b487310a7b56b5357a0d1a46a3b4476eeb509c12a910fb39605fa16d9c118392",
+          "bbox_tolerance": {
+            "platforms": [
+              "linux"
+            ],
+            "reason": "未嵌入 Times-Roman/Helvetica（arXiv 水印与合成样本正文）在 Linux 系统字体回退下的墨迹框垂直偏移，最大 1 刻度",
+            "source": "PR #2 font-platform-consistency history-geometry-diff：ubuntu-latest py3.14 pypdfium2 5.10.1 与 ubuntu pdfium-current py3.13 pypdfium2 5.13.0，参考 macos-latest 捕获",
+            "reference_blocks": [
+              [
+                0.091,
+                0.048,
+                0.469,
+                0.068
+              ],
+              [
+                0.121,
+                0.692,
+                0.361,
+                0.706
+              ],
+              [
+                0.121,
+                0.72,
+                0.877,
+                0.828
+              ],
+              [
+                0.128,
+                0.835,
+                0.384,
+                0.845
+              ],
+              [
+                0.496,
+                0.955,
+                0.504,
+                0.967
+              ]
+            ],
+            "allowances": {
+              "0": {
+                "y0": 1
+              },
+              "3": {
+                "y0": 1
+              },
+              "4": {
+                "y0": 1
+              }
+            }
+          }
         },
         {
           "page_index": 7,
           "fingerprint": "0895d4f09ef47f536dce8135bc07e11a07cd5dda9499767fc99c2bea07284ac3",
-          "bbox_fingerprint": "8ec9c05473a0379936918a0b521c1a3f2002795497cd1aeb3dd6db0d13759431"
+          "bbox_fingerprint": "8ec9c05473a0379936918a0b521c1a3f2002795497cd1aeb3dd6db0d13759431",
+          "bbox_tolerance": {
+            "platforms": [
+              "linux"
+            ],
+            "reason": "未嵌入 Times-Roman/Helvetica（arXiv 水印与合成样本正文）在 Linux 系统字体回退下的墨迹框垂直偏移，最大 1 刻度",
+            "source": "PR #2 font-platform-consistency history-geometry-diff：ubuntu-latest py3.14 pypdfium2 5.10.1 与 ubuntu pdfium-current py3.13 pypdfium2 5.13.0，参考 macos-latest 捕获",
+            "reference_blocks": [
+              [
+                0.091,
+                0.048,
+                0.589,
+                0.068
+              ],
+              [
+                0.155,
+                0.107,
+                0.607,
+                0.119
+              ],
+              [
+                0.121,
+                0.159,
+                0.536,
+                0.171
+              ],
+              [
+                0.496,
+                0.955,
+                0.504,
+                0.967
+              ],
+              [
+                0.399,
+                0.968,
+                0.601,
+                0.999
+              ]
+            ],
+            "allowances": {
+              "0": {
+                "y0": 1
+              },
+              "1": {
+                "y0": 1
+              },
+              "3": {
+                "y0": 1
+              }
+            }
+          }
         }
       ]
     },
@@ -977,5 +1564,6 @@
       ]
     }
   ],
-  "round2_review_record": "docs/flash-round2-annotations-2026-09-15.md"
+  "round2_review_record": "docs/flash-round2-annotations-2026-09-15.md",
+  "bbox_tolerance_policy": "未配置坐标容差为零；容差按 0.001 输出网格的整数刻度差冻结，取诊断矩阵最大实测值"
 }
