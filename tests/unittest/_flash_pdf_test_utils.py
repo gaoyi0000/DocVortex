@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from contextlib import contextmanager
 from unittest.mock import patch
 from typing import Any
@@ -20,6 +21,9 @@ _IGNORED_FINGERPRINT_KEYS = {
     "img_path",
     "_layout_tree",
 }
+
+_BBOX_GRID = 1000
+_BBOX_COORD_NAMES = ("x0", "y0", "x1", "y1")
 
 
 @contextmanager
@@ -95,6 +99,61 @@ def _page_bbox_fingerprint(page: list[dict[str, Any]]) -> str:
         for block in page
     ]
     return _sha256_bytes(json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8"))
+
+
+def _bbox_grid_steps(bbox: Any) -> list[int]:
+    """按 0.001 输出量化网格取整数刻度，避免浮点表示差造成边界误判。"""
+
+    values = list(bbox) if isinstance(bbox, (list, tuple)) else None
+    assert values is not None and len(values) == 4, ("bbox must hold four coordinates", bbox)
+    assert all(isinstance(value, (int, float)) and math.isfinite(value) for value in values), ("bbox must be finite", bbox)
+    return [round(float(value) * _BBOX_GRID) for value in values]
+
+
+def _assert_page_bboxes_within(
+    page: list[dict[str, Any]],
+    reference_bboxes: list[list[float]],
+    allowances: dict[str, dict[str, int]],
+    context: tuple[Any, ...],
+) -> None:
+    """逐块比较 bbox 的整数刻度差；未配置坐标的容差为零，超差即失败。
+
+    allowances 的块索引与坐标名为 JSON 字符串键，例如 {"3": {"y0": 2}}。
+    """
+
+    assert len(page) == len(reference_bboxes), (*context, "block count", len(page), len(reference_bboxes))
+    for index, (block, reference) in enumerate(zip(page, reference_bboxes, strict=True)):
+        actual_steps = _bbox_grid_steps(block.get("bbox"))
+        reference_steps = _bbox_grid_steps(reference)
+        allowed = allowances.get(str(index), {})
+        for name, actual, expected in zip(_BBOX_COORD_NAMES, actual_steps, reference_steps, strict=True):
+            delta = actual - expected
+            limit = int(allowed.get(name, 0))
+            assert abs(delta) <= limit, (
+                *context,
+                "block",
+                index,
+                name,
+                "expected",
+                expected,
+                "actual",
+                actual,
+                "delta",
+                delta,
+                "allowed",
+                limit,
+            )
+
+
+def _assert_history_page(page: list[dict[str, Any]], expected: dict[str, Any], context: tuple[Any, ...], platform: str) -> None:
+    """内容指纹始终精确校验；仅平台命中冻结容差的页面用整数刻度比较替代 bbox 指纹。"""
+
+    assert _page_fingerprint(page) == expected["fingerprint"], (*context, "content")
+    tolerance = expected.get("bbox_tolerance")
+    if tolerance is not None and platform in tolerance["platforms"]:
+        _assert_page_bboxes_within(page, tolerance["reference_blocks"], tolerance["allowances"], context)
+    else:
+        assert _page_bbox_fingerprint(page) == expected["bbox_fingerprint"], (*context, "bbox")
 
 
 def _geometry_summary_mismatch(

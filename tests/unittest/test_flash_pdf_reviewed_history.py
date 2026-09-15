@@ -5,16 +5,17 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+import sys
 
 import pytest
 
-from _flash_pdf_test_utils import _page_bbox_fingerprint, _page_fingerprint, formula_detection_evidence
+from _flash_pdf_test_utils import _assert_history_page, formula_detection_evidence
 from test_flash_pdf_char_geometry import _read_pdf_fixture
 from docvortex.analyzers.native.pdf.pipeline import _analyze_native_document
 from docvortex.document.pdf import PDFDocument
 
 ROOT = Path(__file__).parents[2]
-MANIFEST = json.loads((ROOT / "tests/fixtures/flash_reviewed_history.json").read_text())
+MANIFEST = json.loads((ROOT / "tests/fixtures/flash_reviewed_history.json").read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize("document", MANIFEST["documents"], ids=lambda document: document["name"])
@@ -26,5 +27,4 @@ def test_reviewed_historical_pages_keep_content_order_types_and_bounds(document:
         pages = _analyze_native_document(pdf)
     assert len(pages) == len(document["pages"])
     for index, (page, expected) in enumerate(zip(pages, document["pages"], strict=True)):
-        assert _page_fingerprint(page) == expected["fingerprint"], (document["name"], index + 1, "content")
-        assert _page_bbox_fingerprint(page) == expected["bbox_fingerprint"], (document["name"], index + 1, "bbox")
+        _assert_history_page(page, expected, (document["name"], index + 1), sys.platform)
