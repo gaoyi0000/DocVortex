@@ -41,6 +41,12 @@ jobs:
           python-version: '3.13'
       - run: uv venv
       - run: uv pip install ".[test]" "pypdfium2==5.13.0"
+      - run: uv run --no-project python tools/review_flash_regression.py --output history-output
+      - uses: actions/upload-artifact@v4
+        with:
+          name: history-geometry-ubuntu-pdfium-current
+          path: history-output/summary.json
+          retention-days: 14
       - run: uv run --no-project python -m pytest -q -n auto --deselect tests/unittest/test_native_pdf_table_demo_manifest.py::test_demo_sparse_table_confidence_manifest
 
   lint:
@@ -91,16 +97,23 @@ jobs:
         with:
           python-version: '3.14'
       - run: uv venv
-      - run: uv pip install . "pydantic==2.12.5" "pypdfium2==5.10.1"
+      - run: uv pip install ".[test]" "pydantic==2.12.5" "pypdfium2==5.10.1"
       - run: uv run --no-project python tools/capture_platform_layout.py --output platform-output
+      - run: uv run --no-project python tools/review_flash_regression.py --output history-output
       - uses: actions/upload-artifact@v4
         with:
           name: platform-layout-${{ matrix.os }}
           path: platform-output/
           retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: history-geometry-${{ matrix.os }}
+          path: history-output/summary.json
+          retention-days: 14
 
   font-platform-consistency:
-    needs: platform-artifacts
+    needs: [platform-artifacts, pdfium-current]
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -116,4 +129,18 @@ jobs:
         with:
           name: font-platform-comparison
           path: font-platform-comparison.json
+          retention-days: 14
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: history-geometry-*
+          path: history
+      - name: Diff history geometry against the macOS reference
+        run: |
+          uv run --no-project python tools/diff_history_geometry.py history/history-geometry-macos-latest history/history-geometry-ubuntu-latest --output history-diff-ubuntu-latest.json
+          uv run --no-project python tools/diff_history_geometry.py history/history-geometry-macos-latest history/history-geometry-windows-latest --output history-diff-windows-latest.json
+          uv run --no-project python tools/diff_history_geometry.py history/history-geometry-macos-latest history/history-geometry-ubuntu-pdfium-current --output history-diff-ubuntu-pdfium-current.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: history-geometry-diff
+          path: history-diff-*.json
           retention-days: 14
