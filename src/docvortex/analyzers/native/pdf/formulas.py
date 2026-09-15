@@ -9,6 +9,7 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 from ....document.pdf._document import PDFPathInfo
+from ....document.pdf.text._contracts import Char
 from ....foundation._text import build_tagged_formula_content
 from ....schema import BBox
 from .geometry import (
@@ -715,6 +716,13 @@ def _build_formula_like_blocks(
                 blocks.append(block)
                 claimed_source_indices.update(line.source_index for line, _bbox in members)
 
+    recovered, recovered_indices = _build_mixed_body_display_formulas(
+        [line for line in lines if line.source_index not in claimed_source_indices],
+        table_bboxes,
+        page_size,
+    )
+    blocks.extend(recovered)
+    claimed_source_indices.update(recovered_indices)
     remaining_lines = [
         line
         for line in lines
@@ -722,6 +730,121 @@ def _build_formula_like_blocks(
         and (not line.formula_candidate_only or line.paragraph_formula_context)
     ]
     return blocks, remaining_lines + paragraph_lines
+
+
+def _build_mixed_body_display_formulas(
+    lines: list[_LineItem],
+    table_bboxes: list[BBox],
+    page_size: tuple[float, float],
+) -> tuple[list[dict[str, Any]], set[int]]:
+    """在混合字体正文的独立留白带内恢复无编号公式，避免把碎片窄栏当作正文栏。"""
+
+    blocks: list[dict[str, Any]] = []
+    claimed: set[int] = set()
+    for angle in sorted({line.angle for line in lines}):
+        geometry = [
+            (line, _rotate_bbox_to_upright(line.bbox, page_size, angle))
+            for line in lines
+            if line.angle == angle and line.semantic_type is None and not line.paragraph_formula_context
+        ]
+        width = page_size[1] if angle in {90, 270} else page_size[0]
+        body = [
+            (line, bbox) for line, bbox in geometry if bbox[2] - bbox[0] >= 0.5 * width and _formula_prefix_has_prose(line.text)
+        ]
+        # 该补充路径只处理既有 dominant-font 路径缺少稳定正文覆盖的混排页面。
+        if sum(line.font_coverage < 0.75 for line, _bbox in body) < 2:
+            continue
+        height = statistics.median(_line_effective_height(line, bbox) for line, bbox in body)
+        body_left = statistics.median(bbox[0] for _line, bbox in body)
+        body_right = statistics.median(bbox[2] for _line, bbox in body)
+        body_width = body_right - body_left
+        barriers = sorted(
+            [
+                (line, bbox)
+                for line, bbox in geometry
+                if _formula_prefix_has_prose(line.text)
+                and (bbox[2] - bbox[0] >= 0.5 * body_width or len(re.findall(r"[\u3400-\u9fff]", line.text)) >= 2)
+            ],
+            key=lambda item: item[1][1],
+        )
+        for previous, following in zip(barriers, barriers[1:]):
+            top, bottom = previous[1][3], following[1][1]
+            if not 0.6 * height <= bottom - top <= 8.0 * height:
+                continue
+            members = [
+                (line, bbox)
+                for line, bbox in geometry
+                if line.source_index not in {previous[0].source_index, following[0].source_index}
+                and line.source_index not in claimed
+                and bbox[1] >= top - 0.2 * height
+                and bbox[3] <= bottom + 0.2 * height
+                and bbox[0] >= body_left
+                and bbox[2] <= body_right
+            ]
+            if not members:
+                continue
+            bbox = _bbox_union_many([box for _line, box in members])
+            text = " ".join(line.text for line, _box in members)
+            if (
+                not any(char in "=∑∫√≤≥<>" for char in text)
+                or len(re.findall(r"[\u3400-\u9fff]", text)) >= 2
+                or len(re.findall(r"\b[A-Za-z]{4,}\b", text)) >= 2
+                or not 0.15 * body_width <= bbox[2] - bbox[0] <= 0.8 * body_width
+                or abs(_bbox_center_x(bbox) - 0.5 * (body_left + body_right)) > 0.1 * body_width
+                or any(
+                    _bbox_overlap_in_smaller(line.bbox, table_bbox) > 0 for line, _box in members for table_bbox in table_bboxes
+                )
+            ):
+                continue
+            block = _formula_members_to_block(members, page_size, angle, anchor_source_index=members[0][0].source_index)
+            if block is not None:
+                blocks.append(block)
+                claimed.update(line.source_index for line, _bbox in members)
+    return blocks, claimed
+
+
+def _unmapped_formula_ink_bboxes(chars: list[Char]) -> list[BBox]:
+    """保留实际绘制、但映射为空白或控制码的高字形几何，不改变公开文本。"""
+
+    output: list[BBox] = []
+    for char in chars:
+        value = str(char.get("char", ""))
+        if value.isprintable() and not value.isspace():
+            continue
+        bbox = _coerce_bbox(char.get("tight_bbox"))
+        font = char.get("font") or {}
+        size = float(font.get("size", 0) or 0)
+        if (
+            bbox is not None
+            and size > 0
+            and char.get("text_object_id") is not None
+            and char.get("text_render_mode") not in {3, 7}
+            and bbox[2] - bbox[0] > 0.05 * size
+            and bbox[3] - bbox[1] > 1.5 * size
+        ):
+            output.append(bbox)
+    return output
+
+
+def _attach_unmapped_formula_ink(blocks: list[dict[str, Any]], bboxes: list[BBox]) -> None:
+    """将紧贴公式且纵向相容的未映射字形唯一认领到公式框。"""
+
+    for bbox in bboxes:
+        matches = [
+            block
+            for block in blocks
+            if block.get("type") == "equation"
+            and int(block.get("angle", 0)) in {0, 180}
+            and _bbox_axis_overlap_ratio(bbox, block["bbox"], axis="y") >= 0.8
+            and _bbox_distance(bbox, block["bbox"]) <= 0.25 * (bbox[3] - bbox[1])
+            and bbox[1] >= block["bbox"][1] - 2.0
+            and bbox[3] <= block["bbox"][3] + 2.0
+        ]
+        if len(matches) == 1:
+            block = matches[0]
+            block["bbox"] = _bbox_union(block["bbox"], bbox)
+            if block.get("_tight_output_bbox") is not None:
+                block["_tight_output_bbox"] = _bbox_union(block["_tight_output_bbox"], bbox)
 
 
 def _formula_line_has_math_operator(text: str) -> bool:

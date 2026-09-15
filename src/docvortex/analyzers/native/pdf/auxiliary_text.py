@@ -336,11 +336,22 @@ def _classify_page_footnotes(
             # 图形坐标轴和外框不能充当页面脚注分隔线。
             continue
         rule_source_indices: set[int] = set()
-        for lane in lanes:
+        rule_lanes = list(lanes)
+        rule_width = axis_line.bbox[2] - axis_line.bbox[0]
+        # 通栏长线自身提供局部栏界；上方双栏布局不能拆散线下的整页脚注。
+        if rule_width >= 0.7 * local_page_width:
+            corridor = [
+                (line, bbox)
+                for line, bbox in line_geometry
+                if bbox[0] >= axis_line.bbox[0] - 0.25 * median_height and bbox[2] <= axis_line.bbox[2] + 0.25 * median_height
+            ]
+            rule_lanes.append(_TextLane(axis_line.bbox[0], axis_line.bbox[2], corridor))
+        for lane in rule_lanes:
             following_rule_tops = [
                 other.bbox[1]
                 for other in local_axis_lines
                 if other.orientation == "horizontal"
+                and other.bbox[2] - other.bbox[0] >= max(4.0 * median_height, 0.04 * local_page_width)
                 and other.bbox[1] - axis_line.bbox[3] > 0.5 * median_height
                 and _bbox_axis_overlap_ratio(
                     axis_line.bbox,
@@ -1652,6 +1663,9 @@ def _chinese_page_number_to_int(value: str) -> int | None:
 def _marginal_text_matches(first_text: str, second_text: str) -> bool:
     """在屏蔽变化数字后比较边缘稳定文本，短文本只接受完全一致。"""
 
+    # 公式编号在数字屏蔽后都会成为同一标记，不能作为重复页脚的文本证据。
+    if any(re.fullmatch(r"[（(﹙]\s*[A-Za-z]?\d+(?:[.\-]\d+)*\s*[)）﹚]", text.strip()) for text in (first_text, second_text)):
+        return False
     first = _normalize_marginal_text(first_text)
     second = _normalize_marginal_text(second_text)
     if not first or not second:

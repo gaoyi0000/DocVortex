@@ -423,7 +423,7 @@ def _get_thin_filled_subpath_line(
     page_size: tuple[float, float],
 ) -> PDFDrawingLine | None:
     """把闭合的细长填充子路径折叠为一条中心线，避免把矩形四边重复输出。"""
-    if not subpath.closed or len(subpath.points) < 4:
+    if len(subpath.points) < 4:
         return None
     x_values = [point[0] for point in subpath.points]
     y_values = [point[1] for point in subpath.points]
@@ -431,6 +431,16 @@ def _get_thin_filled_subpath_line(
     y0, y1 = min(y_values), max(y_values)
     width = x1 - x0
     height = y1 - y0
+    if not subpath.closed:
+        # PDF 填充操作会隐式闭合子路径；仅接纳四个轴对齐顶点和三条直边，
+        # 不把开放折线、三角形或贝塞尔控制点的外框当作矩形横线。
+        if len(subpath.points) != 4 or len(subpath.straight_segments) != 3:
+            return None
+        corners = {(round(x, 3), round(y, 3)) for x, y in subpath.points}
+        if corners != {(round(x, 3), round(y, 3)) for x in (x0, x1) for y in (y0, y1)}:
+            return None
+        if any(abs(a[0] - b[0]) > 0.001 and abs(a[1] - b[1]) > 0.001 for a, b in subpath.straight_segments):
+            return None
     long_side = max(width, height)
     short_side = min(width, height)
     if (

@@ -60,6 +60,21 @@ def _form_supersedes_nested_bbox(form_bbox: BBox, nested_bbox: BBox) -> bool:
     return form_area > 0 and nested_area < 0.5 * form_area and _bbox_overlap_in_first(nested_bbox, form_bbox) >= 0.9
 
 
+def _form_member_bbox(line: _LineItem, form_bbox: BBox) -> BBox | None:
+    """优先保持既有行框，仅在 Form 边缘用完整的可见字形证据补回成员。"""
+
+    if _bbox_overlap_in_first(line.bbox, form_bbox) >= 0.9:
+        return line.bbox
+    ink_bbox = line.ink_bbox
+    if ink_bbox is None:
+        visible_chars = [char for char in line.chars if str(char.get("char", "")).strip()]
+        tight = [_coerce_bbox(char.get("tight_bbox")) for char in visible_chars]
+        if not tight or any(bbox is None for bbox in tight):
+            return None
+        ink_bbox = _bbox_union_many([bbox for bbox in tight if bbox is not None])
+    return ink_bbox if _bbox_overlap_in_first(ink_bbox, form_bbox) >= 0.99 else None
+
+
 def _tighten_form_image_bbox(
     source: _PageSource,
     form_bbox: BBox,
@@ -79,7 +94,7 @@ def _tighten_form_image_bbox(
     # 至少两个嵌套 Path 和四个矢量元素，避免只凭普通边框或少量文本裁剪 Form。
     if len(internal_paths) < 2 or len(internal_paths) + len(internal_drawing_lines) < 4:
         return form_bbox
-    internal_text = [line.bbox for line in source.lines if _bbox_overlap_in_first(line.bbox, form_bbox) >= 0.9]
+    internal_text = [bbox for line in source.lines if (bbox := _form_member_bbox(line, form_bbox)) is not None]
     evidence_bbox = _clip_bbox(
         _bbox_union_many(internal_paths + internal_drawing_lines + internal_text),
         source.page_size,
@@ -125,7 +140,7 @@ def _select_form_image_bboxes(source: _PageSource) -> list[BBox]:
         member_rows = {
             line.visual_row_id if line.visual_row_id is not None else line.source_index
             for line in source.lines
-            if _bbox_overlap_in_first(line.bbox, bbox) >= 0.9
+            if _form_member_bbox(line, bbox) is not None
         }
         internal_drawing_count = sum(
             _bbox_overlap_in_first(drawing_line.bbox, bbox) >= 0.9 for drawing_line in source.drawing_lines
@@ -151,9 +166,7 @@ def _build_form_image_blocks(
         if line.source_index in claimed_line_indices:
             continue
         matching_indices = [
-            candidate_index
-            for candidate_index, bbox in enumerate(form_bboxes)
-            if _bbox_overlap_in_first(line.bbox, bbox) >= 0.9
+            candidate_index for candidate_index, bbox in enumerate(form_bboxes) if _form_member_bbox(line, bbox) is not None
         ]
         if not matching_indices:
             continue

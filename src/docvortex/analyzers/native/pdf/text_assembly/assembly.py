@@ -11,6 +11,7 @@ from ..geometry import _bbox_union_many, _rotate_bbox_to_upright, _transform_axi
 from ..line_layout import (
     _estimate_lane_gap,
     _infer_text_lanes,
+    _horizontal_rule_separates_rows,
     _line_effective_height,
     _should_connect_semantic_rows,
     _should_connect_text_rows,
@@ -131,6 +132,20 @@ def _build_text_blocks(
             structured_break_sources.update(
                 protected_break_sources,
             )
+            # 实际分隔线形成永久段落边界，块级续行补合并也必须遵守。
+            rule_break_sources = {
+                current[0].source_index
+                for previous, current in zip(lane.lines, lane.lines[1:])
+                if previous[0].semantic_type == current[0].semantic_type
+                and _horizontal_rule_separates_rows(
+                    _rotate_bbox_to_upright(previous[0].ink_bbox, page_size, angle) if previous[0].ink_bbox else previous[1],
+                    _rotate_bbox_to_upright(current[0].ink_bbox, page_size, angle) if current[0].ink_bbox else current[1],
+                    local_lane_by_source.get(current[0].source_index) or lane,
+                    local_axis_lines,
+                )
+            }
+            structured_break_sources.update(rule_break_sources)
+            protected_break_sources.update(rule_break_sources)
             hanging_indent_groups = _build_hanging_indent_group_map(
                 lane,
                 table_bboxes,
@@ -141,7 +156,7 @@ def _build_text_blocks(
             for previous, current in zip(lane.lines, lane.lines[1:]):
                 previous_type = previous[0].semantic_type
                 current_type = current[0].semantic_type
-                if previous_type != current_type:
+                if current[0].source_index in rule_break_sources or previous_type != current_type:
                     should_connect = False
                 elif previous_type is not None:
                     should_connect = _should_connect_semantic_rows(

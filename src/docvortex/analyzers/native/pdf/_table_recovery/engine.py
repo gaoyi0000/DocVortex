@@ -19,6 +19,7 @@ from .contracts import (
 from .geometry import bbox_intersection, normalize_bbox
 from .sparse_hybrid import build_sparse_hybrid_candidates, diagnose_sparse_hybrid_candidate_builds
 from .sparse_multiline import build_sparse_multiline_candidates, diagnose_sparse_multiline_candidate_builds
+from .rule_band import build_rule_band_candidates
 from .text import build_native_table_text
 from .text_grid import build_text_candidates, diagnose_text_candidate_builds
 from .vector import MAX_PRIMITIVES_PER_TABLE, build_vector_candidates, diagnose_vector_candidate_builds
@@ -379,8 +380,11 @@ def _evaluate_native_pdf_table(
             )
         if _has_alias_affected_physical_blank_row(vector_attempts):
             sparse_hybrid_allowed = False
-    sparse_hybrid_candidates = build_sparse_hybrid_candidates(table_input, text) if sparse_hybrid_allowed else []
-    sparse_hybrid_selection = _select_candidate(sparse_hybrid_candidates)
+    rule_band_candidates = build_rule_band_candidates(table_input, text) if sparse_hybrid_allowed else []
+    sparse_hybrid_candidates = (
+        build_sparse_hybrid_candidates(table_input, text) if sparse_hybrid_allowed and not rule_band_candidates else []
+    )
+    sparse_hybrid_selection = _select_candidate([*rule_band_candidates, *sparse_hybrid_candidates])
     text_candidates = (
         build_text_candidates(table_input, text)
         if len(text.rows) >= 2 and vector_selection is None and sparse_hybrid_selection is None
@@ -396,6 +400,7 @@ def _evaluate_native_pdf_table(
             text_candidates = []
     existing_generated_candidates = [
         *vector_candidates,
+        *rule_band_candidates,
         *sparse_hybrid_candidates,
         *text_candidates,
     ]
@@ -466,7 +471,10 @@ def diagnose_native_pdf_table(table_input: NativeTableInput) -> dict[str, Any]:
         if evaluation.text is not None
         else ()
     )
-    sparse_multiline_attempts = (
+    rule_band_attempts: list[dict[str, Any]] = []
+    if evaluation.text is not None:
+        build_rule_band_candidates(table_input, evaluation.text, diagnostics=rule_band_attempts)
+    sparse_multiline_attempts = tuple(rule_band_attempts) + (
         diagnose_sparse_multiline_candidate_builds(
             table_input,
             evaluation.text,

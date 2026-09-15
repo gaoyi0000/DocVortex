@@ -225,6 +225,13 @@ def _drawing_match_for_line(
     hit_chars = [char for char in line.visible_chars if drawing_bbox[0] <= (char.bbox[0] + char.bbox[2]) / 2 <= drawing_bbox[2]]
     if not hit_chars:
         return None
+    if style == "strikethrough":
+        # 分式横线可能穿过字体外框却完全位于字形上方，不应据此生成删除线。
+        ink_boxes = [_coerce_bbox(line.chars[char.source_index].get("tight_bbox")) for char in hit_chars]
+        if all(bbox is not None for bbox in ink_boxes) and not any(
+            bbox[1] <= drawing_center_y <= bbox[3] for bbox in ink_boxes if bbox is not None
+        ):
+            return None
     hit_left = min(char.bbox[0] for char in hit_chars)
     hit_right = max(char.bbox[2] for char in hit_chars)
     if (hit_right - hit_left) / drawing_length < TEXT_DECORATION_MIN_TEXT_COVERAGE_RATIO:

@@ -189,6 +189,7 @@ class _PreparedPage:
     page_footnote_groups: list[set[int]] = field(default_factory=list)
     script_lines: list[PDFTextScriptLine] = field(default_factory=list)
     formula_candidate_lines: list[_LineItem] = field(default_factory=list)
+    formula_ink_bboxes: list[BBox] = field(default_factory=list)
 
 
 @dataclass(slots=True)

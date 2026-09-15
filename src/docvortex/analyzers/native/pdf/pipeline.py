@@ -30,7 +30,12 @@ from .auxiliary_text import (
 )
 from .char_geometry import DocumentGeometryPlan, apply_line_geometry_repairs, build_document_geometry_plan
 from .code_blocks import _build_code_blocks, _build_rule_delimited_code_blocks
-from .formulas import _build_formula_like_blocks, _build_vector_formula_blocks
+from .formulas import (
+    _attach_unmapped_formula_ink,
+    _build_formula_like_blocks,
+    _build_vector_formula_blocks,
+    _unmapped_formula_ink_bboxes,
+)
 from .geometry import (
     _bbox_area,
     _bbox_axis_overlap_ratio,
@@ -706,6 +711,7 @@ def _prepare_page_source(
         canonical_formula_source_lines=canonical_formula_source_lines,
         script_lines=script_lines,
         formula_candidate_lines=formula_candidate_lines,
+        formula_ink_bboxes=_unmapped_formula_ink_bboxes(source.chars),
     )
     _classify_page_auxiliary_text(prepared)
     return prepared
@@ -880,6 +886,7 @@ def _finalize_prepared_page(
         ) == _formula_block_inventory(formula_blocks):
             formula_blocks = canonical_formula_blocks
     prepared.canonical_formula_source_lines.clear()
+    _attach_unmapped_formula_ink(formula_blocks, prepared.formula_ink_bboxes)
     if prepared.canonical_formula_geometry:
         for line in remaining_lines:
             line.style_scale_repaired = original_style_scale_state.get(

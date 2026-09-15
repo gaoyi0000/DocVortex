@@ -1,0 +1,229 @@
+"""以真实截页和反例验证 Flash 图框、公式、段落及三线表修复。"""
+
+from __future__ import annotations
+
+from dataclasses import replace
+from functools import lru_cache
+from io import BytesIO
+from pathlib import Path
+
+import pytest
+from bs4 import BeautifulSoup
+from reportlab.pdfgen.canvas import Canvas
+
+from _flash_pdf_test_utils import _text_line
+from docvortex.analyzers.native.pdf import auxiliary_text, formulas, graphics, pipeline
+from docvortex.analyzers.native.pdf._table_recovery import NativeTableInput, NativeTableRule
+from docvortex.document.pdf import PDFDocument
+
+FIXTURES = Path(__file__).parent / "pdfs" / "flash_layout"
+
+
+def _text(value: object) -> str:
+    """读取字符串和行内样式中的可见文字，避免把样式差异当作内容缺失。"""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return "".join(_text(item) for item in value)
+    if isinstance(value, dict):
+        return _text(value.get("content", ""))
+    return ""
+
+
+@lru_cache(maxsize=None)
+def _pages(name: str) -> list[list[dict]]:
+    """缓存真实截页的完整原生解析，测试不依赖外置磁盘。"""
+    with PDFDocument(str(FIXTURES / f"{name}.pdf")) as document:
+        return pipeline._analyze_native_document(document)
+
+
+def test_real_unnumbered_math_components_keep_prose_outside() -> None:
+    """三处行间公式完整认领，下标不得再成为正文或小标题。"""
+    page = _pages("math_display_formulas")[0]
+    equations = [block for block in page if block["type"] == "equation"]
+    assert len(equations) == 3
+    for equation, band in zip(equations, [(0.25, 0.315), (0.48, 0.54), (0.58, 0.61)], strict=True):
+        assert band[0] <= equation["bbox"][1] < equation["bbox"][3] <= band[1]
+        assert _text(equation["content"]) == ""
+        assert not any(
+            block["type"] in {"text", "paragraph_title"} and equation["bbox"][1] <= block["bbox"][1] < equation["bbox"][3]
+            for block in page
+        )
+    assert any("其中" in _text(block["content"]) and block["type"] == "text" for block in page)
+
+
+def test_real_form_labels_and_blank_mapped_bracket_are_inside() -> None:
+    """Form 收紧不能丢掉边缘标签，映射为空格的大括号仍须计入公式裁图。"""
+    pages = _pages("bloom_form_labels")
+    images = [block for block in pages[0] if block["type"] == "image"]
+    assert [_text(block["content"]).count("3 hashes") for block in images] == [1, 3]
+    last_image = next(block for block in pages[2] if block["type"] == "image")
+    assert last_image["bbox"][3] >= 500.0 / 792.0 - 0.001
+    assert not any(block["type"] != "image" and 0.62 < block["bbox"][1] < 0.64 for block in pages[2])
+    assert any("Figure 3:" in _text(block["content"]) and block["type"] != "image" for block in pages[2])
+    equation = next(block for block in pages[1] if block["type"] == "equation")
+    with PDFDocument(str(FIXTURES / "bloom_form_labels.pdf")) as document:
+        chars = document._extract_native_page(1).text_geometry.chars
+    left_bracket = next(
+        char
+        for char in chars
+        if char.get("char") == " " and char.get("tight_bbox") and 253 < char["bbox"][0] < 254 and 227 < char["bbox"][1] < 229
+    )
+    assert equation["bbox"][0] <= left_bracket["tight_bbox"][0] / 612.0 + 0.001
+
+
+def test_real_journal_title_rules_and_marginal_formulas() -> None:
+    """公开分块同时保持标题合并、分隔线断点、脚注归属及公式编号。"""
+    pages = _pages("journal_layout_tables")
+    titles = [block for block in pages[0] if block["type"] == "doc_title"]
+    assert len(titles) == 1
+    assert _text(titles[0]["content"]).endswith("perceptron neural network")
+    copyright_block = next(block for block in pages[0] if _text(block["content"]).startswith("© 2024"))
+    date_block = next(block for block in pages[0] if "Published online:" in _text(block["content"]))
+    assert copyright_block is not date_block
+    for fragment in ["CONTACT", "xinliu1969", "Technology, Qingdao", "Creative Commons", "Accepted Manuscript"]:
+        matches = [block for block in pages[1] if block["bbox"][1] > 0.85 and fragment in _text(block["content"])]
+        assert matches and all(block["type"] == "page_footnote" for block in matches)
+    for page in pages[2:4]:
+        assert len([block for block in page if block["type"] == "equation" and block["bbox"][1] > 0.89]) == 1
+        assert not any(block["type"] == "footer" for block in page)
+
+
+def test_real_three_rule_tables_have_complete_html_topology() -> None:
+    """表头换行不增加记录，两个同步描述列各形成五个五行合并格。"""
+    pages = _pages("journal_layout_tables")
+    tables = [next(block for block in pages[index] if block["type"] == "table") for index in (4, 5)]
+    first, second = [BeautifulSoup(table["content"], "html.parser") for table in tables]
+    assert len(first.select("tr")) == 6
+    assert all(len(row.select("td,th")) == 8 for row in first.select("tr"))
+    assert first.select("tr")[0].select("td,th")[-1].get_text() == "Correlation coefficient/%"
+    assert len(second.select("tr")) == 26
+    assert len(second.select("tr")[0].select("td,th")) == 6
+    spans = second.select("[rowspan]")
+    assert len(spans) == 10 and all(cell["rowspan"] == "5" for cell in spans)
+    assert [cell.get_text() for cell in spans][1::2] == ["1047", "2744", "1722", "2839", "6261"]
+    assert second.select("tr")[-1].get_text(" ", strip=True) == "DTU18 8.71 102.75 40.05"
+
+
+def test_public_postprocess_preserves_title_and_rule_separated_paragraphs() -> None:
+    """公开 ModelJson 到 MiddleJson 边界不得重新合并已修复的独立段落。"""
+    from copy import deepcopy
+    from docvortex.api import postprocess
+    from docvortex.schema import DocumentMetadata, ModelJson, Producer
+
+    model = ModelJson(
+        pages=deepcopy(_pages("journal_layout_tables")),
+        page_index_map=[],
+        metadata=DocumentMetadata(file_suffix="pdf", producer=Producer(name="test", version="1")),
+    )
+    result = postprocess(model)
+    blocks = [block.model_dump(mode="json") for block in result.middle_json.pages[0].blocks]
+    assert len([block for block in blocks if block["type"] == "doc_title"]) == 1
+    copyright_block = next(block for block in blocks if _text(block["content"]).startswith("© 2024"))
+    date_block = next(block for block in blocks if "Published online:" in _text(block["content"]))
+    assert copyright_block is not date_block
+
+
+def test_pdf_implicit_fill_closure_is_a_rule_but_triangle_is_not() -> None:
+    """通过真实 PDF 绘制操作验证隐式闭合，避免只模拟中间对象。"""
+    stream = BytesIO()
+    canvas = Canvas(stream, pagesize=(200, 200))
+    canvas._code.extend(["20 150 m 180 150 l 180 149.5 l 20 149.5 l f*", "20 100 m 180 100 l 20 99.5 l f*"])
+    canvas.showPage()
+    canvas.save()
+    with PDFDocument(stream.getvalue()) as document:
+        rules = document.get_page_drawing_lines(0)
+    assert len(rules) == 1
+    assert rules[0].orientation == "horizontal"
+    assert rules[0].bbox[1] == pytest.approx(50.0, abs=0.01)
+
+
+def test_form_ink_fallback_preserves_external_caption_and_missing_evidence() -> None:
+    """仅实际字形位于容器内时补认领，不吸收图注或猜测缺失的字形框。"""
+    line = _text_line("edge label", (20, 92, 70, 104), 0, ink_bbox=(21, 93, 69, 99))
+    bbox = (10, 10, 90, 100)
+    assert graphics._form_member_bbox(line, bbox) == line.ink_bbox
+    assert graphics._form_member_bbox(replace(line, ink_bbox=(21, 101, 69, 107)), bbox) is None
+    assert graphics._form_member_bbox(replace(line, ink_bbox=None), bbox) is None
+
+
+@pytest.mark.parametrize(
+    "pair,expected", [(("(2)", "(6)"), False), (("（12）", "（13）"), False), (("Journal 2024", "Journal 2025"), True)]
+)
+def test_formula_tags_do_not_supply_repeated_footer_evidence(pair: tuple[str, str], expected: bool) -> None:
+    """括号编号不能误充重复页脚，含正文的真实页脚仍可忽略变化数字。"""
+    assert auxiliary_text._marginal_text_matches(*pair) is expected
+
+
+def test_unmapped_ink_excludes_spaces_and_invisible_text() -> None:
+    """普通空白、合成换行、不可见字形不能扩张公式截图。"""
+    char = {"char": " ", "tight_bbox": (10, 10, 15, 40), "font": {"size": 10}, "text_object_id": 1, "text_render_mode": 0}
+    assert formulas._unmapped_formula_ink_bboxes([char]) == [(10, 10, 15, 40)]
+    assert not formulas._unmapped_formula_ink_bboxes(
+        [{**char, "tight_bbox": (10, 10, 15, 18)}, {**char, "text_object_id": None}, {**char, "text_render_mode": 3}]
+    )
+
+
+def test_fraction_rule_above_visible_ink_is_not_strikethrough() -> None:
+    """填充分式横线穿过字体外框时，仍需检查是否穿过实际字形。"""
+    from docvortex.analyzers.native.pdf.inline.detection import _build_line_candidate, _drawing_match_for_line
+    from docvortex.analyzers.native.pdf.models import _AxisLine
+
+    line = _text_line("abcd", (0, 0, 40, 20), 0)
+    line.chars = [
+        {"char": c, "bbox": (i * 10, 0, i * 10 + 10, 20), "tight_bbox": (i * 10, 12, i * 10 + 8, 18)}
+        for i, c in enumerate("abcd")
+    ]
+    candidate = _build_line_candidate(line)
+    assert candidate is not None
+    rule = _AxisLine((0, 9.9, 40, 10.1), 0.2, "horizontal")
+    assert _drawing_match_for_line(candidate, rule, "strikethrough") is None
+    for char in line.chars:
+        char["tight_bbox"] = (char["bbox"][0], 5, char["bbox"][2], 15)
+    candidate = _build_line_candidate(line)
+    assert candidate is not None and _drawing_match_for_line(candidate, rule, "strikethrough") is not None
+
+
+@pytest.mark.parametrize(
+    "name,index,fingerprint",
+    [
+        ("demo2.pdf", 2, "d10b184573a059cdbd8ccb13e2fd8d76eefcf8f73295fc386f29b96e017c43aa"),
+        ("mixed_elements_pages_03_06.pdf", 1, "5c889585cf0f9bdd6d4cc387381a3c954d269f941ac05e69b70dde2f9227ab11"),
+    ],
+)
+def test_reviewed_existing_formula_geometry(name: str, index: int, fingerprint: str) -> None:
+    """锁定人工叠框验收的两页完整几何，覆盖同类括号裁切修复。"""
+    from _flash_pdf_test_utils import _page_bbox_fingerprint, formula_detection_evidence
+
+    source = Path(__file__).parents[2] / "demo" / "pdfs" / name
+    with PDFDocument(str(source)) as document, formula_detection_evidence():
+        pages = pipeline._analyze_native_document(document)
+    assert _page_bbox_fingerprint(pages[index]) == fingerprint
+
+
+@pytest.mark.parametrize("asymmetric,with_gaps", [(False, True), (True, False)])
+def test_sparse_descriptor_ambiguity_keeps_recovery_fallback(asymmetric: bool, with_gaps: bool) -> None:
+    """描述列不同步或叶子列缺值时，不能把普通空单元格强行解释为合并格。"""
+    from test_native_pdf_table import _char_items
+
+    entries = [(f"H{col}", (col * 50 + 5, 5, col * 50 + 20, 12)) for col in range(6)]
+    for row in range(9):
+        for col in range(6):
+            if col < 2 and row % 3 != (1 if asymmetric and col == 1 else 0):
+                continue
+            if with_gaps and col == 5 and row == 4:
+                continue
+            entries.append((f"{row}{col}", (col * 50 + 5, 25 + row * 12, col * 50 + 20, 32 + row * 12)))
+    table = NativeTableInput(
+        (0, 0, 300, 140),
+        (300, 140),
+        0,
+        _char_items(entries),
+        tuple(NativeTableRule((0, y, 300, y + 0.5), 0.5, "horizontal") for y in (0, 20, 139.5)),
+    )
+    from docvortex.analyzers.native.pdf._table_recovery.rule_band import build_rule_band_candidates
+    from docvortex.analyzers.native.pdf._table_recovery.text import build_native_table_text
+
+    text = build_native_table_text(table)
+    assert text is not None
+    assert build_rule_band_candidates(table, text) == []

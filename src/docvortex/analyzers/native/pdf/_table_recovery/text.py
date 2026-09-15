@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import statistics
+import re
 import unicodedata
 from dataclasses import dataclass
 
@@ -211,6 +212,9 @@ def _looks_like_compact_unit_or_identifier(
 
     combined = previous_line.strip() + next_line.strip()
     if not combined or any(char.isspace() for char in combined):
+        return False
+    # 带单位后缀的长英文标题仍有词界，不能仅因末尾 /% 就把相邻单词粘连。
+    if re.fullmatch(r"[A-Za-z]{4,}", previous_line.strip()) and re.match(r"[A-Za-z]{4,}(?:/|%)", next_line.strip()):
         return False
     return any(char.isdigit() or char in "/_^%°µμ" for char in combined)
 

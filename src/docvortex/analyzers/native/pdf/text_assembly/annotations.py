@@ -286,6 +286,17 @@ def _merge_multiline_title_blocks(
                 else current_bbox[3] - current_bbox[1]
             )
             vertical_gap = current_bbox[1] - previous_bbox[3]
+            if vertical_gap < -0.2 * max(previous_height, current_height):
+                # 字体外框重叠时改用已验证的可见行框，避免紧排行标题被拆散。
+                previous_ink = previous.get("_local_output_line_bboxes")
+                current_ink = current.get("_local_output_line_bboxes")
+                if (
+                    previous.get("_output_bbox_repaired")
+                    and current.get("_output_bbox_repaired")
+                    and previous_ink
+                    and current_ink
+                ):
+                    vertical_gap = current_ink[0][1] - previous_ink[-1][3]
             previous_fonts = previous.get("_font_signatures")
             current_fonts = current.get("_font_signatures")
             fonts_conflict = (
