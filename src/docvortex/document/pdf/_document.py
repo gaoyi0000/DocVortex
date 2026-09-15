@@ -81,18 +81,6 @@ from .native_contracts import (
     DRAWING_THIN_RECT_MIN_ASPECT_RATIO as DRAWING_THIN_RECT_MIN_ASPECT_RATIO,
 )
 from .native_contracts import (
-    NEAR_IDENTICAL_CHAR_BBOX_TOLERANCE as NEAR_IDENTICAL_CHAR_BBOX_TOLERANCE,
-)
-from .native_contracts import (
-    OFFSET_DUPLICATE_CHAR_BBOX_TOLERANCE as OFFSET_DUPLICATE_CHAR_BBOX_TOLERANCE,
-)
-from .native_contracts import (
-    OFFSET_DUPLICATE_MIN_BBOX_OVERLAP_RATIO as OFFSET_DUPLICATE_MIN_BBOX_OVERLAP_RATIO,
-)
-from .native_contracts import (
-    OFFSET_DUPLICATE_TRANSLATION_TOLERANCE as OFFSET_DUPLICATE_TRANSLATION_TOLERANCE,
-)
-from .native_contracts import (
     PDF_IMAGE_FINGERPRINT_MAX_RAW_BYTES as PDF_IMAGE_FINGERPRINT_MAX_RAW_BYTES,
 )
 from .native_contracts import (
@@ -249,28 +237,7 @@ from .native_objects import (
     _walk_raw_path_objects as _walk_raw_path_objects,
 )
 from .native_text_geometry import (
-    _calculate_bbox_overlap_in_smaller_area as _calculate_bbox_overlap_in_smaller_area,
-)
-from .native_text_geometry import (
-    _deduplicate_near_identical_chars as _deduplicate_near_identical_chars,
-)
-from .native_text_geometry import (
     _extract_page_text_geometry as _extract_page_text_geometry,
-)
-from .native_text_geometry import (
-    _get_near_identical_bbox_bucket_key as _get_near_identical_bbox_bucket_key,
-)
-from .native_text_geometry import (
-    _get_visible_char_signature as _get_visible_char_signature,
-)
-from .native_text_geometry import (
-    _is_adjacent_offset_duplicate_char as _is_adjacent_offset_duplicate_char,
-)
-from .native_text_geometry import (
-    _is_near_identical_bbox as _is_near_identical_bbox,
-)
-from .native_text_geometry import (
-    _iter_neighbor_bbox_bucket_keys as _iter_neighbor_bbox_bucket_keys,
 )
 from .native_text_geometry import (
     _page_to_image as _page_to_image,
@@ -285,7 +252,6 @@ from .text._contracts import Char, Line
 
 logger = logging.getLogger(__name__)
 get_chars = _text_extract.get_chars
-deduplicate_chars = _text_extract.deduplicate_chars
 
 
 class PDFPage:

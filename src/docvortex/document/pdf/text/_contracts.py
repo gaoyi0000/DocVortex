@@ -179,6 +179,10 @@ class Char(_CharValue, total=False):
 
     source_indices: tuple[int, ...]
     raw_code: int
+    text_object_id: int | None
+    text_render_mode: int | None
+    text_is_visible: bool
+    writing_angle: float
     loose_bbox: tuple[float, float, float, float] | None
     tight_bbox: tuple[float, float, float, float] | None
     origin: tuple[float, float] | None

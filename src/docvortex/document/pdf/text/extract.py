@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import math
-from ctypes import byref, c_double, c_int, create_string_buffer
+from ctypes import byref, c_double, c_int, c_uint, c_void_p, cast, create_string_buffer
 from typing import Any
 
 import pypdfium2 as pdfium
@@ -55,6 +55,61 @@ def _font_name(handle: Any, index: int, buffer: Any, flags: c_int) -> tuple[str,
         return "", 0
 
 
+def _assign_writing_angles(chars: list[Char]) -> None:
+    """从同对象的原点推进取得书写方向，避免将斜体剪切角误当成基线旋转。"""
+    start = 0
+    while start < len(chars):
+        end = start + 1
+        object_id = chars[start].get("text_object_id")
+        if object_id is None:
+            start = end
+            continue
+        while end < len(chars) and chars[end].get("text_object_id") == object_id:
+            end += 1
+        origin = chars[start].get("origin")
+        if origin is not None:
+            for index in range(start + 1, end):
+                following = chars[index].get("origin")
+                if following is None:
+                    continue
+                dx, dy = following[0] - origin[0], following[1] - origin[1]
+                if math.hypot(dx, dy) > 0.001:
+                    angle = math.atan2(dy, dx)
+                    for char in chars[start:end]:
+                        char["writing_angle"] = angle
+                    break
+        start = end
+
+
+def _mark_visible_objects(chars: list[Char], handle: Any) -> None:
+    """仅在有隐藏文字的页面读取透明度，防止透明文字成为可见对应内容。"""
+    if not any(char.get("text_render_mode") == 3 for char in chars):
+        return
+    visibility: dict[int | None, bool] = {None: False}
+    red, green, blue, alpha = c_uint(), c_uint(), c_uint(), c_uint()
+    for char in chars:
+        object_id = char.get("text_object_id")
+        if object_id not in visibility:
+            mode = char.get("text_render_mode")
+            visible = False
+            readers = []
+            if mode in (0, 2, 4, 6):
+                readers.append(raw.FPDFText_GetFillColor)
+            if mode in (1, 2, 5, 6):
+                readers.append(raw.FPDFText_GetStrokeColor)
+            for reader in readers:
+                try:
+                    if (
+                        reader(handle, char["char_idx"], byref(red), byref(green), byref(blue), byref(alpha))
+                        and alpha.value > 0
+                    ):
+                        visible = True
+                except Exception:
+                    pass
+            visibility[object_id] = visible
+        char["text_is_visible"] = visibility[object_id]
+
+
 def get_chars(
     textpage: pdfium.PdfTextPage, page_bbox: list[float], page_rotation: int, *, include_geometry: bool = False
 ) -> list[Char]:
@@ -67,6 +122,7 @@ def get_chars(
     origin_x, origin_y = c_double(), c_double()
     font_buffer, font_flags = create_string_buffer(256), c_int()
     fonts: dict[tuple[Any, ...], dict[str, Any]] = {}
+    objects: dict[int, tuple[int, int]] = {}
     chars: list[Char] = []
     for index in range(textpage.count_chars()):
         code = int(raw.FPDFText_GetUnicode(handle, index))
@@ -107,59 +163,36 @@ def get_chars(
             "char_idx": index,
             "source_indices": (index,),
             "raw_code": code,
+            "text_object_id": None,
+            "text_render_mode": None,
+            "writing_angle": math.radians(page_rotation) - rotation,
+            "origin": None,
         }
+        # 只在当前提取期间持有地址键，输出使用页内整数编号，不保存原生句柄。
+        try:
+            obj = raw.FPDFText_GetTextObject(handle, index)
+            address = cast(obj, c_void_p).value
+            if address:
+                if address not in objects:
+                    objects[address] = (len(objects), int(raw.FPDFTextObj_GetTextRenderMode(obj)))
+                char["text_object_id"], char["text_render_mode"] = objects[address]
+        except Exception:
+            pass
+        # 两种提取入口都需要原点来区分一字形多码值与独立重复绘制。
+        try:
+            if raw.FPDFText_GetCharOrigin(handle, index, origin_x, origin_y):
+                origin = transform_point((origin_x.value, origin_y.value), tuple(page_bbox), page_rotation)
+                if all(math.isfinite(v) for v in origin):
+                    char["origin"] = origin
+        except Exception:
+            pass
         if include_geometry:
             char["loose_bbox"] = visual_bbox(loose, tuple(page_bbox), page_rotation) if loose else None
             char["tight_bbox"] = visual_bbox(tight, tuple(page_bbox), page_rotation) if tight else None
-            char["origin"] = None
-            try:
-                if raw.FPDFText_GetCharOrigin(handle, index, origin_x, origin_y):
-                    origin = transform_point((origin_x.value, origin_y.value), tuple(page_bbox), page_rotation)
-                    if all(math.isfinite(v) for v in origin):
-                        char["origin"] = origin
-            except Exception:
-                pass
         chars.append(char)
+    _assign_writing_angles(chars)
+    _mark_visible_objects(chars, handle)
     return chars
-
-
-def deduplicate_chars(chars: list[Char]) -> list[Char]:
-    """按词文本、字体、方向及取整位置去重，保留最早原始索引。"""
-    if not chars:
-        return []
-    groups: list[list[Char]] = [[chars[0]]]
-    for char in chars[1:]:
-        previous = groups[-1][-1]
-        if (
-            previous["char"] in {"\x02", "\n", " "}
-            or char["font"] != previous["font"]
-            or char["rotation"] != previous["rotation"]
-        ):
-            groups.append([])
-        groups[-1].append(char)
-    seen: dict[tuple[Any, ...], list[Char]] = {}
-    result: list[Char] = []
-    for group in groups:
-        box = group[0]["bbox"].copy()
-        for char in group[1:]:
-            box.merge_inplace(char["bbox"])
-        font = group[0]["font"]
-        key = (
-            tuple(round(float(v), 0) for v in box.bbox),
-            "".join(c["char"] for c in group),
-            group[0]["rotation"],
-            tuple(font.get(k) for k in ("name", "flags", "size", "weight")),
-        )
-        if key not in seen:
-            seen[key] = group
-            result.extend(group)
-        else:
-            for retained, duplicate in zip(seen[key], group):
-                retained["source_indices"] = (
-                    *retained.get("source_indices", (retained["char_idx"],)),
-                    *duplicate.get("source_indices", (duplicate["char_idx"],)),
-                )
-    return result
 
 
 __all__ = ["transform_point", "visual_bbox"]
