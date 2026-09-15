@@ -14,6 +14,7 @@ from reportlab.pdfgen.canvas import Canvas
 from docvortex.document.pdf import PDFDocument
 from docvortex.document.pdf.text._contracts import Bbox, Char
 from docvortex.document.pdf.text.dedup import deduplicate_chars
+from docvortex.document.pdf.text.geometry import char_bbox_values
 
 
 def _char(
@@ -47,6 +48,15 @@ def _indexed(chars: list[Char]) -> list[Char]:
 def _text(chars: list[Char]) -> str:
     """提取结果中的完整字符序列。"""
     return "".join(c["char"] for c in chars)
+
+
+def test_bbox_values_accepts_compatible_rectangle_objects() -> None:
+    """源码与已安装包混用时，矩形读取仍按结构兼容。"""
+
+    class ForeignBbox:
+        bbox = [1.0, 2.0, 3.0, 4.0]
+
+    assert char_bbox_values(ForeignBbox()) == (1.0, 2.0, 3.0, 4.0)
 
 
 @pytest.mark.parametrize("text", ["ff", "ffi", "ffl", "fi", "fl", "a\u0301", "人人", "𝜃𝜃", "AB"])
