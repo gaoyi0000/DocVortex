@@ -11,7 +11,7 @@ import pytest
 from test_flash_manual_annotations import _model
 from tools.review_flash_annotations import visible
 
-MANIFEST = json.loads((Path(__file__).parents[2] / "tests/fixtures/flash_round2_annotations.json").read_text())
+MANIFEST = json.loads((Path(__file__).parents[2] / "tests/fixtures/flash_round2_annotations.json").read_text(encoding="utf-8"))
 
 
 def _starting(name: str, page: int, prefix: str) -> dict:

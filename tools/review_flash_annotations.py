@@ -144,7 +144,7 @@ def main() -> None:
     parser.add_argument("--documents", nargs="*")
     args = parser.parse_args()
     logger.remove()
-    for document in json.loads(MANIFEST.read_text())["documents"]:
+    for document in json.loads(MANIFEST.read_text(encoding="utf-8"))["documents"]:
         if args.documents and document["name"] not in args.documents:
             continue
         checks = review_document(document, args.output)

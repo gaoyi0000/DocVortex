@@ -14,7 +14,7 @@ from docvortex.analyzers.native.pdf.pipeline import _analyze_native_document
 from docvortex.document.pdf import PDFDocument
 
 ROOT = Path(__file__).parents[2]
-MANIFEST = json.loads((ROOT / "tests/fixtures/flash_reviewed_history.json").read_text())
+MANIFEST = json.loads((ROOT / "tests/fixtures/flash_reviewed_history.json").read_text(encoding="utf-8"))
 
 
 @pytest.mark.parametrize("document", MANIFEST["documents"], ids=lambda document: document["name"])

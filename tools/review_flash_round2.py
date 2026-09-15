@@ -22,7 +22,7 @@ def main() -> None:
     parser.add_argument("--manifest", type=Path, default=ROOT / "tests/fixtures/flash_round2_annotations.json")
     args = parser.parse_args()
     logger.remove()
-    manifest = json.loads(args.manifest.read_text())
+    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
     summary = []
     source_hash = hashlib.sha256()
     for source in sorted((ROOT / "src").rglob("*.py")):
@@ -38,7 +38,7 @@ def main() -> None:
         result.export(folder / "document.html", output_format="html", overwrite=True)
         from bs4 import BeautifulSoup
 
-        html = BeautifulSoup((folder / "document.html").read_text(), "html.parser")
+        html = BeautifulSoup((folder / "document.html").read_text(encoding="utf-8"), "html.parser")
         missing_images = [
             image["src"]
             for image in html.find_all("img", src=True)

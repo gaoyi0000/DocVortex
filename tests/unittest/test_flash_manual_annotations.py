@@ -18,7 +18,7 @@ from docvortex.schema import ModelJson
 from tools.review_flash_annotations import check_case, contains, visible
 
 ROOT = Path(__file__).parents[2]
-MANIFEST = json.loads((ROOT / "tests/fixtures/flash_manual_annotations.json").read_text())
+MANIFEST = json.loads((ROOT / "tests/fixtures/flash_manual_annotations.json").read_text(encoding="utf-8"))
 DOCUMENTS = {document["name"]: document for document in MANIFEST["documents"]}
 
 

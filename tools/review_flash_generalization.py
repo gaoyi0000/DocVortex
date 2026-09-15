@@ -34,7 +34,7 @@ def apply_review_decisions(changes: list[dict], path: Path | None) -> None:
     """仅复用明确提供且前后差异指纹完全匹配的视觉裁决，新差异继续待审。"""
     if path is None:
         return
-    decisions = json.loads(path.read_text())
+    decisions = json.loads(path.read_text(encoding="utf-8"))
     for change in changes:
         for decision in decisions:
             if (change["document"], change["page"]) != (decision["document"], decision["page"]):
@@ -51,7 +51,7 @@ def apply_review_decisions(changes: list[dict], path: Path | None) -> None:
 
 def compare_manual(root: Path, decisions_path: Path | None = None) -> list[dict]:
     """逐页对比人工样本原模型，并为所有变化页保存原页和前后标框。"""
-    manifest = json.loads((ROOT / "tests/fixtures/flash_manual_annotations.json").read_text())
+    manifest = json.loads((ROOT / "tests/fixtures/flash_manual_annotations.json").read_text(encoding="utf-8"))
     review = root / "visual-review"
     review.mkdir(parents=True, exist_ok=True)
     changes = []
@@ -60,8 +60,8 @@ def compare_manual(root: Path, decisions_path: Path | None = None) -> list[dict]
         name = document["name"]
         before = root / "baseline-manual" / name
         after = root / "current-manual" / name
-        original = json.loads((before / "model.json").read_text())
-        current = json.loads((after / "model.json").read_text())
+        original = json.loads((before / "model.json").read_text(encoding="utf-8"))
+        current = json.loads((after / "model.json").read_text(encoding="utf-8"))
         assert len(original) == len(current) == document["page_count"]
         with (
             PDFDocument(str(ROOT / document["path"])) as source,
@@ -94,11 +94,12 @@ def compare_manual(root: Path, decisions_path: Path | None = None) -> list[dict]
                     + html.escape(json.dumps(entry, ensure_ascii=False, indent=2))
                     + "</pre>"
                 )
-    (review / "changes.json").write_text(json.dumps(changes, ensure_ascii=False, indent=2))
+    (review / "changes.json").write_text(json.dumps(changes, ensure_ascii=False, indent=2), encoding="utf-8")
     (review / "index.html").write_text(
         '<!doctype html><meta charset="utf-8"><title>Flash rule generalization review</title>'
         "<style>body{font:14px system-ui;margin:20px}.pages{display:flex}figure{margin:5px;width:33%}img{width:100%}pre{white-space:pre-wrap}</style>"
-        "<h1>Flash 规则抽象：全部变化页</h1>" + "".join(sections)
+        "<h1>Flash 规则抽象：全部变化页</h1>" + "".join(sections),
+        encoding="utf-8",
     )
     return changes
 
@@ -110,14 +111,14 @@ def main() -> None:
     parser.add_argument("--decisions", type=Path)
     args = parser.parse_args()
     changes = compare_manual(args.output, args.decisions)
-    histories = json.loads((args.output / "current-history/summary.json").read_text())
+    histories = json.loads((args.output / "current-history/summary.json").read_text(encoding="utf-8"))
     result = {
         "baseline_commit": "3acfed223b548c5b6476917d65ce1dd728b0c269",
         "source_sha256": source_fingerprint(),
         "manual_changed_pages": [{k: v for k, v in entry.items() if k not in {"before", "after"}} for entry in changes],
         "history_changed_pages": {item["name"]: item["changed_pages"] for item in histories if item["changed_pages"]},
     }
-    (args.output / "verification.json").write_text(json.dumps(result, ensure_ascii=False, indent=2))
+    (args.output / "verification.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
