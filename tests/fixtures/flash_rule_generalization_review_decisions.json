@@ -1,0 +1,18 @@
+[
+  {
+    "document": "frames_v1",
+    "page": 4,
+    "decision": "accepted",
+    "reason": "原页两处粗体提示与后继正文同处一条物理行；实际通栏证据允许恢复为正文中的强调，文字和粗体保留。",
+    "before_sha256": "fe8ec8c0e83826d94eb95215487a91d5d24c87152a3aea9130263cf38ab3e04c",
+    "after_sha256": "d4f4e7af4accf15ab39d4945fc5eb47408bfe8ec9b11a111b1d1df432d5a022d"
+  },
+  {
+    "document": "frames_v1",
+    "page": 6,
+    "decision": "accepted",
+    "reason": "原页编号 (2) 在完整句尾之后独立起行，段首强调与真实行边界支持分开；编号 (3) 仍在行内，不强行拆分。",
+    "before_sha256": "82e74292066a57c95ffe84438db37fed6a6266feb60066d86d524186181ee29f",
+    "after_sha256": "eda2122e4aedbd20b894bd37d03bdd4a5e9c65acf0ee502c0c0f0b17f3f3c4a6"
+  }
+]

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import statistics
 from typing import Any
 
 from loguru import logger
@@ -34,6 +35,7 @@ from .line_layout import _font_signatures_share_family, _line_effective_height, 
 from .line_merging import _same_baseline_geometry
 from .models import _LineItem, _PageSource, _TableAnnotation, _TableCandidate
 from .native_text import _normalize_native_run_text
+from .text_roles import metadata_field, text_role
 from .spatial_text import project_pdf_table_text
 from .table_text_styles import render_native_table_html_with_scripts
 
@@ -147,36 +149,57 @@ def _materialize_table_blocks(
 
 
 def _restore_front_matter_text_panel(source: _PageSource, bbox: BBox) -> bool:
-    """首页并列的文章信息与摘要不是数据表，凭独立分区标题和正文续行撤销弱表认领。"""
-    width, height = source.page_size
-    if source.page_index != 0 or not 0.15 * height <= bbox[1] < bbox[3] <= 0.7 * height or bbox[2] - bbox[0] < 0.6 * width:
+    """结构恢复失败后，以独立元数据和连续正文角色撤销首页弱表；可信网格优先。"""
+    if source.page_index != 0:
         return False
     lines = [
         line
         for line in source.lines
         if line.angle == 0 and _point_in_bbox((_bbox_center_x(line.bbox), _bbox_center_y(line.bbox)), bbox)
     ]
-    headings = {re.sub(r"\s+", "", line.text).casefold(): line for line in lines}
-    if not {"articleinfo", "abstract"} <= headings.keys():
+    fields = [line for line in lines if metadata_field(line.text)]
+    if len({metadata_field(line.text) for line in fields}) < 2:
         return False
-    info, abstract = headings["articleinfo"], headings["abstract"]
-    em = max(info.effective_height, abstract.effective_height)
-    if abs(info.bbox[1] - abstract.bbox[1]) > 0.5 * em or abstract.bbox[0] - info.bbox[2] < em:
-        return False
+    em = statistics.median(_line_effective_height(line, line.bbox) for line in lines)
+    field_box = _bbox_union_many([line.bbox for line in fields])
     prose = [
         line
         for line in lines
-        if line.bbox[1] > abstract.bbox[3] and abs(line.bbox[0] - abstract.bbox[0]) < em and len(line.text.split()) >= 8
+        if line not in fields
+        and text_role(line.text) is None
+        and (len(line.text.split()) >= 8 or len(re.findall(r"[\u3400-\u9fff]", line.text)) >= 12)
+        and (line.bbox[0] >= field_box[2] + em or line.bbox[2] <= field_box[0] - em)
     ]
-    fields = [
+    if not prose:
+        return False
+    prose_box = _bbox_union_many([line.bbox for line in prose])
+    if not all(abs(line.bbox[0] - prose_box[0]) <= em or abs(line.bbox[2] - prose_box[2]) <= em for line in prose):
+        return False
+    abstracts = [
         line
         for line in lines
-        if line.bbox[2] < abstract.bbox[0]
-        and re.match(r"^(?:article history|received|accepted|available online|keywords)\b", line.text, re.IGNORECASE)
+        if text_role(line.text) == "abstract"
+        and _bbox_axis_overlap_ratio(line.bbox, prose_box, axis="x") >= 0.5
+        and 0 <= prose_box[1] - line.bbox[3] <= 3 * em
     ]
-    if len(prose) < 3 or len(fields) < 3:
+    if len(prose) < 3 and not abstracts:
         return False
-    for line in (info, abstract):
+    if max(field_box[1], prose_box[1]) - min(field_box[3], prose_box[3]) > em:
+        return False
+    # 内部分格线与重复横线共同构成真网格；外边框或单独分区线不足以证明数据表。
+    rules = [
+        rule for rule in source.drawing_lines if _point_in_bbox((_bbox_center_x(rule.bbox), _bbox_center_y(rule.bbox)), bbox)
+    ]
+    vertical = [
+        rule for rule in rules if rule.orientation == "vertical" and bbox[0] + em < _bbox_center_x(rule.bbox) < bbox[2] - em
+    ]
+    horizontal = [
+        rule for rule in rules if rule.orientation == "horizontal" and bbox[1] + em < _bbox_center_y(rule.bbox) < bbox[3] - em
+    ]
+    if vertical and len(horizontal) >= 2:
+        return False
+    headings = [line for line in lines if text_role(line.text) in {"metadata", "abstract"}]
+    for line in headings:
         line.semantic_type = "paragraph_title"
         line.explicit_section_title = True
     return True

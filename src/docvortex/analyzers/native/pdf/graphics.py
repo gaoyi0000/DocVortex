@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .layout_evidence import build_layout_evidence
+
 import math
 import re
 import statistics
@@ -75,6 +77,7 @@ def _build_caption_graphic_blocks(
             and _bbox_area(path.bbox) > 0.02 * width * height
         )
     ]
+    layout = build_layout_evidence(source.lines, source.page_size, barriers=table_bboxes + code_bboxes)
     blocks: list[dict[str, Any]] = []
     claimed: set[int] = set()
     code_members = {
@@ -95,12 +98,10 @@ def _build_caption_graphic_blocks(
         ]
         if companions:
             cb = _bbox_union_many([cb, *companions])
-        full_width = (
-            cb[2] - cb[0] >= 0.55 * width or cb[0] < 0.5 * width < cb[2] and abs(_bbox_center_x(cb) - 0.5 * width) < 0.1 * width
-        )
-        left, right = (
-            (0.0, width) if full_width else (0.0, 0.5 * width) if _bbox_center_x(cb) < 0.5 * width else (0.5 * width, width)
-        )
+        corridor = layout.corridor(cb)
+        if corridor is None:
+            continue
+        left, right = corridor
         barriers = [
             line.bbox[3]
             for line in source.lines

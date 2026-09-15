@@ -5,39 +5,49 @@ from __future__ import annotations
 import re
 import statistics
 
-from ..geometry import _bbox_axis_overlap_ratio, _bbox_center_y
+from ..geometry import _bbox_axis_overlap_ratio, _bbox_center_y, _rotate_bbox_to_upright
 from ..line_layout import _line_effective_height
+from ..layout_evidence import build_layout_evidence
+from ..text_roles import text_role, metadata_field
 from ..models import _LineItem, _PreparedPage
 from .common import _merge_internal_text_block_group, _merge_text_line_content
 
 
 def mark_document_reference_regions(pages: list[_PreparedPage]) -> None:
-    """从参考文献标题沿阅读栏延续上下文，到附录标题为止，不改正文语义类型。"""
+    """沿实际栏序处理参考文献开始及章节结束事件，同页附录不丢弃此前的有效条目。"""
     active = False
     for page in pages:
-        width, height = page.page_size
+        _width, height = page.page_size
         lines = page.remaining_lines
-        headings = [
-            line
+        headings = {
+            line.source_index
             for line in lines
             if re.fullmatch(r"(?:references|bibliography|参考文献)\s*[:：]?", line.text.strip(), re.IGNORECASE)
-        ]
-        stop = [line for line in lines if re.match(r"^\s*(?:appendix\b|附录)", line.text, re.IGNORECASE)]
-        if stop and not headings:
-            active = False
-            continue
+        }
         if not active and not headings:
             continue
-        wide = [line for line in lines if len(line.text) > 45 and line.angle == 0]
-        single = bool(wide) and statistics.median(line.bbox[2] - line.bbox[0] for line in wide) > 0.55 * width
-        corridors = [(0.0, width)] if single else [(0.0, width / 2), (width / 2, width)]
-        first = min(headings, key=lambda line: (line.bbox[0], line.bbox[1])) if headings else None
+        layout = build_layout_evidence(lines, page.page_size, barriers=[block["bbox"] for block in page.fixed_blocks])
+        corridors = sorted(set(layout.corridor((lane.left, 0, lane.right, 1)) for lane in layout.lanes))
         for left, right in corridors:
-            if first is not None and first.bbox[0] >= right:
-                continue
-            top = first.bbox[3] if first is not None and left <= first.bbox[0] < right else 0.055 * height
-            page.reference_regions.append((left, top, right, 0.94 * height))
-        active = True
+            top = 0.055 * height if active else None
+            members = sorted(
+                [line for line in lines if left <= (line.bbox[0] + line.bbox[2]) / 2 < right], key=lambda line: line.bbox[1]
+            )
+            for line in members:
+                if line.source_index in headings:
+                    if top is not None and line.bbox[1] > top:
+                        page.reference_regions.append((left, top, right, line.bbox[1]))
+                    top, active = line.bbox[3], True
+                elif active and (
+                    re.match(r"^\s*(?:appendix\b|附录)", line.text, re.IGNORECASE)
+                    or line.semantic_type == "paragraph_title"
+                    and (line.structural_title or line.explicit_section_title)
+                ):
+                    if top is not None and line.bbox[1] > top:
+                        page.reference_regions.append((left, top, right, line.bbox[1]))
+                    top, active = None, False
+            if top is not None and top < 0.94 * height:
+                page.reference_regions.append((left, top, right, 0.94 * height))
 
 
 def group_reference_lines(lines: list[_LineItem], page: _PreparedPage) -> None:
@@ -136,14 +146,23 @@ def _reassemble_member_lines(members: list[_LineItem], previous_content: str = "
 
 def group_front_matter_lines(lines: list[_LineItem], page_size: tuple) -> None:
     """以首页摘要之前连续的机构编号组织作者附属信息，邮箱不另立小标题。"""
-    abstracts = [line for line in lines if line.text.strip().casefold() in {"abstract", "摘要"}]
+    abstracts = [line for line in lines if text_role(line.text) == "abstract"]
     if not abstracts:
         return
     end = min(line.bbox[1] for line in abstracts)
     candidates = [line for line in lines if 0.12 * page_size[1] <= line.bbox[1] < end and line.angle == 0]
     markers = [(line, re.match(r"^\s*(\d{1,2})\s+\D", line.text)) for line in candidates]
     markers = [(line, int(match.group(1))) for line, match in markers if match is not None]
-    if len({number for _, number in markers}) < 3:
+    if not markers:
+        return
+    # 单个机构也可成立，但须有机构或联系方式证据，避免把首页普通编号列表当作者单位。
+    if not any(
+        re.search(
+            r"university|institute|department|laboratory|centre|center|大学|学院|研究所|实验室|医院", line.text, re.IGNORECASE
+        )
+        or metadata_field(line.text) == "contact"
+        for line in candidates
+    ):
         return
     first_y = min(line.bbox[1] for line, _ in markers)
     marker_left = statistics.median(line.bbox[0] for line, _ in markers)
@@ -173,6 +192,12 @@ def group_front_matter_lines(lines: list[_LineItem], page_size: tuple) -> None:
 def merge_overlapping_member_blocks(blocks: list[dict], page_size: tuple) -> list[dict]:
     """以同栏实际行的重叠关系回收段内小块，不能仅因外接矩形相交就跨栏合并。"""
     output = list(blocks)
+    layouts = {
+        angle: build_layout_evidence(
+            [line for block in blocks for line in block.get("_text_lines", [])], page_size, angle=angle
+        )
+        for angle in {line.angle for block in blocks for line in block.get("_text_lines", [])}
+    }
     groups: dict[int, list[int]] = {}
     for index, block in enumerate(output):
         if block.get("_reference_group") is not None:
@@ -195,6 +220,8 @@ def merge_overlapping_member_blocks(blocks: list[dict], page_size: tuple) -> lis
                     continue
                 fb, sb = first["bbox"], second["bbox"]
                 later = second if sb[1] >= fb[1] else first
+                if later.get("_geometry_break_before"):
+                    continue
                 if later.get("_explicit_break_before") or later.get("_rule_break_before"):
                     if not (first.get("_visual_row_ids", set()) & second.get("_visual_row_ids", set())):
                         continue
@@ -242,7 +269,10 @@ def merge_overlapping_member_blocks(blocks: list[dict], page_size: tuple) -> lis
                         em = max(_line_effective_height(a, ab), _line_effective_height(b, bb))
                         # 两条完整文字行横向分离时是相邻栏，外接矩形重叠不能让它们互相认领。
                         # 小型上下标、公式碎片仍可依靠邻接归入宿主正文。
-                        across_columns = ab[2] <= page_size[0] / 2 <= bb[0] or bb[2] <= page_size[0] / 2 <= ab[0]
+                        across_columns = layouts[a.angle].separated(
+                            _rotate_bbox_to_upright(ab, page_size, a.angle),
+                            _rotate_bbox_to_upright(bb, page_size, b.angle),
+                        )
                         if across_columns and max(ab[0] - bb[2], bb[0] - ab[2]) > 0.5 * em:
                             continue
                         if (

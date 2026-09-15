@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from ..layout_evidence import build_layout_evidence
+
 import re
 import statistics
 import unicodedata
@@ -1090,7 +1092,9 @@ def _classify_recurrent_unknown_weight_titles(pages: list[_PreparedPage]) -> Non
             continue
         width, height = page.page_size
         containers = [block["bbox"] for block in page.fixed_blocks]
-        for left, right in ((0.0, width / 2), (width / 2, width)):
+        layout = build_layout_evidence(page.remaining_lines, page.page_size, barriers=containers)
+        for lane in layout.lanes:
+            left, right = layout.corridor((lane.left, 0, lane.right, 1))
             rows = sorted(
                 [
                     line

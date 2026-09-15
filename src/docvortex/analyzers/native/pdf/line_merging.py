@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .layout_evidence import build_layout_evidence
+
 import re
 import statistics
 import unicodedata
@@ -834,6 +836,7 @@ def _restore_dense_split_visual_rows(
 
 def _demote_runin_title_fragments(lines: list[_LineItem], page_size: tuple[float, float]) -> None:
     """同行正文延续的小标题属于段落内强调，保留原始字体证据供行内样式物化。"""
+    layouts = {angle: build_layout_evidence(lines, page_size, angle=angle) for angle in {line.angle for line in lines}}
     for line in lines:
         was_title = line.semantic_type == "paragraph_title"
         if not was_title and not (
@@ -858,10 +861,7 @@ def _demote_runin_title_fragments(lines: list[_LineItem], page_size: tuple[float
             if (
                 abs(_bbox_center_y(bbox) - _bbox_center_y(other_bbox)) <= 0.45 * min(height, other_height)
                 and min(bbox[2], other_bbox[2]) - max(bbox[0], other_bbox[0]) <= 0.5 * height
-                and (
-                    int((bbox[0] + bbox[2]) / page_size[0]) == int((other_bbox[0] + other_bbox[2]) / page_size[0])
-                    or other_bbox[2] - other_bbox[0] > 0.5 * page_size[0]
-                )
+                and not layouts[line.angle].separated(bbox, other_bbox)
                 and _same_baseline_geometry(bbox, height, other_bbox, other_height, maximum_gap=5 * max(height, other_height))
             ):
                 line.semantic_type = None

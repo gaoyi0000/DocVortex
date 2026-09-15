@@ -10,6 +10,7 @@ from .....foundation._text import is_hyphen_at_line_end
 from .....schema import BBox
 from ..geometry import _bbox_axis_overlap_ratio, _bbox_union_many, _rotate_bbox_to_upright, _transform_axis_lines
 from ..line_layout import (
+    _title_fonts_compatible,
     _estimate_lane_gap,
     _infer_text_lanes,
     _horizontal_rule_separates_rows,
@@ -319,7 +320,7 @@ def _build_text_blocks(
 def _restore_caption_wrap_text(
     blocks: list[dict[str, Any]], image_bboxes: list[BBox], page_size: tuple[float, float]
 ) -> list[dict[str, Any]]:
-    """图旁窄栏正文恢复同栏续行；图注下方重新变宽的尾行独立成块，避免正文外框压住图注。"""
+    """按图注屏障分割连续窄宽行区间，镜像布局共用同一几何判定，几何断点不代表自然段。"""
     output = list(blocks)
     captions = [block for block in blocks if _FIGURE_CAPTION_MARKER_RE.match(str(block.get("content", "")))]
     for caption in captions:
@@ -330,49 +331,72 @@ def _restore_caption_wrap_text(
                 continue
             if any(line.angle != 0 or line.paragraph_group is not None or line.semantic_type is not None for line in lines):
                 continue
-            narrow, tail = lines[:-1], lines[-1]
             em = statistics.median(_line_effective_height(line, line.bbox) for line in lines)
-            nb, tb = _bbox_union_many([line.bbox for line in narrow]), tail.bbox
+            if not any(
+                0 <= cb[1] - image[3] <= 3 * em and _bbox_axis_overlap_ratio(cb, image, axis="x") >= 0.75
+                for image in image_bboxes
+            ):
+                continue
+            right_side = lines[0].bbox[0] >= cb[2] - 0.25 * em
+
+            def local(bbox):
+                """将右侧正文镜像到左侧，确保左右布局使用完全相同的阈值。"""
+                return (page_size[0] - bbox[2], bbox[1], page_size[0] - bbox[0], bbox[3]) if right_side else bbox
+
+            obstacle = local(cb)
+            split = next(
+                (
+                    i
+                    for i, line in enumerate(lines)
+                    if line.bbox[1] >= cb[3] - 0.25 * em and local(line.bbox)[2] > obstacle[0] + 3 * em
+                ),
+                None,
+            )
+            if split is None or split < 2:
+                continue
+            narrow, tails = lines[:split], lines[split:]
+            nb = _bbox_union_many([local(line.bbox) for line in narrow])
+            tb = local(tails[0].bbox)
             if not (
-                nb[2] <= cb[0] + 0.25 * em
+                nb[2] <= obstacle[0] + 0.25 * em
                 and nb[3] > cb[1]
                 and cb[3] - 0.25 * em <= tb[1] <= cb[3] + em
                 and abs(tb[0] - nb[0]) <= 0.5 * em
                 and tb[2] - tb[0] >= 1.5 * (nb[2] - nb[0])
-                and tb[2] > cb[0] + 3 * em
-                and any(
-                    0 <= cb[1] - image[3] <= 3 * em and _bbox_axis_overlap_ratio(cb, image, axis="x") >= 0.75
-                    for image in image_bboxes
-                )
             ):
                 continue
-            consumed = [block]
-            first = block
-            # 只向前连接同栏且句子尚未结束的碎片，已有自然段和横线边界仍有效。
-            while not (first.get("_explicit_break_before") or first.get("_rule_break_before")):
+            consumed, first = [block], block
+            while not any(first.get(key) for key in ("_explicit_break_before", "_rule_break_before", "_geometry_break_before")):
                 preceding = [
                     other
                     for other in output
                     if all(other is not item for item in consumed)
                     and other.get("type") == "text"
                     and other.get("_text_lines")
-                    and abs(other["bbox"][0] - nb[0]) <= 0.5 * em
-                    and other["bbox"][2] <= cb[0] + 0.25 * em
+                    and abs(local(other["bbox"])[0] - nb[0]) <= 0.5 * em
+                    and local(other["bbox"])[2] <= obstacle[0] + 0.25 * em
                     and 0 <= nb[1] - other["bbox"][3] <= 0.6 * em
                 ]
                 if not preceding:
                     break
                 previous = max(preceding, key=lambda item: item["bbox"][3])
-                if re.search(r"[.!?。！？][\])’\"']*$", str(previous.get("content", "")).rstrip()):
+                if previous["_text_lines"][-1].paragraph_terminal or re.search(
+                    r"[.!?。！？][\])’\"']*$", str(previous.get("content", "")).rstrip()
+                ):
+                    break
+                if not _title_fonts_compatible(previous["_text_lines"][-1], narrow[0]):
                     break
                 consumed.append(previous)
                 narrow = previous["_text_lines"] + narrow
-                nb = _bbox_union_many([line.bbox for line in narrow])
+                nb = _bbox_union_many([local(line.bbox) for line in narrow])
                 first = previous
             rebuilt = _build_text_blocks(narrow, [], page_size)
-            tail_blocks = _build_text_blocks([tail], [], page_size)
-            for tail_block in tail_blocks:
-                tail_block["_explicit_break_before"] = True
+            tail_blocks = _build_text_blocks(tails, [], page_size)
+            # 独立几何约束阻止后续跨屏障扩框，不制造语义上的新自然段。
+            for item in rebuilt + tail_blocks:
+                item["_geometry_barriers"] = [cb]
+            if tail_blocks:
+                tail_blocks[0]["_geometry_break_before"] = True
             output = [item for item in output if all(item is not member for member in consumed)]
             output.extend(rebuilt + tail_blocks)
     return output

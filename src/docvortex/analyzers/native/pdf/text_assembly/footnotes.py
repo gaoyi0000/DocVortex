@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import statistics
 from typing import Any, Sequence
 
@@ -9,6 +10,7 @@ from .....schema import BBox
 from ..geometry import _bbox_center_y, _bbox_union_many, _rotate_bbox_from_upright, _rotate_bbox_to_upright
 from ..line_layout import _effective_text_row_gap, _line_effective_height, _lines_tight_output_bbox, _title_fonts_compatible
 from ..models import _LineItem
+from ..text_roles import text_role
 from .common import _merge_text_line_content
 
 
@@ -94,17 +96,26 @@ def _split_page_footnote_entries(
     indent_threshold = max(1.5 * median_height, 2.0 * median_glyph_width)
     base_left = min(bbox[0] for _line, bbox in line_geometry)
     maximum_row_width = max(bbox[2] - bbox[0] for _line, bbox in line_geometry)
-    first, first_bbox = line_geometry[0]
-    page_width = page_size[1] if angle in {90, 270} else page_size[0]
-    if (
-        len(line_geometry) >= 3
-        and maximum_row_width >= 0.7 * page_width
-        and first_bbox[2] - first_bbox[0] <= 0.25 * maximum_row_width
-        and _line_effective_height(first, first_bbox) >= 1.05 * statistics.median(effective_heights[1:])
-        and _effective_text_row_gap(line_geometry[0], line_geometry[1]) <= 1.5 * median_height
-        and first_bbox[2] - first_bbox[0] >= 3 * median_height
-    ):
-        # 通栏脚注区的短标题和连续机构正文属于同一分隔线组，不应把标题另拆出去。
+    # 区域标题只提供角色，机构内容与行内编号连续性共同决定是否归为一组。
+    heading = text_role(line_geometry[0][0].text) == "affiliations"
+    body_geometry = line_geometry[1:] if heading else line_geometry
+    institution = re.compile(r"department|university|institute|hospital|centre|center|大学|学院|研究所|医院", re.IGNORECASE)
+    body_text = " ".join(line.text for line, _ in body_geometry)
+    inline_markers = re.search(r"[;；]\s*\d+\s*\D", body_text) is not None
+    separate_entries = sum(
+        re.match(r"^\s*\d+[.)]\s+", line.text) is not None and abs(bounds[0] - base_left) <= 0.5 * median_height
+        for line, bounds in body_geometry
+    )
+    if separate_entries >= 2:
+        starts = [
+            i
+            for i, (line, bounds) in enumerate(line_geometry)
+            if re.match(r"^\s*\d+[.)]\s+", line.text) and abs(bounds[0] - base_left) <= 0.5 * median_height
+        ]
+        boundaries = [0, *starts[1:], len(line_geometry)]
+        return [[line for line, _ in line_geometry[a:b]] for a, b in zip(boundaries, boundaries[1:])]
+    continuous = all(_effective_text_row_gap(a, b) <= 1.5 * median_height for a, b in zip(body_geometry, body_geometry[1:]))
+    if institution.search(body_text) and continuous and separate_entries < 2 and (heading or inline_markers):
         return [[line for line, _ in line_geometry]]
     marker_rows = _find_page_footnote_marker_rows(
         line_geometry,

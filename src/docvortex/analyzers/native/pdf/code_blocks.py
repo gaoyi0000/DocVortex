@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .layout_evidence import build_layout_evidence
+
 import math
 import re
 import statistics
@@ -81,16 +83,14 @@ def _detect_caption_algorithm_candidates(
     control = re.compile(
         r"^\s*(?:\d+\s*[:.]\s*)?(?:if|else|end|for|while|input|output|return|repeat|until|require|ensure)\b", re.IGNORECASE
     )
+    layout = build_layout_evidence(source.lines, source.page_size, barriers=excluded_bboxes)
     output = []
     for heading in headings:
         hb = heading.bbox
-        left, right = (
-            (0.0, width)
-            if hb[2] - hb[0] > 0.55 * width
-            else (0.0, width / 2)
-            if (hb[0] + hb[2]) / 2 < width / 2
-            else (width / 2, width)
-        )
+        corridor = layout.corridor(hb)
+        if corridor is None:
+            continue
+        left, right = corridor
         em = max(1.0, heading.effective_height)
         available = sorted(
             [

@@ -39,6 +39,7 @@ from .line_layout import (
 from .line_merging import _join_formula_visual_row, _merge_overlapping_inline_cluster
 from .models import _AxisLine, _FormulaAnchor, _LineItem, _PageSource, _TextLane
 from .native_text import _sanitize_pdf_control_text
+from .text_roles import has_prose, prose_residue, publication_text
 
 _FORMULA_NUMBER_SUFFIX_RE = re.compile(r"^(?P<prefix>.*?)(?P<marker>[(（﹙][^()（）﹙﹚\r\n]+[)）﹚])\s*$")
 _FORMULA_NUMBER_MARKER_RE = re.compile(
@@ -146,35 +147,113 @@ def _build_vector_formula_blocks(
         )
         if padded_bbox is None:
             continue
-        # 页边彩色品牌路径不能只凭复杂轮廓被公式化；黑色页底数学公式继续保留。
-        colored = any(
-            path.source_index in candidate.path_source_indices
-            and path.fill_rgba is not None
-            and max(path.fill_rgba[:3]) - min(path.fill_rgba[:3]) >= 32
-            for path in source.path_infos
+        paths = [path for path in source.path_infos if path.source_index in candidate.path_source_indices]
+        math_evidence = candidate.has_number or _vector_has_math_evidence(paths, padded_bbox, available_lines, median_height)
+        decoration_shape = _vector_has_decoration_shape(paths)
+        edge = (
+            _bbox_center_y(padded_bbox) < 0.085 * source.page_size[1]
+            or _bbox_center_y(padded_bbox) > 0.90 * source.page_size[1]
+        )
+        publication_regions = source.publication_bboxes + [line.bbox for line in available_lines if publication_text(line.text)]
+        publication = any(
+            _bbox_distance(bounds, padded_bbox) <= 8 * median_height
+            or _bbox_axis_overlap_ratio(bounds, padded_bbox, axis="y") >= 0.5
+            for bounds in publication_regions
         )
         blocks.append(
             {
-                "type": (
-                    "image"
-                    if (
-                        _bbox_center_y(padded_bbox) < 0.085 * source.page_size[1]
-                        or _bbox_center_y(padded_bbox) > 0.90 * source.page_size[1]
-                    )
-                    and colored
-                    and not any(
-                        _standalone_formula_number_marker(line.text)
-                        and abs(_bbox_center_y(line.bbox) - _bbox_center_y(padded_bbox)) < 2 * median_height
-                        for line in available_lines
-                    )
-                    else "equation"
-                ),
+                "type": "image" if edge and decoration_shape and publication and not math_evidence else "equation",
                 "bbox": padded_bbox,
                 "angle": 0,
                 "content": "",
+                "_vector_shape": _vector_shape_signature(paths, padded_bbox),
+                "_vector_edge_decoration": edge and decoration_shape and not math_evidence,
             }
         )
+        if not blocks[-1]["_vector_edge_decoration"]:
+            blocks[-1].pop("_vector_shape")
+            blocks[-1].pop("_vector_edge_decoration")
     return blocks, claimed_number_indices
+
+
+def _vector_shape_signature(paths: list[PDFPathInfo], bbox: BBox) -> tuple:
+    """保存与颜色及绝对位置无关的路径结构，避免同位置的不同图形被当成重复装饰。"""
+    width, height = max(0.1, bbox[2] - bbox[0]), max(0.1, bbox[3] - bbox[1])
+    return tuple(
+        sorted(
+            (
+                path.segment_count,
+                path.fill_visible,
+                path.stroke_visible,
+                round((path.bbox[0] - bbox[0]) / width, 2),
+                round((path.bbox[1] - bbox[1]) / height, 2),
+                round((path.bbox[2] - bbox[0]) / width, 2),
+                round((path.bbox[3] - bbox[1]) / height, 2),
+            )
+            for path in paths
+        )
+    )
+
+
+def _vector_has_decoration_shape(paths: list[PDFPathInfo]) -> bool:
+    """混合图案字标或多行等高字标提供装饰形证据；仍须出版上下文或跨页重复且无数学证据。"""
+    heights = [p.bbox[3] - p.bbox[1] for p in paths if p.bbox[3] > p.bbox[1]]
+    if len(heights) < 5:
+        return False
+    typical = statistics.median(heights)
+    rows: list[list[PDFPathInfo]] = []
+    for path in sorted(paths, key=lambda item: _bbox_center_y(item.bbox)):
+        if (
+            rows
+            and abs(_bbox_center_y(path.bbox) - statistics.median(_bbox_center_y(p.bbox) for p in rows[-1])) <= 0.2 * typical
+        ):
+            rows[-1].append(path)
+        else:
+            rows.append([path])
+    wordmark = 2 <= len(rows) <= 3 and all(len(row) >= 4 for row in rows) and max(heights) <= 1.5 * min(heights)
+    small = sorted(heights)[len(heights) // 4]
+    large = sorted(heights)[3 * len(heights) // 4]
+    overlaps = sum(_bbox_overlap_in_smaller(a.bbox, b.bbox) >= 0.25 for i, a in enumerate(paths) for b in paths[i + 1 :])
+    large_paths = [p for p in paths if p.bbox[3] - p.bbox[1] >= large]
+    irregular = (
+        len(large_paths) >= 3 and max(p.bbox[3] for p in large_paths) - min(p.bbox[3] for p in large_paths) >= 0.6 * large
+    )
+    return wordmark or small > 0 and large >= 2 * small and (overlaps >= 2 or irregular)
+
+
+def _vector_has_math_evidence(paths: list[PDFPathInfo], bbox: BBox, lines: list[_LineItem], em: float) -> bool:
+    """公式编号、可读数学内容和上下居中的分数结构优先于任何装饰判断。"""
+    if any(
+        (
+            _standalone_formula_number_marker(line.text)
+            or _formula_line_has_math_operator(line.text)
+            and not _has_sentence_words(line.text)
+        )
+        and _bbox_distance(line.bbox, bbox) <= 2 * em
+        for line in lines
+    ):
+        return True
+    rules = [p.bbox for p in paths if p.bbox[3] - p.bbox[1] <= 0.2 * em and p.bbox[2] - p.bbox[0] >= em]
+    for rule in rules:
+        neighbors = [p.bbox for p in paths if abs(_bbox_center_x(p.bbox) - _bbox_center_x(rule)) <= 0.25 * (rule[2] - rule[0])]
+        if any(0 <= rule[1] - b[3] <= em for b in neighbors) and any(0 <= b[1] - rule[3] <= em for b in neighbors):
+            return True
+    return False
+
+
+def classify_repeated_vector_decorations(pages) -> None:
+    """跨页同时核对结构签名和归一化几何，只重标缺少数学证据的装饰形候选。"""
+    groups = {}
+    for index, page in enumerate(pages):
+        for block in page.fixed_blocks:
+            if not block.get("_vector_edge_decoration") or not block.get("_vector_shape"):
+                continue
+            bounds = tuple(round(v / page.page_size[i % 2], 2) for i, v in enumerate(block["bbox"]))
+            groups.setdefault((block["_vector_shape"], bounds), []).append((index, block))
+    for members in groups.values():
+        if len({index for index, _ in members}) >= 2:
+            for _, block in members:
+                block["type"] = "image"
 
 
 def _build_vector_path_components(
@@ -862,8 +941,6 @@ def _recover_detached_display_components(
             if len(component) < 2:
                 continue
             members = [candidates[index] for index in component]
-            if not any(line.ink_bbox is not None for line, _bbox in members):
-                continue
             if any(
                 re.search(r"\b(?:where|and|with|when|from|that|then|the|this|these|which|is|are)\b", line.text, re.IGNORECASE)
                 for line, _bbox in members
@@ -873,6 +950,9 @@ def _recover_detached_display_components(
             if not any(_formula_line_has_math_operator(line.text) for line, _ in members):
                 continue
             numbered = any(_standalone_formula_number_marker(line.text) for line, _ in members)
+            # 健康原生行不保留修复专用 ink 框；编号与二维结构共同提供等价的保守证据。
+            if not any(line.ink_bbox is not None for line, _ in members) and not (numbered and bbox[3] - bbox[1] >= 1.35 * em):
+                continue
             if not numbered and bbox[3] - bbox[1] < 1.35 * em:
                 continue
             if bbox[3] - bbox[1] > 8 * em or bbox[2] - bbox[0] < 3 * em:
@@ -897,9 +977,7 @@ def _recover_detached_display_components(
 
 def _has_sentence_words(text: str) -> bool:
     """用独立自然语言词排除正文，数学函数名和变量内部字母不计作句子。"""
-    functions = {"arg", "min", "max", "exp", "erf", "sin", "cos", "tan", "log", "ln", "varwin", "varend"}
-    words = [word for word in re.findall(r"(?<![A-Za-z\d])[A-Za-z]{2,}(?![A-Za-z\d])", text) if word.lower() not in functions]
-    return len(words) >= 3 or len(re.findall(r"[\u3400-\u9fff]", text)) >= 3
+    return has_prose(text)
 
 
 def _build_mixed_body_display_formulas(
@@ -1031,7 +1109,7 @@ def _formula_prefix_has_prose(prefix: str) -> bool:
     prose_prefix = re.sub(
         r"[({\[（［【｛][^)}\]）］】｝]*[)}\]）］】｝]",
         " ",
-        prefix,
+        prose_residue(prefix),
     )
     if len(re.findall(r"[\u3400-\u9fff]", prose_prefix)) >= 2:
         return True

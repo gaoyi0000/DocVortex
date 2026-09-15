@@ -36,6 +36,7 @@ from .auxiliary_text import (
 from .char_geometry import DocumentGeometryPlan, apply_line_geometry_repairs, build_document_geometry_plan
 from .code_blocks import _build_code_blocks, _build_rule_delimited_code_blocks
 from .formulas import (
+    classify_repeated_vector_decorations,
     _attach_unmapped_formula_ink,
     _build_formula_like_blocks,
     _build_vector_formula_blocks,
@@ -73,6 +74,8 @@ from .inline.materialize import (
 )
 from .inline.scripts import detect_pdf_text_script_lines
 from .inline.types import PDFTextLinkLine, PDFTextStyleLine
+from .layout_evidence import build_layout_evidence
+from .text_roles import publication_text
 from .line_merging import (
     _demote_runin_title_fragments,
     _merge_overlapping_inline_text_clusters,
@@ -517,6 +520,7 @@ def _analyze_native_document(
             for page_index, prepared in enumerate(prepared_pages)
         )
 
+    classify_repeated_vector_decorations(prepared_pages)
     profiles = _classify_document_text(prepared_pages)
     mark_document_reference_regions(prepared_pages)
     finalized_pages = [
@@ -591,6 +595,7 @@ def _prepare_page_source(
     analysis_source = replace(
         source,
         lines=[line for line in source.lines if line.source_index not in protected_line_indices | caption_graphic_claims],
+        publication_bboxes=[line.bbox for line in source.lines if publication_text(line.text)],
     )
     form_bboxes = [
         bbox
@@ -1124,19 +1129,14 @@ def _preserve_narrow_graphic_column_order(blocks: list[dict[str, Any]], page_siz
     width = page_size[0]
     marginals = {"header", "footer", "page_number", "aside_text"}
     content = [block for block in blocks if block["type"] not in marginals]
-    if any(block["bbox"][0] < 0.45 * width and block["bbox"][2] > 0.55 * width for block in content):
+    body = [block for block in content if block["type"] == "text" and len(block.get("_text_lines", [])) >= 2]
+    layout = build_layout_evidence([line for block in body for line in block["_text_lines"]], page_size)
+    if len(layout.lanes) < 2 or len(body) < 3:
         return blocks
-    body = [block for block in content if block["type"] == "text" and len(block.get("_local_line_bboxes", [])) >= 2]
-    left = sum(block["bbox"][2] <= 0.52 * width for block in body)
-    right = sum(block["bbox"][0] >= 0.48 * width for block in body)
-    if min(left, right) < 1 or max(left, right) < 2:
+    corridors = {id(block): layout.corridor(block["bbox"]) for block in content}
+    if any(c is None or c == (0.0, width) for c in corridors.values()):
         return blocks
-    ordered = iter(
-        sorted(
-            content,
-            key=lambda block: ((block["bbox"][0] + block["bbox"][2]) / 2 >= width / 2, block["bbox"][1], block["bbox"][0]),
-        )
-    )
+    ordered = iter(sorted(content, key=lambda block: (corridors[id(block)][0], block["bbox"][1], block["bbox"][0])))
     return [block if block["type"] in marginals else next(ordered) for block in blocks]
 
 

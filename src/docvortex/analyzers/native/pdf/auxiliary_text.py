@@ -26,6 +26,8 @@ from .geometry import (
     _rotate_bbox_to_upright,
     _transform_axis_lines,
 )
+from .layout_evidence import build_layout_evidence
+from .text_roles import metadata_field
 from .line_layout import _effective_text_row_gap, _infer_text_lanes, _line_effective_height
 
 _PAGE_NUMBER_RE = re.compile(
@@ -58,37 +60,50 @@ def _classify_page_auxiliary_text(prepared: _PreparedPage) -> None:
 
 
 def _classify_first_page_correspondence_footnotes(source: _PageSource) -> None:
-    """将首页底部紧凑的收稿、通讯作者和联系方式带作为脚注，要求明确通讯作者证据。"""
+    """首页通讯字段只认领同一实际栏或跨栏元数据带，字号、连续性及正文屏障共同限制范围。"""
     width, height = source.page_size
-    lower = [line for line in source.lines if line.angle == 0 and line.bbox[1] >= 0.75 * height and line.semantic_type is None]
-    if not any(re.search(r"correspond(?:ing|ence)\b", line.text, re.IGNORECASE) for line in lower):
-        return
+    lower = [line for line in source.lines if line.angle == 0 and line.bbox[1] >= 0.65 * height and line.semantic_type is None]
+    contacts = [line for line in lower if metadata_field(line.text) == "contact"]
     body = [
         _line_effective_height(line, line.bbox)
         for line in source.lines
         if line.angle == 0 and 0.2 * height < line.bbox[1] < 0.75 * height and line.bbox[2] - line.bbox[0] > 0.3 * width
     ]
-    if not body:
+    if not contacts or not body:
         return
     body_height = statistics.median(body)
-    starts = [
-        line.bbox[1] for line in lower if re.match(r"^\s*(?:keywords?|received|\*?\s*correspond)", line.text, re.IGNORECASE)
-    ]
-    if not starts:
-        return
-    top = min(starts)
-    members = []
-    for line in sorted(lower, key=lambda line: (line.bbox[1], line.bbox[0])):
-        if line.bbox[1] < top:
+    layout = build_layout_evidence(source.lines, source.page_size)
+    for anchor in contacts:
+        corridor = layout.corridor(anchor.bbox)
+        if corridor is None:
             continue
-        if _line_effective_height(line, line.bbox) > 0.85 * body_height:
-            break
-        if members and line.bbox[1] - members[-1].bbox[3] > 1.5 * body_height:
-            break
-        members.append(line)
-    if len(members) >= 3:
-        for line in members:
-            line.semantic_type = "page_footnote"
+        fields = [
+            line
+            for line in lower
+            if metadata_field(line.text)
+            and layout.corridor(line.bbox) in (corridor, (0.0, width))
+            and abs(line.bbox[1] - anchor.bbox[1]) <= 5 * body_height
+        ]
+        if not fields:
+            continue
+        top = min(line.bbox[1] for line in fields)
+        members = []
+        for line in sorted(lower, key=lambda item: (item.bbox[1], item.bbox[0])):
+            if line.bbox[1] < top or not corridor[0] <= _bbox_center_x(line.bbox) <= corridor[1]:
+                continue
+            if _line_effective_height(line, line.bbox) > 0.85 * body_height:
+                break
+            if members and (
+                line.bbox[1] - members[-1].bbox[3] > 1.5 * body_height
+                or _bbox_axis_overlap_ratio(anchor.bbox, line.bbox, axis="x") < 0.5
+            ):
+                break
+            if members and re.match(r"^\s*\d+[.)]\s+", line.text):
+                break
+            members.append(line)
+        if anchor in members and len({metadata_field(line.text) for line in members} - {None}) >= 2:
+            for line in members:
+                line.semantic_type = "page_footnote"
 
 
 def _classify_aside_text(

@@ -177,6 +177,7 @@ class _PageSource:
     form_bboxes: list[BBox] = field(default_factory=list)
     path_infos: list[PDFPathInfo] = field(default_factory=list)
     page_index: int | None = None
+    publication_bboxes: list[BBox] = field(default_factory=list)
 
 
 @dataclass(slots=True)

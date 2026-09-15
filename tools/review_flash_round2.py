@@ -1,4 +1,4 @@
-"""用公共 parse 接口重放第二轮原件，保存可检查的 HTML、MiddleJson 和图片资产包。"""
+"""用公共 parse 接口重放指定原件清单，保存可检查的 HTML、MiddleJson 和图片资产包。"""
 
 from __future__ import annotations
 
@@ -19,9 +19,10 @@ def main() -> None:
     """保留完整文档上下文并校验源指纹；只输出证据，不自动批准测试基线。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "output/pdf/flash-round2/exports")
+    parser.add_argument("--manifest", type=Path, default=ROOT / "tests/fixtures/flash_round2_annotations.json")
     args = parser.parse_args()
     logger.remove()
-    manifest = json.loads((ROOT / "tests/fixtures/flash_round2_annotations.json").read_text())
+    manifest = json.loads(args.manifest.read_text())
     summary = []
     source_hash = hashlib.sha256()
     for source in sorted((ROOT / "src").rglob("*.py")):
@@ -35,6 +36,15 @@ def main() -> None:
         start = time.monotonic()
         result = parse(source, keep_model_json=True)
         result.export(folder / "document.html", output_format="html", overwrite=True)
+        from bs4 import BeautifulSoup
+
+        html = BeautifulSoup((folder / "document.html").read_text(), "html.parser")
+        missing_images = [
+            image["src"]
+            for image in html.find_all("img", src=True)
+            if not image["src"].startswith(("data:", "http:", "https:")) and not (folder / image["src"]).is_file()
+        ]
+        assert not missing_images, (document["name"], missing_images)
         result.save_bundle(folder / "document.zip", overwrite=True)
         (folder / "middle.json").write_text(json.dumps(result.to_dict(), ensure_ascii=False), encoding="utf-8")
         item = {
@@ -45,6 +55,7 @@ def main() -> None:
             "assets": len(result.assets),
             "seconds": round(time.monotonic() - start, 2),
             "diagnostics": [str(diagnostic) for diagnostic in result.diagnostics],
+            "missing_images": missing_images,
         }
         summary.append(item)
         print(item, flush=True)

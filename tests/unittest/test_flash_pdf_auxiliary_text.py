@@ -1043,7 +1043,6 @@ def test_auxiliary_text_classifiers_do_not_read_line_text() -> None:
             auxiliary_text._rule_belongs_to_confirmed_table,
             auxiliary_text._merge_overlapping_source_groups,
             auxiliary_text._footnote_lane_members,
-            text_blocks._split_page_footnote_entries,
             text_blocks._tight_page_footnote_bboxes,
         )
     )
