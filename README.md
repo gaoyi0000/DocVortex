@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/myhloli/DocVortex/main/docs/images/docvortex-logo.jpg" alt="DocVortex logo" width="200">
+<img src="https://gcore.jsdelivr.net/gh/myhloli/DocVortex@main/docs/images/docvortex-logo.jpg" alt="DocVortex logo" width="200">
 
 # DocVortex
 
@@ -31,7 +31,7 @@ then exports the result in the formats your workflow needs.
 Native parsing works without an OCR or VLM inference service. Use DocVortex
 directly through its CLI or Python SDK, independently of MinerU.
 
-![DocVortex pipeline: native documents become a unified representation, then Markdown, HTML, LaTeX, DOCX, EPUB, PDF or structured JSON.](https://raw.githubusercontent.com/myhloli/DocVortex/main/docs/images/docvortex-overview.jpg)
+![DocVortex pipeline: native documents become a unified representation, then Markdown, HTML, LaTeX, DOCX, EPUB, PDF or structured JSON.](https://gcore.jsdelivr.net/gh/myhloli/DocVortex@main/docs/images/docvortex-overview.jpg)
 
 ## Quick start
 
