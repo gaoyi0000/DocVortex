@@ -332,7 +332,7 @@ def test_explicit_pdf_fixtures_keep_expected_txt_block_inventory() -> None:
                     "equation": 9,
                     "footer": 1,
                     "footnote": 2,
-                    "image": 8,
+                    "image": 5,
                     "paragraph_title": 10,
                     "table": 2,
                     "text": 62,
@@ -382,7 +382,7 @@ def test_explicit_pdf_fixtures_keep_expected_txt_block_inventory() -> None:
                     "equation": 1,
                     "footer": 4,
                     "header": 5,
-                    "image": 7,
+                    "image": 4,
                     "page_number": 3,
                     "paragraph_title": 5,
                     "table": 1,
@@ -415,7 +415,7 @@ def test_explicit_pdf_fixtures_keep_expected_txt_block_inventory() -> None:
                     "doc_title": 1,
                     "footer": 1,
                     "header": 8,
-                    "image": 8,
+                    "image": 6,
                     "page_footnote": 1,
                     "page_number": 4,
                     "paragraph_title": 13,
@@ -706,8 +706,8 @@ def test_demo2_pages2_to6_restore_paragraphs_formulas_and_reading_order() -> Non
 
     model_list = _native_model_list("demo2.pdf")
 
-    assert [len(page) for page in model_list] == [16, 16, 21, 15, 18, 16]
-    assert [sum(block["type"] == "image" for block in page) for page in model_list] == [1, 0, 0, 5, 2, 0]
+    assert [len(page) for page in model_list] == [16, 16, 21, 13, 17, 16]
+    assert [sum(block["type"] == "image" for block in page) for page in model_list] == [1, 0, 0, 3, 1, 0]
     assert [sum(block["type"] == "table" for block in page) for page in model_list] == [0, 0, 0, 1, 1, 0]
     assert sum(block["type"] == "equation" for page in model_list for block in page) == 9
     assert sum(block["type"] == "caption" for page in model_list for block in page) == 7
@@ -808,8 +808,8 @@ def test_demo2_container_claims_are_pairwise_disjoint() -> None:
         assert len(combined) == len(table_claimed) + len(graphic_claimed) + len(formula_claimed)
 
 
-def test_demo2_page4_groups_five_graphics_and_keeps_table1() -> None:
-    """验证 demo2 第四页正文尾行不被图形吸收，五个图形和 Table 1 均保持完整。"""
+def test_demo2_page4_groups_three_figures_and_keeps_table1() -> None:
+    """验证 demo2 第四页正文尾行不被图形吸收，同图题的三个子图聚合，三个独立图和 Table 1 均保持完整。"""
 
     page = _native_model_list("demo2.pdf")[3]
     table_blocks = [block for block in page if block["type"] == "table"]
@@ -824,7 +824,8 @@ def test_demo2_page4_groups_five_graphics_and_keeps_table1() -> None:
     assert table_caption["type"] == "caption"
     assert "Table I:" not in table_blocks[0]["content"]
     assert "Symbol" in table_blocks[0]["content"]
-    assert len({id(block) for block in graphic_blocks}) == 5
+    assert len({id(block) for block in graphic_blocks}) == 3
+    assert graphic_blocks[1] is graphic_blocks[2] is graphic_blocks[3]
     assert "Frame 90" in _visible_content(graphic_blocks[0])
     assert all("Figure" not in _visible_content(block) for block in graphic_blocks)
     body_tail_block = next(block for block in page if _visible_content(block).startswith("of the synthetic stereo scene"))
@@ -1637,7 +1638,7 @@ def test_mixed_elements_pages_03_06_force_txt_regressions() -> None:
         if block["type"] in {"text", "image", "caption"} and block["bbox"][0] >= 0.49 and block["bbox"][1] >= 0.49
     ] == [
         [0.496, 0.508, 0.893, 0.636],
-        [0.503, 0.66, 0.886, 0.871],
+        [0.505, 0.664, 0.885, 0.87],
         [0.52, 0.887, 0.87, 0.912],
     ]
 
@@ -1649,7 +1650,7 @@ def test_mixed_elements_pages_03_06_force_txt_regressions() -> None:
     assert len([block for block in page5 if block["type"] == "footer"]) == 1
     lower_graphs = [block for block in page5 if block["type"] == "image" and block["bbox"][1] >= 0.6]
     assert len(lower_graphs) == 1
-    assert lower_graphs[0]["bbox"] == [0.096, 0.634, 0.46, 0.862]
+    assert lower_graphs[0]["bbox"] == [0.096, 0.636, 0.459, 0.86]
     assert "σT1/2, S K1/2/m" in str(lower_graphs[0]["content"])
     assert "T–1/4, K–1/4" in str(lower_graphs[0]["content"])
     assert "ular films." not in str(lower_graphs[0]["content"])
@@ -1661,7 +1662,8 @@ def test_mixed_elements_pages_03_06_force_txt_regressions() -> None:
     figure1_caption = _blocks_containing(page4, "Fig. 1. Electron micrographs")
     panel_images = [block for block in page4 if block["type"] == "image" and block["bbox"][3] < 0.44]
     assert len(figure1_caption) == 1
-    assert len(panel_images) == 4
+    assert len(panel_images) == 1
+    assert all(marker in _visible_content(panel_images[0]) for marker in ("(a)", "(b)", "(c)", "(d)"))
     assert max(page4.index(block) for block in panel_images) < page4.index(figure1_caption[0])
 
 

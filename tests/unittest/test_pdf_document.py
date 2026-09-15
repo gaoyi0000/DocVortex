@@ -778,7 +778,8 @@ def test_get_page_path_infos_preserves_bezier_visibility_depth_and_source_order(
     assert path_infos[3].fill_visible and not path_infos[3].stroke_visible
     assert path_infos[3].fill_rgba == (0, 0, 0, 255)
     nested_path = next(item for item in path_infos if item.form_depth == 1)
-    assert nested_path.bbox == pytest.approx((29.0, 99.0, 71.0, 101.0))
+    # Form 的 BBox 裁掉下半描边和两端扩张；渲染验证仅保留 x=30..70、y<100 的可见墨迹。
+    assert nested_path.bbox == pytest.approx((30.0, 99.0, 70.0, 100.0))
     bezier_path = path_infos[-1]
     assert bezier_path.segment_count == 5
     assert bezier_path.bbox == pytest.approx((10.0, 105.0, 40.0, 120.0))
@@ -909,7 +910,7 @@ def test_get_page_form_bboxes_reads_root_forms_and_nested_content_bounds() -> No
     with pdf_document.PDFDocument(_build_drawing_pdf()) as doc:
         form_bboxes = doc.get_page_form_bboxes(0)
 
-    assert form_bboxes == pytest.approx([(28.0, 99.0, 72.0, 101.0)])
+    assert form_bboxes == pytest.approx([(30.0, 99.0, 70.0, 100.0)])
 
 
 def test_get_page_form_bboxes_applies_crop_box_rotation_and_clipping() -> None:

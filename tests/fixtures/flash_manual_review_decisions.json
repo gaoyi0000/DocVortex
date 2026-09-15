@@ -1,0 +1,1208 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "cefa120874954f7c09734309c10ede377dc25cb9",
+  "annotations": [
+    {
+      "id": "nougat-03-01",
+      "document": "nougat",
+      "page": 3,
+      "operation": "image",
+      "original_indices": [
+        2
+      ],
+      "status": "修复通过",
+      "reason": "真实绘图成员和边缘标签归为完整图；最大/最小边界与正文排除检查通过。"
+    },
+    {
+      "id": "nougat-05-02",
+      "document": "nougat",
+      "page": 5,
+      "operation": "equation",
+      "original_indices": [
+        10,
+        11
+      ],
+      "status": "修复通过",
+      "reason": "行间公式完整聚合；分式、上下限或编号归属完整，未保留游离小块。"
+    },
+    {
+      "id": "nougat-05-03",
+      "document": "nougat",
+      "page": 5,
+      "operation": "caption",
+      "original_indices": [
+        3
+      ],
+      "status": "修复通过",
+      "reason": "ModelJson 识别为 caption，最终输出保留对应图表 caption 类型。"
+    },
+    {
+      "id": "nougat-06-04",
+      "document": "nougat",
+      "page": 6,
+      "operation": "caption",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "ModelJson 识别为 caption，最终输出保留对应图表 caption 类型。"
+    },
+    {
+      "id": "nougat-08-05",
+      "document": "nougat",
+      "page": 8,
+      "operation": "caption",
+      "original_indices": [
+        4
+      ],
+      "status": "修复通过",
+      "reason": "ModelJson 识别为 caption，最终输出保留对应图表 caption 类型。"
+    },
+    {
+      "id": "nougat-13-06",
+      "document": "nougat",
+      "page": 13,
+      "operation": "caption",
+      "original_indices": [
+        4
+      ],
+      "status": "修复通过",
+      "reason": "ModelJson 识别为 caption，最终输出保留对应图表 caption 类型。"
+    },
+    {
+      "id": "nougat-08-07",
+      "document": "nougat",
+      "page": 8,
+      "operation": "equation",
+      "original_indices": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "status": "修复通过",
+      "reason": "行间公式完整聚合；分式、上下限或编号归属完整，未保留游离小块。"
+    },
+    {
+      "id": "nougat-09-08",
+      "document": "nougat",
+      "page": 9,
+      "operation": "equation",
+      "original_indices": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "status": "修复通过",
+      "reason": "行间公式完整聚合；分式、上下限或编号归属完整，未保留游离小块。"
+    },
+    {
+      "id": "nougat-02-09",
+      "document": "nougat",
+      "page": 2,
+      "operation": "merge",
+      "original_indices": [
+        11,
+        12
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "nougat-02-10",
+      "document": "nougat",
+      "page": 2,
+      "operation": "merge",
+      "original_indices": [
+        13,
+        14
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "nougat-04-11",
+      "document": "nougat",
+      "page": 4,
+      "operation": "inline_titles",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "段内强调合入 text，粗体保留；真正的独立节标题保留。"
+    },
+    {
+      "id": "mmlu_redux-02-01",
+      "document": "mmlu_redux",
+      "page": 2,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "真实绘图成员和边缘标签归为完整图；最大/最小边界与正文排除检查通过。"
+    },
+    {
+      "id": "mmlu_redux-05-02",
+      "document": "mmlu_redux",
+      "page": 5,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "真实绘图成员和边缘标签归为完整图；最大/最小边界与正文排除检查通过。"
+    },
+    {
+      "id": "mmlu_redux-07-03",
+      "document": "mmlu_redux",
+      "page": 7,
+      "operation": "split",
+      "original_indices": [
+        2
+      ],
+      "status": "修复通过",
+      "reason": "五个反复出现的粗体引导短语分别成段，五段均保留行内粗体。"
+    },
+    {
+      "id": "mmlu_redux-09-04",
+      "document": "mmlu_redux",
+      "page": 9,
+      "operation": "merge",
+      "original_indices": [
+        8,
+        9
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "mmlu_redux-10-05",
+      "document": "mmlu_redux",
+      "page": 10,
+      "operation": "merge",
+      "original_indices": [
+        9,
+        10,
+        11,
+        12
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "mmlu_redux-19-06",
+      "document": "mmlu_redux",
+      "page": 19,
+      "operation": "split",
+      "original_indices": [],
+      "status": "按保守策略保留",
+      "reason": "已有重复粗体与句尾证据的长段已拆开；少量紧贴的单行短条目仍保持原组合，避免放宽阈值误拆普通段落。"
+    },
+    {
+      "id": "mmlu_redux-20-07",
+      "document": "mmlu_redux",
+      "page": 20,
+      "operation": "split",
+      "original_indices": [],
+      "status": "按保守策略保留",
+      "reason": "已有重复粗体与句尾证据的长段已拆开；少量紧贴的单行短条目仍保持原组合，避免放宽阈值误拆普通段落。"
+    },
+    {
+      "id": "frames_v1-04-01",
+      "document": "frames_v1",
+      "page": 4,
+      "operation": "table",
+      "original_indices": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "修复通过",
+      "reason": "完整表区域及 HTML 单元格通过，尾行/外置表头已纳入。"
+    },
+    {
+      "id": "frames_v1-08-02",
+      "document": "frames_v1",
+      "page": 8,
+      "operation": "caption",
+      "original_indices": [
+        5
+      ],
+      "status": "修复通过",
+      "reason": "ModelJson 识别为 caption，最终输出保留对应图表 caption 类型。"
+    },
+    {
+      "id": "frames_v1-10-03",
+      "document": "frames_v1",
+      "page": 10,
+      "operation": "merge",
+      "original_indices": [
+        9,
+        10,
+        11
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v1-11-04",
+      "document": "frames_v1",
+      "page": 11,
+      "operation": "merge",
+      "original_indices": [
+        16,
+        17
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-01-01",
+      "document": "frames_v2",
+      "page": 1,
+      "operation": "title",
+      "original_indices": [
+        5
+      ],
+      "status": "修复通过",
+      "reason": "独立标题保留 paragraph_title，正文段首强调使用行内样式。"
+    },
+    {
+      "id": "frames_v2-01-02",
+      "document": "frames_v2",
+      "page": 1,
+      "operation": "merge",
+      "original_indices": [
+        10,
+        11
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-04-03",
+      "document": "frames_v2",
+      "page": 4,
+      "operation": "table",
+      "original_indices": [
+        1,
+        2,
+        3
+      ],
+      "status": "修复通过",
+      "reason": "完整表区域及 HTML 单元格通过，尾行/外置表头已纳入。"
+    },
+    {
+      "id": "frames_v2-04-04",
+      "document": "frames_v2",
+      "page": 4,
+      "operation": "merge",
+      "original_indices": [
+        8,
+        9
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-05-05",
+      "document": "frames_v2",
+      "page": 5,
+      "operation": "caption",
+      "original_indices": [
+        2
+      ],
+      "status": "修复通过",
+      "reason": "ModelJson 识别为 caption，最终输出保留对应图表 caption 类型。"
+    },
+    {
+      "id": "frames_v2-05-06",
+      "document": "frames_v2",
+      "page": 5,
+      "operation": "merge",
+      "original_indices": [
+        4,
+        5
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-06-07",
+      "document": "frames_v2",
+      "page": 6,
+      "operation": "merge",
+      "original_indices": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-07-08",
+      "document": "frames_v2",
+      "page": 7,
+      "operation": "code",
+      "original_indices": [
+        5,
+        6
+      ],
+      "status": "修复通过",
+      "reason": "算法聚合为 code/code_body，caption 独立；没有新增公共类型。"
+    },
+    {
+      "id": "frames_v2-07-09",
+      "document": "frames_v2",
+      "page": 7,
+      "operation": "merge",
+      "original_indices": [
+        9,
+        10
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-09-10",
+      "document": "frames_v2",
+      "page": 9,
+      "operation": "merge",
+      "original_indices": [
+        9,
+        10
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-09-11",
+      "document": "frames_v2",
+      "page": 9,
+      "operation": "merge",
+      "original_indices": [
+        11,
+        12,
+        13
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-09-12",
+      "document": "frames_v2",
+      "page": 9,
+      "operation": "merge",
+      "original_indices": [
+        14,
+        15
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-09-13",
+      "document": "frames_v2",
+      "page": 9,
+      "operation": "merge",
+      "original_indices": [
+        16,
+        17
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-09-14",
+      "document": "frames_v2",
+      "page": 9,
+      "operation": "merge",
+      "original_indices": [
+        19,
+        20
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-09-15",
+      "document": "frames_v2",
+      "page": 9,
+      "operation": "merge",
+      "original_indices": [
+        21,
+        22
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-09-16",
+      "document": "frames_v2",
+      "page": 9,
+      "operation": "merge",
+      "original_indices": [
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "frames_v2-09-17",
+      "document": "frames_v2",
+      "page": 9,
+      "operation": "merge",
+      "original_indices": [
+        30,
+        31
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "nash_review-01-01",
+      "document": "nash_review",
+      "page": 1,
+      "operation": "footnote",
+      "original_indices": [
+        10
+      ],
+      "status": "修复通过",
+      "reason": "脚注类型与成员范围通过；相邻栏正文没有被纳入。"
+    },
+    {
+      "id": "nash_review-01-02",
+      "document": "nash_review",
+      "page": 1,
+      "operation": "logo",
+      "original_indices": [
+        11
+      ],
+      "status": "修复通过",
+      "reason": "彩色出版 logo 归为 image，普通黑色页底公式反例保留。"
+    },
+    {
+      "id": "nash_review-03-03",
+      "document": "nash_review",
+      "page": 3,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "真实绘图成员和边缘标签归为完整图；最大/最小边界与正文排除检查通过。"
+    },
+    {
+      "id": "nash_review-05-04",
+      "document": "nash_review",
+      "page": 5,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "真实绘图成员和边缘标签归为完整图；最大/最小边界与正文排除检查通过。"
+    },
+    {
+      "id": "nash_review-08-05",
+      "document": "nash_review",
+      "page": 8,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "真实绘图成员和边缘标签归为完整图；最大/最小边界与正文排除检查通过。"
+    },
+    {
+      "id": "nash_review-12-06",
+      "document": "nash_review",
+      "page": 12,
+      "operation": "merge",
+      "original_indices": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "nash_review-14-07",
+      "document": "nash_review",
+      "page": 14,
+      "operation": "marginal",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "参考文献卷页尾行回到对应条目，不再被重复页眉规则认领。"
+    },
+    {
+      "id": "nash_review-15-08",
+      "document": "nash_review",
+      "page": 15,
+      "operation": "marginal",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "参考文献卷页尾行回到对应条目，不再被重复页眉规则认领。"
+    },
+    {
+      "id": "connexin-02-01",
+      "document": "connexin",
+      "page": 2,
+      "operation": "merge",
+      "original_indices": [
+        9,
+        10
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "connexin-05-02",
+      "document": "connexin",
+      "page": 5,
+      "operation": "merge",
+      "original_indices": [
+        25,
+        26
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "connexin-05-03",
+      "document": "connexin",
+      "page": 5,
+      "operation": "split",
+      "original_indices": [
+        27,
+        28
+      ],
+      "status": "修复通过",
+      "reason": "参考文献 21、22 分为两个完整条目；该页不再有误识别公式。"
+    },
+    {
+      "id": "fornax-01-01",
+      "document": "fornax",
+      "page": 1,
+      "operation": "front_matter",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "作者行保留上标编号；九个机构按 1–9 排列，邮箱随机构 1，日期独立。"
+    },
+    {
+      "id": "fornax-04-02",
+      "document": "fornax",
+      "page": 4,
+      "operation": "merge",
+      "original_indices": [
+        5,
+        6
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "fornax-05-03",
+      "document": "fornax",
+      "page": 5,
+      "operation": "equation",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "排除把分数线当脚注线的路径；公式同时包含分子、分母和 (8)，下方两段保持 text。"
+    },
+    {
+      "id": "fornax-06-04",
+      "document": "fornax",
+      "page": 6,
+      "operation": "footnote",
+      "original_indices": [
+        7
+      ],
+      "status": "修复通过",
+      "reason": "脚注类型与成员范围通过；相邻栏正文没有被纳入。"
+    },
+    {
+      "id": "fornax-08-05",
+      "document": "fornax",
+      "page": 8,
+      "operation": "caption",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "ModelJson 识别为 caption，最终输出保留对应图表 caption 类型。"
+    },
+    {
+      "id": "fornax-11-06",
+      "document": "fornax",
+      "page": 11,
+      "operation": "table",
+      "original_indices": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "status": "修复通过",
+      "reason": "完整表区域及 HTML 单元格通过，尾行/外置表头已纳入。"
+    },
+    {
+      "id": "fornax-11-07",
+      "document": "fornax",
+      "page": 11,
+      "operation": "split",
+      "original_indices": [
+        16,
+        17
+      ],
+      "status": "修复通过",
+      "reason": "编号 1 与 2 分段，This is illustrated 及后续说明归到第 2 段。"
+    },
+    {
+      "id": "fornax-13-08",
+      "document": "fornax",
+      "page": 13,
+      "operation": "references",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "悬挂缩进恢复 82 条参考文献；单行和多行条目混排，期刊/年份尾行归属通过。"
+    },
+    {
+      "id": "fornax-14-09",
+      "document": "fornax",
+      "page": 14,
+      "operation": "equation",
+      "original_indices": [
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "status": "修复通过",
+      "reason": "行间公式完整聚合；分式、上下限或编号归属完整，未保留游离小块。"
+    },
+    {
+      "id": "k2_treap-02-01",
+      "document": "k2_treap",
+      "page": 2,
+      "operation": "merge",
+      "original_indices": [
+        2,
+        3
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-02-02",
+      "document": "k2_treap",
+      "page": 2,
+      "operation": "merge",
+      "original_indices": [
+        13,
+        14
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-03-03",
+      "document": "k2_treap",
+      "page": 3,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "原生路径与标签恢复完整图。独立 caption 保持独立；Fig.11/12/14 两侧完整，Fig.13 六个子图已聚成整图。"
+    },
+    {
+      "id": "k2_treap-03-04",
+      "document": "k2_treap",
+      "page": 3,
+      "operation": "merge",
+      "original_indices": [
+        8,
+        9
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-04-05",
+      "document": "k2_treap",
+      "page": 4,
+      "operation": "merge",
+      "original_indices": [
+        5,
+        6
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-04-06",
+      "document": "k2_treap",
+      "page": 4,
+      "operation": "code",
+      "original_indices": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "status": "修复通过",
+      "reason": "算法聚合为 code/code_body，caption 独立；没有新增公共类型。"
+    },
+    {
+      "id": "k2_treap-04-07",
+      "document": "k2_treap",
+      "page": 4,
+      "operation": "merge",
+      "original_indices": [
+        25,
+        26
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-05-08",
+      "document": "k2_treap",
+      "page": 5,
+      "operation": "merge",
+      "original_indices": [
+        2,
+        3
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-05-09",
+      "document": "k2_treap",
+      "page": 5,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "原生路径与标签恢复完整图。独立 caption 保持独立；Fig.11/12/14 两侧完整，Fig.13 六个子图已聚成整图。"
+    },
+    {
+      "id": "k2_treap-06-10",
+      "document": "k2_treap",
+      "page": 6,
+      "operation": "merge",
+      "original_indices": [
+        2,
+        3
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-06-11",
+      "document": "k2_treap",
+      "page": 6,
+      "operation": "merge",
+      "original_indices": [
+        6,
+        7
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-06-12",
+      "document": "k2_treap",
+      "page": 6,
+      "operation": "merge",
+      "original_indices": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-06-13",
+      "document": "k2_treap",
+      "page": 6,
+      "operation": "image",
+      "original_indices": [
+        18
+      ],
+      "status": "修复通过",
+      "reason": "原生路径与标签恢复完整图。独立 caption 保持独立；Fig.11/12/14 两侧完整，Fig.13 六个子图已聚成整图。"
+    },
+    {
+      "id": "k2_treap-07-14",
+      "document": "k2_treap",
+      "page": 7,
+      "operation": "merge",
+      "original_indices": [
+        8,
+        9
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-07-15",
+      "document": "k2_treap",
+      "page": 7,
+      "operation": "merge",
+      "original_indices": [
+        11,
+        12
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-07-16",
+      "document": "k2_treap",
+      "page": 7,
+      "operation": "merge",
+      "original_indices": [
+        16,
+        17
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-08-17",
+      "document": "k2_treap",
+      "page": 8,
+      "operation": "merge",
+      "original_indices": [
+        4,
+        5,
+        6
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-08-18",
+      "document": "k2_treap",
+      "page": 8,
+      "operation": "merge",
+      "original_indices": [
+        10,
+        11
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-08-19",
+      "document": "k2_treap",
+      "page": 8,
+      "operation": "merge",
+      "original_indices": [
+        14,
+        15,
+        16
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-08-20",
+      "document": "k2_treap",
+      "page": 8,
+      "operation": "merge",
+      "original_indices": [
+        17,
+        18
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-09-21",
+      "document": "k2_treap",
+      "page": 9,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "原生路径与标签恢复完整图。独立 caption 保持独立；Fig.11/12/14 两侧完整，Fig.13 六个子图已聚成整图。"
+    },
+    {
+      "id": "k2_treap-09-22",
+      "document": "k2_treap",
+      "page": 9,
+      "operation": "merge",
+      "original_indices": [
+        16,
+        17
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    },
+    {
+      "id": "k2_treap-10-23",
+      "document": "k2_treap",
+      "page": 10,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "原生路径与标签恢复完整图。独立 caption 保持独立；Fig.11/12/14 两侧完整，Fig.13 六个子图已聚成整图。"
+    },
+    {
+      "id": "k2_treap-11-24",
+      "document": "k2_treap",
+      "page": 11,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "原生路径与标签恢复完整图。独立 caption 保持独立；Fig.11/12/14 两侧完整，Fig.13 六个子图已聚成整图。"
+    },
+    {
+      "id": "k2_treap-12-25",
+      "document": "k2_treap",
+      "page": 12,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "原生路径与标签恢复完整图。独立 caption 保持独立；Fig.11/12/14 两侧完整，Fig.13 六个子图已聚成整图。"
+    },
+    {
+      "id": "k2_treap-13-26",
+      "document": "k2_treap",
+      "page": 13,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "原生路径与标签恢复完整图。独立 caption 保持独立；Fig.11/12/14 两侧完整，Fig.13 六个子图已聚成整图。"
+    },
+    {
+      "id": "k2_treap-14-27",
+      "document": "k2_treap",
+      "page": 14,
+      "operation": "image",
+      "original_indices": [],
+      "status": "修复通过",
+      "reason": "原生路径与标签恢复完整图。独立 caption 保持独立；Fig.11/12/14 两侧完整，Fig.13 六个子图已聚成整图。"
+    },
+    {
+      "id": "k2_treap-15-28",
+      "document": "k2_treap",
+      "page": 15,
+      "operation": "merge",
+      "original_indices": [
+        3,
+        4
+      ],
+      "status": "修复通过",
+      "reason": "已合为完整 text；原成员归属检查通过，段内不再另套 title/equation。"
+    }
+  ],
+  "history_changes": [
+    {
+      "name": "caibao1",
+      "page": 1,
+      "decision": "update",
+      "reason": "嵌套 Form 裁剪后右侧三张表左边界收紧 0.001；逐格内容及列结构不变。",
+      "before": {
+        "page_index": 0,
+        "fingerprint": "9004558bc9889b49bb0ea7e39df7ac6126cc74d0d57137a94f46165916b7a61a",
+        "bbox_fingerprint": "d286fc61f042f296120ee4904b51bc355cfd4b8878e4bcb7c865015623b0d245"
+      },
+      "after": {
+        "page_index": 0,
+        "fingerprint": "9004558bc9889b49bb0ea7e39df7ac6126cc74d0d57137a94f46165916b7a61a",
+        "bbox_fingerprint": "80e7f92efa19a35af92e735ab30b2ea03b8f8dcc2f12e9adc27f95fde92c40d4"
+      }
+    },
+    {
+      "name": "demo1",
+      "page": 7,
+      "decision": "update",
+      "reason": "图 3 以可见路径与标签重建，边框略收紧；轴标签、图例、正文和 caption 完整。",
+      "before": {
+        "page_index": 6,
+        "fingerprint": "cbe0a0fbf3bf8fdcf819156f5d5d0afe0e8446740956914a34efff5667548e25",
+        "bbox_fingerprint": "6fb1bec6fba0588c197454d02c963f57fce372537c22c4336b070b63aa83904e"
+      },
+      "after": {
+        "page_index": 6,
+        "fingerprint": "cbe0a0fbf3bf8fdcf819156f5d5d0afe0e8446740956914a34efff5667548e25",
+        "bbox_fingerprint": "0553a7732e05a1e49dcac6be82244f8b2388d2296fe40aa190a0db4e3b7362fe"
+      }
+    },
+    {
+      "name": "demo2",
+      "page": 4,
+      "decision": "update",
+      "reason": "Figure 3 的三个噪声子图归为一张图，整页五个图元归为三个独立图；五组标签、Table I 和双栏阅读顺序保留。",
+      "before": {
+        "page_index": 3,
+        "fingerprint": "2fc4da6d28979b981e6555ae58493fca2b50e8941dd854d3474d756d46531738",
+        "bbox_fingerprint": "8c9ad4989d4263d5427af2fe2202a1b698e76618a0d4a9d5f167fb680286911f"
+      },
+      "after": {
+        "page_index": 3,
+        "fingerprint": "a07fe163ceadc26da86665beaaebbfc06992dc9f3a2a78552c55e40ce32b1841",
+        "bbox_fingerprint": "596303800e2b87840a9227aa34edf9bf2c135e571b9fbcdc559d1220ca2fd685"
+      }
+    },
+    {
+      "name": "demo2",
+      "page": 5,
+      "decision": "update",
+      "reason": "同一 Figure 5 下上下两个图块归为一图；参考文献、表格、公式和 caption 保留。",
+      "before": {
+        "page_index": 4,
+        "fingerprint": "358f84e612352654cbe42f68e75697b2bc8daa1e49be377fce07b632da2c2f86",
+        "bbox_fingerprint": "4220fae0bb7bf222d2748add31112ac7625b339a1b020cdda8877607a9e46c42"
+      },
+      "after": {
+        "page_index": 4,
+        "fingerprint": "8fbb8065c5487fc40307531b7a26fdbc5598ea186e17208b086b0a1da59edeb3",
+        "bbox_fingerprint": "5b452bfe7c0b274fb1121ecfaa68e01301d2067e862a3f8a66d8c2e0c9fad693"
+      }
+    },
+    {
+      "name": "demo3",
+      "page": 3,
+      "decision": "update",
+      "reason": "TableFormer 图按裁剪后真实成员收紧空白边；图中文字、箭头和下方两条公式完整。",
+      "before": {
+        "page_index": 2,
+        "fingerprint": "4cd63bc960129491187415d6747db9a367a772c629b0e1f951cf90b4623bb958",
+        "bbox_fingerprint": "4fef334e701d7dda4345a742f61d81d323152faa58552b08eac3c09500efca6f"
+      },
+      "after": {
+        "page_index": 2,
+        "fingerprint": "4cd63bc960129491187415d6747db9a367a772c629b0e1f951cf90b4623bb958",
+        "bbox_fingerprint": "7bf437850258696a7b18d039207d624f040a2a006a5ca0d095115b72458a7f64"
+      }
+    },
+    {
+      "name": "mixed_elements_pages_03_06",
+      "page": 2,
+      "decision": "update",
+      "reason": "同一 Fig.1 下四张电镜子图聚为整图；a–d 标签齐全，Fig.2 与正文、公式保持独立。",
+      "before": {
+        "page_index": 1,
+        "fingerprint": "8c6b1dd8311047dadbd02bba5fc2484cfb46288ce15b89921ae0e9ed8767590c",
+        "bbox_fingerprint": "5c889585cf0f9bdd6d4cc387381a3c954d269f941ac05e69b70dde2f9227ab11"
+      },
+      "after": {
+        "page_index": 1,
+        "fingerprint": "652db0fb1855f3dd327c2cd09e2f4637e86ff1e5d1a21e7572ebf0f83c977ca4",
+        "bbox_fingerprint": "8662f48c81797c9ae3b7ffca69607538e08080f279545145e1b2c875e055c371"
+      }
+    },
+    {
+      "name": "mixed_elements_pages_03_06",
+      "page": 3,
+      "decision": "update",
+      "reason": "Fig.4 按裁剪后的真实路径缩小空白边；上下轴标签完整，caption 不入图。",
+      "before": {
+        "page_index": 2,
+        "fingerprint": "40b94d8d44875a999a8dd8122cef17eee7405e4844f031308c62bbe87b994eb5",
+        "bbox_fingerprint": "0d872b54fd7a4035592d8aadd82423a86e93dc27d5643e10e64f63ba7084d88b"
+      },
+      "after": {
+        "page_index": 2,
+        "fingerprint": "40b94d8d44875a999a8dd8122cef17eee7405e4844f031308c62bbe87b994eb5",
+        "bbox_fingerprint": "c30303353a557d430748e92f9a6237b6d06eea5d6b9d48f0b0e9691ffec12071"
+      }
+    },
+    {
+      "name": "mixed_elements_pages_07_10",
+      "page": 3,
+      "decision": "update",
+      "reason": "流程图按裁剪后成员收紧边界；源代码、LLVM IR、切片分析等端点标签完整。",
+      "before": {
+        "page_index": 2,
+        "fingerprint": "223f8dc3618805a8688095824d638d00348540403923ffddb74ba95a3a1961df",
+        "bbox_fingerprint": "d11e2e4659f5b97eaaa59b8f7f5e683cc1781e5a5f5d1429e111dad7141e4327"
+      },
+      "after": {
+        "page_index": 2,
+        "fingerprint": "223f8dc3618805a8688095824d638d00348540403923ffddb74ba95a3a1961df",
+        "bbox_fingerprint": "c83743f89e12f6984bd9eb20f37303a668c8df982be11f86c9ae4851e035aafe"
+      }
+    },
+    {
+      "name": "mixed_elements_pages_11_15",
+      "page": 3,
+      "decision": "update",
+      "reason": "同一 Fig.2 的 A/B/C 病理照片聚为一图，比例尺与标签完整；Fig.3、Fig.4、页眉页码保留。",
+      "before": {
+        "page_index": 2,
+        "fingerprint": "09067faddddbb5ba4fc8546043bb0083a36778afe2906cce5f1404b85f0aa58b",
+        "bbox_fingerprint": "992153c5ca2ce189b27cb843e90877e1bcb7f5f046e346d8db9bbedd9fd27315"
+      },
+      "after": {
+        "page_index": 2,
+        "fingerprint": "3afb4db2a243c0fa76fa5edcb1b1f13d61bd25521fb605c0e2f66f6198c05d7b",
+        "bbox_fingerprint": "284601fdd56888d397e3d94b853fe5c1c17b9715b4873aff711e01f579633602"
+      }
+    },
+    {
+      "name": "中文论文",
+      "page": 6,
+      "decision": "update",
+      "reason": "图 3 的成员边界调整；三个图及中英文 caption 均独立且轴标签完整，正文和所有语义指纹不变。",
+      "before": {
+        "page_index": 5,
+        "fingerprint": "c8fb1703e8772aa31113e35da97fdb7ecf2ac45e05a8f32175ca25b119ee949c",
+        "bbox_fingerprint": "89e08415a20da7f90349a3d9a40577597b6b218647749ba45478c7ef14994abe"
+      },
+      "after": {
+        "page_index": 5,
+        "fingerprint": "c8fb1703e8772aa31113e35da97fdb7ecf2ac45e05a8f32175ca25b119ee949c",
+        "bbox_fingerprint": "42144b05487d22afc861c805253b3a795535a310a1f10f6d6e6d5f4ee630cc5f"
+      }
+    },
+    {
+      "name": "中文论文2",
+      "page": 1,
+      "decision": "update",
+      "reason": "T5 与上标 [4] 间增加一个排版空格；字符、上标样式、分段、阅读顺序和边界不变，原页叠框核对无漏字或重复。",
+      "before": {
+        "page_index": 0,
+        "fingerprint": "8412b58c8c4fc008727a8e32ca4120ce6fcb60bdb1b59df3c2e3a7ef09402bea",
+        "bbox_fingerprint": "df2a97c3af2098d3f7d3198d4b205ccd35c45c61cb3b100e90ef079f20b6ab87"
+      },
+      "after": {
+        "page_index": 0,
+        "fingerprint": "4ab591e6f98e7aeed9a031dce73116dbb81b40576d8ee727bb6eee2a53c60e3e",
+        "bbox_fingerprint": "1972f73feacc0a66d0be233369ef26683d464405d5ad9d69e743e385adf3d750"
+      }
+    }
+  ],
+  "preexisting_manifest_correction": "caibao1 第 8 页一处多余空格在 cefa1208 已不存在；独立复现后校准旧表格清单。51 表中 48 HTML、3 保守投影的输出分布不变。"
+}

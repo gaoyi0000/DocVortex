@@ -42,9 +42,9 @@ from .native_text import _sanitize_pdf_control_text
 
 _FORMULA_NUMBER_SUFFIX_RE = re.compile(r"^(?P<prefix>.*?)(?P<marker>[(（﹙][^()（）﹙﹚\r\n]+[)）﹚])\s*$")
 _FORMULA_NUMBER_MARKER_RE = re.compile(
-    r"^[（(﹙]\s*(?:[A-Za-z]?\d+(?:[.\-]\d+)*)\s*[)）﹚]$",
+    r"^[（(﹙]\s*(?:(?:[A-Za-z][.]?)?\d+(?:[.\-]\d+)*)\s*[)）﹚]$",
 )
-_FORMULA_OPERATOR_CHARS = frozenset("=∑∫√±×÷")
+_FORMULA_OPERATOR_CHARS = frozenset("=<>≤≥≠≈∝∈∑∫√±×÷−")
 
 
 _FORMULA_PAGE_MARGIN_RATIO = 0.05
@@ -146,9 +146,29 @@ def _build_vector_formula_blocks(
         )
         if padded_bbox is None:
             continue
+        # 页边彩色品牌路径不能只凭复杂轮廓被公式化；黑色页底数学公式继续保留。
+        colored = any(
+            path.source_index in candidate.path_source_indices
+            and path.fill_rgba is not None
+            and max(path.fill_rgba[:3]) - min(path.fill_rgba[:3]) >= 32
+            for path in source.path_infos
+        )
         blocks.append(
             {
-                "type": "equation",
+                "type": (
+                    "image"
+                    if (
+                        _bbox_center_y(padded_bbox) < 0.085 * source.page_size[1]
+                        or _bbox_center_y(padded_bbox) > 0.90 * source.page_size[1]
+                    )
+                    and colored
+                    and not any(
+                        _standalone_formula_number_marker(line.text)
+                        and abs(_bbox_center_y(line.bbox) - _bbox_center_y(padded_bbox)) < 2 * median_height
+                        for line in available_lines
+                    )
+                    else "equation"
+                ),
                 "bbox": padded_bbox,
                 "angle": 0,
                 "content": "",
@@ -566,6 +586,7 @@ def _build_formula_like_blocks(
                     members,
                     page_size,
                     angle,
+                    include_member_ids=True,
                     anchor_source_index=line.source_index,
                 )
                 if block is None:
@@ -609,6 +630,7 @@ def _build_formula_like_blocks(
                         "bbox": line.bbox,
                         "angle": angle,
                         "content": content,
+                        "_formula_members": [line.source_index],
                     }
                     tight_output_bbox = _line_tight_output_bbox(
                         line,
@@ -709,6 +731,7 @@ def _build_formula_like_blocks(
                     members,
                     page_size,
                     angle,
+                    include_member_ids=True,
                     anchor_source_index=anchor_line.source_index,
                 )
                 if block is None:
@@ -723,6 +746,64 @@ def _build_formula_like_blocks(
     )
     blocks.extend(recovered)
     claimed_source_indices.update(recovered_indices)
+    detached_blocks, detached_sources = _recover_detached_display_components(
+        [line for line in lines if line.source_index not in claimed_source_indices], table_bboxes, page_size
+    )
+    blocks.extend(detached_blocks)
+    claimed_source_indices.update(detached_sources)
+    retained = []
+    for block in blocks:
+        member_ids = set(block.get("_formula_members", []))
+        bbox = block.get("_tight_output_bbox", block["bbox"])
+        hosts = [
+            line
+            for line in lines
+            if line.source_index not in member_ids
+            and _has_sentence_words(line.text)
+            and line.source_index not in claimed_source_indices
+            and line.ink_bbox is not None
+            and _bbox_axis_overlap_ratio(bbox, line.ink_bbox or line.bbox, axis="y") >= 0.25
+            and max(0.0, bbox[0] - line.bbox[2], line.bbox[0] - bbox[2]) <= 3 * _line_effective_height(line, line.bbox)
+        ]
+        if member_ids and hosts and "\\tag{" not in block["content"]:
+            claimed_source_indices.difference_update(member_ids)
+            for line in lines:
+                if line.source_index in member_ids:
+                    line.paragraph_formula_context = True
+                    line.formula_candidate_only = False
+                    line.compact_formula_cluster = False
+        else:
+            retained.append(block)
+    blocks = retained
+    em = statistics.median(_line_effective_height(line, line.bbox) for line in lines) if lines else 10.0
+    for block in blocks:
+        core = block.get("_tight_output_bbox", block["bbox"])
+        for line in lines:
+            if line.source_index in claimed_source_indices or line.ink_bbox is None:
+                continue
+            text = line.text.strip()
+            ink = line.ink_bbox
+            if (
+                len(text) > 20
+                or _has_sentence_words(text)
+                or not (len(text) <= 2 or _formula_line_has_math_operator(text))
+                or not core[0] <= _bbox_center_x(ink) <= core[2]
+                or _bbox_distance(core, ink) > 0.7 * em
+            ):
+                continue
+            if any(
+                other.source_index != line.source_index
+                and _has_sentence_words(other.text)
+                and _bbox_axis_overlap_ratio(ink, other.ink_bbox or other.bbox, axis="y") >= 0.4
+                and _bbox_distance(ink, other.ink_bbox or other.bbox) <= em
+                for other in lines
+            ):
+                continue
+            block["bbox"] = _bbox_union(block["bbox"], line.bbox)
+            block["_tight_output_bbox"] = _bbox_union(core, ink)
+            block["content"] += "\n" + text
+            claimed_source_indices.add(line.source_index)
+        block.pop("_formula_members", None)
     remaining_lines = [
         line
         for line in lines
@@ -730,6 +811,95 @@ def _build_formula_like_blocks(
         and (not line.formula_candidate_only or line.paragraph_formula_context)
     ]
     return blocks, remaining_lines + paragraph_lines
+
+
+def _recover_detached_display_components(
+    lines: list[_LineItem],
+    table_bboxes: list[BBox],
+    page_size: tuple[float, float],
+) -> tuple[list[dict[str, Any]], set[int]]:
+    """在编号和字体分类前聚合独立二维数学带，正文同行连通时保留为行内内容。"""
+    blocks, claimed = [], set()
+    for angle in {line.angle for line in lines}:
+        geometry = [
+            (line, _rotate_bbox_to_upright(line.ink_bbox or line.bbox, page_size, angle))
+            for line in lines
+            if line.angle == angle
+        ]
+        if not geometry:
+            continue
+        em = statistics.median(_line_effective_height(line, bbox) for line, bbox in geometry)
+        prose = [(line, bbox) for line, bbox in geometry if _has_sentence_words(line.text)]
+        prose_ids = {line.source_index for line, _ in prose}
+        candidates = [
+            (line, bbox)
+            for line, bbox in geometry
+            if line.source_index not in prose_ids
+            and line.semantic_type is None
+            and not any(_bbox_intersects(line.bbox, table) for table in table_bboxes)
+        ]
+        pending = set(range(len(candidates)))
+        while pending:
+            seed = min(pending)
+            pending.remove(seed)
+            component, frontier = [seed], [seed]
+            while frontier:
+                current = frontier.pop()
+                _, bbox = candidates[current]
+                for index in sorted(pending):
+                    other = candidates[index][1]
+                    xgap = max(0.0, bbox[0] - other[2], other[0] - bbox[2])
+                    ygap = max(0.0, bbox[1] - other[3], other[1] - bbox[3])
+                    if (
+                        ygap <= 0.85 * em
+                        and _bbox_axis_overlap_ratio(bbox, other, axis="x") > 0.1
+                        or xgap <= 2 * em
+                        and _bbox_axis_overlap_ratio(bbox, other, axis="y") >= 0.2
+                    ):
+                        component.append(index)
+                        frontier.append(index)
+                pending.difference_update(component)
+            if len(component) < 2:
+                continue
+            members = [candidates[index] for index in component]
+            if not any(line.ink_bbox is not None for line, _bbox in members):
+                continue
+            if any(
+                re.search(r"\b(?:where|and|with|when|from|that|then|the|this|these|which|is|are)\b", line.text, re.IGNORECASE)
+                for line, _bbox in members
+            ):
+                continue
+            bbox = _bbox_union_many([item[1] for item in members])
+            if not any(_formula_line_has_math_operator(line.text) for line, _ in members):
+                continue
+            numbered = any(_standalone_formula_number_marker(line.text) for line, _ in members)
+            if not numbered and bbox[3] - bbox[1] < 1.35 * em:
+                continue
+            if bbox[3] - bbox[1] > 8 * em or bbox[2] - bbox[0] < 3 * em:
+                continue
+            # 原生外框可能很松，使用 ink 判断正文是否与公式同处一行；栏间正文不构成宿主。
+            if any(
+                _bbox_axis_overlap_ratio(bbox, pb, axis="y") >= 0.15 and max(0.0, bbox[0] - pb[2], pb[0] - bbox[2]) <= 3 * em
+                for _, pb in prose
+            ):
+                continue
+            local_height = page_size[0] if angle in {90, 270} else page_size[1]
+            if _is_formula_component_in_page_margin(bbox, local_height):
+                continue
+            block = _formula_members_to_block(
+                members, page_size, angle, include_member_ids=True, anchor_source_index=members[0][0].source_index
+            )
+            if block is not None:
+                blocks.append(block)
+                claimed.update(line.source_index for line, _ in members)
+    return blocks, claimed
+
+
+def _has_sentence_words(text: str) -> bool:
+    """用独立自然语言词排除正文，数学函数名和变量内部字母不计作句子。"""
+    functions = {"arg", "min", "max", "exp", "erf", "sin", "cos", "tan", "log", "ln", "varwin", "varend"}
+    words = [word for word in re.findall(r"(?<![A-Za-z\d])[A-Za-z]{2,}(?![A-Za-z\d])", text) if word.lower() not in functions]
+    return len(words) >= 3 or len(re.findall(r"[\u3400-\u9fff]", text)) >= 3
 
 
 def _build_mixed_body_display_formulas(
@@ -796,7 +966,9 @@ def _build_mixed_body_display_formulas(
                 )
             ):
                 continue
-            block = _formula_members_to_block(members, page_size, angle, anchor_source_index=members[0][0].source_index)
+            block = _formula_members_to_block(
+                members, page_size, angle, include_member_ids=True, anchor_source_index=members[0][0].source_index
+            )
             if block is not None:
                 blocks.append(block)
                 claimed.update(line.source_index for line, _bbox in members)
@@ -1217,6 +1389,7 @@ def _build_split_visual_row_formula_blocks(
             local_members,
             page_size,
             angle,
+            include_member_ids=True,
             anchor_source_index=marker.source_index,
         )
         if block is None:
@@ -1304,6 +1477,7 @@ def _is_isolated_unnumbered_formula_line(
     line, bbox = candidate
     if (
         line.compact_formula_cluster
+        or not _formula_line_has_math_operator(line.text)
         or dominant_body_font is None
         or line.font_signature is None
         or line.font_signature == dominant_body_font
@@ -2027,6 +2201,7 @@ def _formula_members_to_block(
     angle: int,
     *,
     anchor_source_index: int,
+    include_member_ids: bool = False,
 ) -> dict[str, Any] | None:
     """把公式空间分量按视觉行聚类，将编号序列化为 tag 并后置其他 sidecar。"""
 
@@ -2102,4 +2277,6 @@ def _formula_members_to_block(
     )
     if tight_output_bbox is not None:
         block["_tight_output_bbox"] = tight_output_bbox
+    if include_member_ids:
+        block["_formula_members"] = [line.source_index for line, _bbox in members]
     return block

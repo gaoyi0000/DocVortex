@@ -24,7 +24,7 @@ from .geometry import (
 
 
 _VISUAL_BLOCK_TYPES = {"image", "table", "code"}
-_CAPTION_MAX_GAP_IN_LINE_HEIGHTS = 2.5
+_CAPTION_MAX_GAP_IN_LINE_HEIGHTS = 4.0
 _FOOTNOTE_MAX_GAP_IN_LINE_HEIGHTS = 6.0
 _MIN_PROJECTION_OVERLAP = 0.8
 _MIN_ANNOTATION_COVERAGE = 0.65
@@ -42,7 +42,7 @@ _TABLE_FOOTNOTE_MAX_LINE_HEIGHT_RATIO = 1.25
 
 _IDENTIFIER_PATTERN = (
     r"(?:"
-    r"[A-Z]?\d+(?:\s*[-./–—]\s*[A-Z]?\d+)*[A-Z]?"
+    r"(?:[A-Z]\s*[.-]?\s*)?\d+(?:\s*[-./–—]\s*[A-Z]?\d+)*[A-Z]?"
     r"|[IVXLCDM]+"
     r"|[零〇一二三四五六七八九十百千两]+"
     r")"
@@ -558,7 +558,16 @@ def _direction_relation(
         axis=projection_axis,
         float_margin=line_height,
     )
-    if projection_overlap < _MIN_PROJECTION_OVERLAP or annotation_coverage < _MIN_ANNOTATION_COVERAGE:
+    centered_wide_caption = projection_axis == "x" and center_offset <= 0.08 and projection_overlap >= 0.95
+    inset_parent_caption = (
+        projection_axis == "x"
+        and parent_bbox[2] - parent_bbox[0] >= 1.5 * (annotation_bbox[2] - annotation_bbox[0])
+        and gap <= 2 * line_height
+        and annotation_coverage >= 0.5
+    )
+    if projection_overlap < (0.5 if inset_parent_caption else _MIN_PROJECTION_OVERLAP) or (
+        annotation_coverage < _MIN_ANNOTATION_COVERAGE and not centered_wide_caption
+    ):
         return None
     return _AnnotationRelation(
         parent=parent,

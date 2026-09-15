@@ -6,6 +6,7 @@ import ctypes
 import hashlib
 import logging
 import math
+from dataclasses import dataclass, replace
 from typing import Any, Iterator
 
 import pypdfium2 as pdfium
@@ -35,6 +36,137 @@ from .native_coordinates import (
 )
 
 logger = logging.getLogger("docvortex.document.pdf._document")
+
+
+@dataclass(frozen=True)
+class _ClippedObject:
+    """保存对象坐标系和累积裁剪，避免把父坐标中的 clip 再乘一次对象矩阵。"""
+
+    raw: Any
+    matrix: tuple[float, float, float, float, float, float]
+    parent_matrix: tuple[float, float, float, float, float, float]
+    depth: int
+    clip: BBox | None
+
+
+def _intersect_object_bbox(first: BBox, second: BBox | None) -> BBox:
+    """求边界交集，空交集保持为空矩形，不能重新当成无裁剪。"""
+    if second is None:
+        return first
+    return max(first[0], second[0]), max(first[1], second[1]), min(first[2], second[2]), min(first[3], second[3])
+
+
+def _transform_object_bbox(bbox: BBox, transform: Any) -> BBox:
+    """变换四角后取保守外框，兼容旋转和斜切。"""
+    points = [transform((x, y)) for x in (bbox[0], bbox[2]) for y in (bbox[1], bbox[3])]
+    return min(p[0] for p in points), min(p[1] for p in points), max(p[0] for p in points), max(p[1] for p in points)
+
+
+def _object_clip_bbox(raw: Any, parent_matrix: tuple, inherited: BBox | None) -> BBox | None:
+    """读取父坐标系中的裁剪路径；各路径相交，曲线以含控制点的保守外框约束。"""
+    result = inherited
+    try:
+        clip = pdfium_c.FPDFPageObj_GetClipPath(raw)
+        count = pdfium_c.FPDFClipPath_CountPaths(clip) if clip else 0
+        for path_index in range(max(0, count)):
+            points = []
+            for index in range(pdfium_c.FPDFClipPath_CountPathSegments(clip, path_index)):
+                segment = pdfium_c.FPDFClipPath_GetPathSegment(clip, path_index, index)
+                x, y = ctypes.c_float(), ctypes.c_float()
+                if pdfium_c.FPDFPathSegment_GetPoint(segment, ctypes.byref(x), ctypes.byref(y)):
+                    points.append(_apply_pdf_matrix((x.value, y.value), parent_matrix))
+            if points and all(math.isfinite(v) for p in points for v in p):
+                bounds = (
+                    min(p[0] for p in points),
+                    min(p[1] for p in points),
+                    max(p[0] for p in points),
+                    max(p[1] for p in points),
+                )
+                result = _intersect_object_bbox(bounds, result)
+    except Exception:
+        # 缺失或损坏的局部 clip 不能抹掉已经确认的父级裁剪。
+        pass
+    return result
+
+
+def _walk_clipped_objects(
+    container: Any,
+    *,
+    is_form: bool = False,
+    parent_matrix: tuple = (1, 0, 0, 1, 0, 0),
+    depth: int = 0,
+    inherited_clip: BBox | None = None,
+) -> Iterator[_ClippedObject]:
+    """遍历可见叶子并传播 Form 裁剪；对象矩阵只变换内容，clip 使用父矩阵。"""
+    if depth >= DRAWING_FORM_MAX_DEPTH:
+        return
+    count = pdfium_c.FPDFFormObj_CountObjects if is_form else pdfium_c.FPDFPage_CountObjects
+    get = pdfium_c.FPDFFormObj_GetObject if is_form else pdfium_c.FPDFPage_GetObject
+    try:
+        size = int(count(container))
+    except Exception:
+        return
+    for index in range(max(0, size)):
+        try:
+            raw = get(container, index)
+            matrix = _get_raw_object_matrix(raw) if raw else None
+            if matrix is None:
+                continue
+            combined = _multiply_pdf_matrices(matrix, parent_matrix)
+            clip = _object_clip_bbox(raw, parent_matrix, inherited_clip)
+            if int(pdfium_c.FPDFPageObj_GetType(raw)) == pdfium_c.FPDF_PAGEOBJ_FORM:
+                yield from _walk_clipped_objects(
+                    raw, is_form=True, parent_matrix=combined, depth=depth + 1, inherited_clip=clip
+                )
+            else:
+                yield _ClippedObject(raw, combined, parent_matrix, depth, clip)
+        except Exception:
+            continue
+
+
+def _clip_object_visual_bbox(bbox: BBox, clip: BBox | None, page_bbox: BBox, rotation: int) -> BBox | None:
+    """在统一页面视觉坐标中应用累积裁剪。"""
+    if clip is not None and (clip[2] <= clip[0] or clip[3] <= clip[1]):
+        return None
+    if clip is not None:
+        bbox = _intersect_object_bbox(
+            bbox, _transform_object_bbox(clip, lambda point: _transform_drawing_point(point, page_bbox, rotation))
+        )
+    return bbox if bbox[2] > bbox[0] and bbox[3] > bbox[1] else None
+
+
+def _clipped_form_extent(raw: Any, page_bbox: BBox, rotation: int) -> BBox | None:
+    """仅在 Form 内存在裁剪时用可见叶子重建边界；无 clip 的既有输出保持原值。"""
+    matrix = _get_raw_object_matrix(raw)
+    if matrix is None:
+        return None
+    members = list(
+        _walk_clipped_objects(
+            raw, is_form=True, parent_matrix=matrix, depth=1, inherited_clip=_object_clip_bbox(raw, (1, 0, 0, 1, 0, 0), None)
+        )
+    )
+    if not any(member.clip is not None for member in members):
+        return None
+    boxes = []
+    for member in members:
+        values = [ctypes.c_float() for _ in range(4)]
+        if not pdfium_c.FPDFPageObj_GetBounds(member.raw, *(ctypes.byref(v) for v in values)):
+            continue
+        bounds = tuple(v.value for v in values)
+        bounds = _transform_object_bbox(bounds, lambda point: _apply_pdf_matrix(point, member.parent_matrix))
+        bounds = _intersect_object_bbox(bounds, member.clip)
+        if bounds[2] > bounds[0] and bounds[3] > bounds[1]:
+            boxes.append(_transform_object_bbox(bounds, lambda point: _transform_drawing_point(point, page_bbox, rotation)))
+    if not boxes:
+        return (0.0, 0.0, 0.0, 0.0)
+    return min(b[0] for b in boxes), min(b[1] for b in boxes), max(b[2] for b in boxes), max(b[3] for b in boxes)
+
+
+def _clipped_objects_of_type(page: Any, object_type: int) -> Iterator[_ClippedObject]:
+    """过滤已累计裁剪的对象类型，路径 source_index 保持既有遍历顺序。"""
+    for member in _walk_clipped_objects(page):
+        if int(pdfium_c.FPDFPageObj_GetType(member.raw)) == object_type:
+            yield member
 
 
 def _walk_raw_page_objects_with_depth(
@@ -733,9 +865,11 @@ def _extract_page_image_bboxes(
 ) -> list[BBox]:
     """在调用方持有 PDFium 锁时提取全部有效点阵图 bbox，并隔离单对象异常。"""
     image_bboxes: list[BBox] = []
-    for _raw_obj, matrix in _iter_raw_image_objects(page):
+    for member in _clipped_objects_of_type(page, pdfium_c.FPDF_PAGEOBJ_IMAGE):
         try:
-            image_bbox = _image_bbox_from_matrix(matrix, page_bbox, page_rotation)
+            image_bbox = _image_bbox_from_matrix(member.matrix, page_bbox, page_rotation)
+            if image_bbox is not None:
+                image_bbox = _clip_object_visual_bbox(image_bbox, member.clip, page_bbox, page_rotation)
         except Exception:
             # 单个损坏 Image 对象不能中断同页其他点阵图提取。
             continue
@@ -788,9 +922,12 @@ def _extract_page_image_infos(
     """提取全部有效点阵图几何；单图指纹失败时保留 bbox 并按放行处理。"""
 
     image_infos: list[PDFImageInfo] = []
-    for raw_obj, matrix in _iter_raw_image_objects(page):
+    for member in _clipped_objects_of_type(page, pdfium_c.FPDF_PAGEOBJ_IMAGE):
+        raw_obj, matrix = member.raw, member.matrix
         try:
             image_bbox = _image_bbox_from_matrix(matrix, page_bbox, page_rotation)
+            if image_bbox is not None:
+                image_bbox = _clip_object_visual_bbox(image_bbox, member.clip, page_bbox, page_rotation)
         except Exception:
             # 单个损坏 Image 对象不能中断同页其他点阵图提取。
             continue
@@ -819,6 +956,11 @@ def _extract_page_form_bboxes(
     for raw_obj in _iter_raw_root_form_objects(page):
         try:
             form_bbox = _form_bbox_from_object(raw_obj, page_bbox, page_rotation)
+            clipped = _clipped_form_extent(raw_obj, page_bbox, page_rotation)
+            if form_bbox is not None and clipped is not None:
+                form_bbox = _intersect_object_bbox(form_bbox, clipped)
+                if form_bbox[2] <= form_bbox[0] or form_bbox[3] <= form_bbox[1]:
+                    form_bbox = None
         except Exception:
             # PDFium 遇到个别损坏 Form 时，保留同页其他有效结果。
             continue
@@ -827,30 +969,9 @@ def _extract_page_form_bboxes(
     return sorted(form_bboxes, key=lambda bbox: (bbox[1], bbox[0], bbox[3], bbox[2]))
 
 
-def _extract_page_path_infos(
-    page: pdfium.PdfPage,
-    page_bbox: BBox,
-    page_rotation: int,
-) -> list[PDFPathInfo]:
-    """在调用方持有 PDFium 锁时提取 Path 信息，并隔离单对象异常。"""
-
-    path_infos: list[PDFPathInfo] = []
-    for source_index, (raw_obj, matrix, form_depth) in enumerate(_iter_raw_path_objects_with_depth(page)):
-        try:
-            path_info = _path_info_from_object(
-                raw_obj,
-                matrix,
-                page_bbox,
-                page_rotation,
-                form_depth,
-                source_index,
-            )
-        except Exception:
-            # PDFium 遇到个别损坏 Path 时，保留同页其他对象的有效结果。
-            continue
-        if path_info is not None:
-            path_infos.append(path_info)
-    return path_infos
+def _extract_page_path_infos(page: pdfium.PdfPage, page_bbox: BBox, page_rotation: int) -> list[PDFPathInfo]:
+    """复用含裁剪的统一提取，确保直接查询和快照一致。"""
+    return _extract_page_paths_and_lines(page, page_bbox, page_rotation)[1]
 
 
 def _extract_page_paths_and_lines(
@@ -862,13 +983,26 @@ def _extract_page_paths_and_lines(
 
     drawing_lines: list[PDFDrawingLine] = []
     path_infos: list[PDFPathInfo] = []
-    for source_index, (raw_obj, matrix, form_depth) in enumerate(_iter_raw_path_objects_with_depth(page)):
+    for source_index, member in enumerate(_clipped_objects_of_type(page, pdfium_c.FPDF_PAGEOBJ_PATH)):
+        raw_obj, matrix, form_depth = member.raw, member.matrix, member.depth
         try:
             subpaths = _read_raw_path_subpaths(raw_obj)
         except Exception:
             continue
         try:
-            drawing_lines.extend(_extract_path_drawing_lines(raw_obj, matrix, page_bbox, page_rotation, subpaths=subpaths))
+            for line in _extract_path_drawing_lines(raw_obj, matrix, page_bbox, page_rotation, subpaths=subpaths):
+                clipped = _clip_object_visual_bbox(line.bbox, member.clip, page_bbox, page_rotation)
+                if clipped is not None:
+                    if clipped == line.bbox:
+                        drawing_lines.append(line)
+                    else:
+                        if line.orientation == "horizontal":
+                            y = min(clipped[3], max(clipped[1], line.start[1]))
+                            start, end = (clipped[0], y), (clipped[2], y)
+                        else:
+                            x = min(clipped[2], max(clipped[0], line.start[0]))
+                            start, end = (x, clipped[1]), (x, clipped[3])
+                        drawing_lines.append(replace(line, bbox=clipped, start=start, end=end))
         except Exception:
             pass
         try:
@@ -884,31 +1018,12 @@ def _extract_page_paths_and_lines(
         except Exception:
             continue
         if info is not None:
-            path_infos.append(info)
+            clipped = _clip_object_visual_bbox(info.bbox, member.clip, page_bbox, page_rotation)
+            if clipped is not None:
+                path_infos.append(info if clipped == info.bbox else replace(info, bbox=clipped))
     return _merge_collinear_drawing_lines(drawing_lines, _drawing_page_size(page_bbox, page_rotation)), path_infos
 
 
-def _extract_page_drawing_lines(
-    page: pdfium.PdfPage,
-    page_bbox: BBox,
-    page_rotation: int,
-) -> list[PDFDrawingLine]:
-    """在调用方持有 PDFium 锁时提取整页绘图线，并隔离单个对象异常。"""
-    drawing_lines: list[PDFDrawingLine] = []
-    for raw_obj, matrix in _iter_raw_path_objects(page):
-        try:
-            drawing_lines.extend(
-                _extract_path_drawing_lines(
-                    raw_obj,
-                    matrix,
-                    page_bbox,
-                    page_rotation,
-                )
-            )
-        except Exception:
-            # PDFium 遇到个别损坏 Path 时，保留同页其他对象的有效结果。
-            continue
-    return _merge_collinear_drawing_lines(
-        drawing_lines,
-        _drawing_page_size(page_bbox, page_rotation),
-    )
+def _extract_page_drawing_lines(page: pdfium.PdfPage, page_bbox: BBox, page_rotation: int) -> list[PDFDrawingLine]:
+    """复用统一裁剪，避免独立线查询重新暴露被 Form 隐藏的路径。"""
+    return _extract_page_paths_and_lines(page, page_bbox, page_rotation)[0]

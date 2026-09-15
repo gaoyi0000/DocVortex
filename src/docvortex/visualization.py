@@ -145,13 +145,11 @@ def _draw_overlay_labels(painter: canvas.Canvas, page: PageObject, boxes: Sequen
         width, height = height, width
     ascent, descent = pdfmetrics.getAscentDescent(_LABEL_FONT, _LABEL_FONT_SIZE)
     label_height = ascent - descent + 2 * _LABEL_PADDING
-    occupied: list[BBox] = []
     for block_type, bbox, index in boxes:
         label = f"{block_type}: {index if index is not None else '-'}"
         text_width = pdfmetrics.stringWidth(label, _LABEL_FONT, _LABEL_FONT_SIZE)
         label_width = min(text_width + 2 * _LABEL_PADDING, width)
-        rect = _place_label(bbox[0] * width, (1 - bbox[1]) * height, label_width, label_height, width, height, occupied)
-        occupied.append(rect)
+        rect = _place_label(bbox[0] * width, (1 - bbox[1]) * height, label_width, label_height, width, height)
         x0, y0, x1, y1 = rect
         painter.setFillColorRGB(1, 1, 1)
         painter.rect(x0, y0, x1 - x0, y1 - y0, stroke=0, fill=1)
@@ -172,34 +170,11 @@ def _place_label(
     height: float,
     page_width: float,
     page_height: float,
-    occupied: Sequence[BBox],
 ) -> BBox:
-    """优先在框上方逐行避让，页顶受限时向框内下移；满页时选遮叠面积最小的位置。"""
+    """固定贴着所属框上方，仅在页面边缘就近收拢，不因其他标签碰撞而跨行移动。"""
     left = max(0, min(left, page_width - width))
-    step = height + _LABEL_GAP
-    candidates: list[BBox] = []
-    y = top + _LABEL_GAP
-    while y + height <= page_height:
-        candidates.append((left, y, left + width, y + height))
-        y += step
-    y = min(top - _LABEL_GAP - height, page_height - height)
-    while y >= 0:
-        candidates.append((left, y, left + width, y + height))
-        y -= step
-    if not candidates:
-        candidates.append((left, 0, left + width, min(height, page_height)))
-    best = candidates[0]
-    best_overlap = float("inf")
-    for candidate in candidates:
-        x0, y0, x1, y1 = candidate
-        overlap = sum(
-            max(0, min(x1, other[2]) - max(x0, other[0])) * max(0, min(y1, other[3]) - max(y0, other[1])) for other in occupied
-        )
-        if overlap == 0:
-            return candidate
-        if overlap < best_overlap:
-            best, best_overlap = candidate, overlap
-    return best
+    bottom = max(0, min(top + _LABEL_GAP, page_height - height))
+    return left, bottom, left + width, min(bottom + height, page_height)
 
 
 def _normalized_bbox_to_pdf(bbox: BBox, page: PageObject) -> BBox:

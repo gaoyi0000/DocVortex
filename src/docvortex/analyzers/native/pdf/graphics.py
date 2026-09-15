@@ -52,6 +52,137 @@ _FIGURE_CAPTION_LINE_RE = re.compile(
 )
 
 
+def _build_caption_graphic_blocks(
+    source: _PageSource, *, caption_line_indices: set[int], table_bboxes: list[BBox], code_bboxes: list[BBox]
+) -> tuple[list[dict[str, Any]], set[int]]:
+    """用独立图题、正文屏障和实际绘图证据恢复整图，允许标签全部是矢量字形。"""
+    width, height = source.page_size
+    heights = [_line_effective_height(line, line.bbox) for line in source.lines if line.angle == 0]
+    em = statistics.median(heights) if heights else 10.0
+    captions = [
+        line
+        for line in source.lines
+        if line.angle == 0 and _FIGURE_CAPTION_LINE_RE.match(line.text) and line.source_index in caption_line_indices
+    ]
+    primitives = list(source.image_bboxes) + [
+        path.bbox
+        for path in source.path_infos
+        if path.fill_visible or path.stroke_visible
+        if not (
+            path.fill_rgba is not None
+            and min(path.fill_rgba[:3]) >= 250
+            and not path.stroke_visible
+            and _bbox_area(path.bbox) > 0.02 * width * height
+        )
+    ]
+    blocks: list[dict[str, Any]] = []
+    claimed: set[int] = set()
+    for caption in sorted(captions, key=lambda line: (line.bbox[1], line.bbox[0])):
+        cb = caption.bbox
+        # 图题中的数学上下标会拆开同一物理行，使用整行投影决定是否跨栏。
+        companions = [
+            line.bbox
+            for line in source.lines
+            if line.angle == 0
+            and line is not caption
+            and _bbox_axis_overlap_ratio(cb, line.bbox, axis="y") >= 0.5
+            and min(abs(line.bbox[0] - cb[2]), abs(cb[0] - line.bbox[2])) <= em
+        ]
+        if companions:
+            cb = _bbox_union_many([cb, *companions])
+        full_width = (
+            cb[2] - cb[0] >= 0.55 * width or cb[0] < 0.5 * width < cb[2] and abs(_bbox_center_x(cb) - 0.5 * width) < 0.1 * width
+        )
+        left, right = (
+            (0.0, width) if full_width else (0.0, 0.5 * width) if _bbox_center_x(cb) < 0.5 * width else (0.5 * width, width)
+        )
+        barriers = [
+            line.bbox[3]
+            for line in source.lines
+            if line.angle == 0
+            and line is not caption
+            and line.bbox[3] <= cb[1] - 0.3 * em
+            and left <= _bbox_center_x(line.bbox) <= right
+            and (
+                (line in captions)
+                or (
+                    (len(re.findall(r"[A-Za-z]{3,}", line.text)) >= 6 or len(re.findall(r"[\u3400-\u9fff]", line.text)) >= 10)
+                    and line.bbox[2] - line.bbox[0] > 0.25 * (right - left)
+                    and line.source_index not in caption_line_indices
+                    and not any(_bbox_overlap_in_first(line.bbox, form) >= 0.9 for form in source.form_bboxes)
+                    and not any(
+                        path.fill_visible
+                        and path.segment_count >= 4
+                        and _bbox_area(line.bbox) < _bbox_area(path.bbox) < 0.4 * width * height
+                        and _bbox_overlap_in_first(line.bbox, path.bbox) >= 0.95
+                        for path in source.path_infos
+                    )
+                )
+            )
+        ]
+        floor = max(barriers, default=0.06 * height)
+        floor = max([floor, *(bbox[3] for bbox in table_bboxes if bbox[3] <= cb[1] and bbox[2] > left and bbox[0] < right)])
+        candidates = [
+            bbox
+            for bbox in primitives
+            if bbox[1] >= floor - 0.3 * em
+            and bbox[3] <= cb[1] + 0.2 * em
+            and left <= _bbox_center_x(bbox) <= right
+            and bbox[0] >= left - em
+            and bbox[2] <= right + em
+            and not any(_bbox_overlap_in_first(bbox, table) >= 0.25 for table in table_bboxes)
+        ]
+        if not candidates:
+            continue
+        bottom = max(bbox[3] for bbox in candidates)
+        if cb[1] - bottom > 8 * em:
+            continue
+        # 同一图题上方直到正文、表格或前一图题的空白带属于同一绘图区域。
+        selected = candidates
+        bbox = _bbox_union_many(selected)
+        if any(_bbox_overlap_in_smaller(bbox, code) >= 0.8 for code in code_bboxes):
+            continue
+        if bbox[2] - bbox[0] < 4 * em or bbox[3] - bbox[1] < 3 * em:
+            continue
+        if len(selected) < 4 and not any(_bbox_overlap_in_first(image, bbox) >= 0.95 for image in source.image_bboxes):
+            continue
+        for _ in range(2):
+            members = [
+                line
+                for line in source.lines
+                if line.source_index not in claimed
+                and line not in captions
+                and line.source_index not in caption_line_indices
+                and (line.semantic_type is None or line.angle in {90, 270})
+                and line.bbox[1] >= floor
+                and line.bbox[3] <= cb[1]
+                and left <= _bbox_center_x(line.bbox) <= right
+                and _bbox_distance(line.ink_bbox or line.bbox, bbox) <= 4 * em
+                and (len(line.text.split()) < 8 or _bbox_overlap_in_first(line.bbox, bbox) >= 0.9)
+                and not (
+                    _bbox_overlap_in_first(line.bbox, bbox) < 0.5
+                    and (
+                        line.text.rstrip().endswith(("。", "！", "？"))
+                        or re.search(r"[.!?]$", line.text.rstrip())
+                        and len(re.findall(r"[A-Za-z]{2,}", line.text)) >= 2
+                    )
+                )
+            ]
+            if members:
+                bbox = _bbox_union_many([bbox, *(line.ink_bbox or line.bbox for line in members)])
+        blocks.append(
+            {
+                "type": "image",
+                "bbox": bbox,
+                "angle": 0,
+                "content": _image_members_to_content(members, source.page_size),
+                "_caption_graphic": True,
+            }
+        )
+        claimed.update(line.source_index for line in members)
+    return blocks, claimed
+
+
 def _form_supersedes_nested_bbox(form_bbox: BBox, nested_bbox: BBox) -> bool:
     """判断 Form 是否应整体吞并其内部面积明显更小的候选容器。"""
 
@@ -95,6 +226,13 @@ def _tighten_form_image_bbox(
     if len(internal_paths) < 2 or len(internal_paths) + len(internal_drawing_lines) < 4:
         return form_bbox
     internal_text = [bbox for line in source.lines if (bbox := _form_member_bbox(line, form_bbox)) is not None]
+    internal_text.extend(
+        bbox
+        for char in source.chars
+        if str(char.get("char", "")).strip()
+        and (bbox := _coerce_bbox(char.get("tight_bbox"))) is not None
+        and _bbox_overlap_in_first(bbox, form_bbox) >= 0.99
+    )
     evidence_bbox = _clip_bbox(
         _bbox_union_many(internal_paths + internal_drawing_lines + internal_text),
         source.page_size,

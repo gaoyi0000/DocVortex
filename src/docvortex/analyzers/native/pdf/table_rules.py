@@ -712,7 +712,11 @@ def _rule_intervals_are_column_compatible(
     for top_rule, bottom_rule in zip(rule_group, rule_group[1:]):
         top = _bbox_center_y(top_rule.bbox)
         bottom = _bbox_center_y(bottom_rule.bbox)
-        interval_rows = [row for row in rows if top <= row.center_y <= bottom and len(row.fragments) >= 2]
+        band_rows = [row for row in rows if top <= row.center_y <= bottom]
+        interval_rows = [row for row in band_rows if len(row.fragments) >= 2]
+        if _is_multiline_description_cell_band(band_rows, median_height):
+            profiles.append((2, bottom - top, len(band_rows), 1.0))
+            continue
         stable_columns, column_coverage = _count_stable_columns(
             interval_rows,
             median_height,
@@ -740,6 +744,25 @@ def _rule_intervals_are_column_compatible(
         if row_count < minimum_rows or coverage < 0.5:
             return False
         if columns < max(2, int(0.5 * maximum_columns)):
+            return False
+    return True
+
+
+def _is_multiline_description_cell_band(rows: list[_VisualRow], height: float) -> bool:
+    """确认短左单元格与多行右单元格，不能用物理续行次数否定逻辑表格行。"""
+    if len(rows) < 3 or len(rows[0].fragments) != 2:
+        return False
+    first, second = sorted(rows[0].fragments, key=lambda fragment: fragment.local_bbox[0])
+    left, right = first.local_bbox, second.local_bbox
+    if left[2] - left[0] > 0.45 * (right[2] - left[0]) or right[0] - left[2] < 0.5 * height:
+        return False
+    for previous, row in zip(rows, rows[1:]):
+        if row.center_y - previous.center_y > 2.0 * height:
+            return False
+        if len(row.fragments) != 1:
+            return False
+        bbox = row.fragments[0].local_bbox
+        if abs(bbox[0] - right[0]) > 0.75 * height or bbox[2] > right[2] + height:
             return False
     return True
 

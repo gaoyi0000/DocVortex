@@ -50,6 +50,7 @@ class _LineItem:
     title_suppressed: bool = False
     style_scale_repaired: bool = False
     inline_math_regions: list[BBox] = field(default_factory=list)
+    paragraph_group: int | None = None
 
     def __post_init__(self) -> None:
         """为旧调用与合成测试补齐可选来源几何字段。"""
@@ -187,6 +188,7 @@ class _PreparedPage:
     canonical_formula_geometry: bool = False
     canonical_formula_source_lines: list[_LineItem] = field(default_factory=list)
     page_footnote_groups: list[set[int]] = field(default_factory=list)
+    reference_regions: list[BBox] = field(default_factory=list)
     script_lines: list[PDFTextScriptLine] = field(default_factory=list)
     formula_candidate_lines: list[_LineItem] = field(default_factory=list)
     formula_ink_bboxes: list[BBox] = field(default_factory=list)

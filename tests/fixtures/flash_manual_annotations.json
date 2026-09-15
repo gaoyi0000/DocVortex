@@ -1,0 +1,5647 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "cefa120874954f7c09734309c10ede377dc25cb9",
+  "documents": [
+    {
+      "name": "nougat",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/nougat.pdf",
+      "original_name": "2308.13418v1.pdf",
+      "sha256": "679be336ce8010d3dc86b9530f0a30d4d5ea2a13153c6f274601b40f4382745b",
+      "page_count": 17,
+      "cases": [
+        {
+          "id": "nougat-03-01",
+          "page": 3,
+          "operation": "image",
+          "original_indices": [
+            2
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.118,
+                0.0,
+                0.88,
+                0.741
+              ],
+              "type": "image",
+              "content": "Original        Bitmap        Erosion\nDilation        Affine        Shift Scale Rotate\nGrid Distortion        Elastic Transform        Random Brightness Contrast\nImage Compression        Gauss Noise        Gaussian Blur\nFigure 2: List of the different image augmentation methods used during training on an example snippet form a sample\nWe render the document images at a resolution of 96 DPI. Due to the restrictive possible input dimensions of the Swin\nTransformer we choose the input size (H, W) = (896, 672). The aspect ratio is in between the US letter and Din A4\n3 < √\n4\n17 <\n2. The document images are resized and then padded to achieve the desired input size. This input\nsize allows us to use the Swin base model architecture [30]. We initialize the model with the pre-trained weights.\nThe Transformer decoder has a maximal sequence length of S = 4096. This relatively large sizing is due to the fact\nthat the text of academic research papers can be dense and the syntax for tables in particular is token intensive. The\nBART decoder is a decoder-only transformer with 10 layers. The entire architecture has a total of 350M parameters.\nWe also test experiment with a smaller model (250M parameters) with a slightly smaller sequence length of S = 3584\nand only 4 decoder layers, where we start from the pre-trained base model.\nDuring inference the text is generated using greedy decoding.\nWe use an AdamW optimizer [34] to train for 3 epochs with an effective batch size of 192. Due to training\ninstabilities, we choose a learning rate of lrinit = 5 · 10−5 which is reduced by a factor of 0.9996 every 15 updates until\nit reaches lrend = 7.5 · 10−6\n.\n3.2 Data Augmentation"
+            }
+          ]
+        },
+        {
+          "id": "nougat-05-02",
+          "page": 5,
+          "operation": "equation",
+          "original_indices": [
+            10,
+            11
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.374,
+                0.563,
+                0.625,
+                0.58
+              ],
+              "type": "equation",
+              "content": ""
+            },
+            {
+              "bbox": [
+                0.434,
+                0.577,
+                0.441,
+                0.585
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "t"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-05-03",
+          "page": 5,
+          "operation": "caption",
+          "original_indices": [
+            3
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.105,
+                0.267,
+                0.894,
+                0.293
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Figure 4:",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " Example for splitting the paragraphs in the source code into different pages. The points in blue denote the page index predicted by the SVM."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-06-04",
+          "page": 6,
+          "operation": "caption",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "nougat-08-05",
+          "page": 8,
+          "operation": "caption",
+          "original_indices": [
+            4
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.105,
+                0.437,
+                0.895,
+                0.477
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Figure 6:",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " Examples for repetition detection on logits. Top: Sample with repetition, Bottom: Sample without repetition. Left: Highest logit score for each token in the sequence ℓ(x), Center: Sliding window variance of the logits VarWin"
+                },
+                {
+                  "type": "text",
+                  "content": "B",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "[ℓ](x), Right: Variance of variance from the position to the end VarEnd"
+                },
+                {
+                  "type": "text",
+                  "content": "B",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "[ℓ](x)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-13-06",
+          "page": 13,
+          "operation": "caption",
+          "original_indices": [
+            4
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.391,
+                0.203,
+                0.609,
+                0.217
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Table A.1:",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " Dataset composition"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-08-07",
+          "page": 8,
+          "operation": "equation",
+          "original_indices": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.469,
+                0.823,
+                0.584,
+                0.852
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "B x"
+                },
+                {
+                  "type": "text",
+                  "content": "X",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " ℓ"
+                },
+                {
+                  "type": "text",
+                  "content": "i",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " − B"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.336,
+                0.826,
+                0.481,
+                0.847
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "VarWin"
+                },
+                {
+                  "type": "text",
+                  "content": "B",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "[ℓ](x) = 1"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.495,
+                0.821,
+                0.518,
+                0.83
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "+B"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.49,
+                0.85,
+                0.515,
+                0.858
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "i=x"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.572,
+                0.826,
+                0.581,
+                0.836
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "1"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.618,
+                0.815,
+                0.663,
+                0.847
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "ℓ"
+                },
+                {
+                  "type": "text",
+                  "content": "j",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "2 ."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.595,
+                0.821,
+                0.617,
+                0.83
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "+B"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.587,
+                0.823,
+                0.615,
+                0.849
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "x"
+                },
+                {
+                  "type": "text",
+                  "content": "X",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " "
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.588,
+                0.85,
+                0.615,
+                0.86
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "j=x"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-09-08",
+          "page": 9,
+          "operation": "equation",
+          "original_indices": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.408,
+                0.129,
+                0.418,
+                0.137
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "S"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.371,
+                0.133,
+                0.426,
+                0.157
+              ],
+              "type": "paragraph_title",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "1 X"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.222,
+                0.14,
+                0.349,
+                0.155
+              ],
+              "type": "paragraph_title",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "VarEnd"
+                },
+                {
+                  "type": "text",
+                  "content": "B",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "[ℓ](x) ="
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.354,
+                0.149,
+                0.425,
+                0.166
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "S − x i=x"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.569,
+                0.122,
+                0.777,
+                0.167
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "S − x j=x VarWin"
+                },
+                {
+                  "type": "text",
+                  "content": "B",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "[ℓ](i)2 ."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.441,
+                0.14,
+                0.564,
+                0.155
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "VarWin"
+                },
+                {
+                  "type": "text",
+                  "content": "B",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "[ℓ](i) −"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.623,
+                0.129,
+                0.633,
+                0.137
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "S"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.586,
+                0.133,
+                0.641,
+                0.157
+              ],
+              "type": "paragraph_title",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "1 X"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-02-09",
+          "page": 2,
+          "operation": "merge",
+          "original_indices": [
+            11,
+            12
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.105,
+                0.697,
+                0.168,
+                0.708
+              ],
+              "type": "paragraph_title",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Encoder"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.105,
+                0.695,
+                0.895,
+                0.775
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "The visual encoder receives a document image x ∈ R3×H0×W0, crops the margins and resizes the image to fit in a fixed rectangle of size (H, W). If the image is smaller than the rectangle, additional padding is added to ensure each image has the same dimensionality. We use a Swin Transformer [30], a hierarchical vision transformer [31] that splits the image into non-overlapping windows of fixed size and applies a series of self-attention layers to aggregate information across these windows. The model output a sequence of the embedded patches z ∈ Rd×N where d is the latent dimension and N is the number of patches."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-02-10",
+          "page": 2,
+          "operation": "merge",
+          "original_indices": [
+            13,
+            14
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.105,
+                0.781,
+                0.168,
+                0.792
+              ],
+              "type": "paragraph_title",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Decoder"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.105,
+                0.781,
+                0.895,
+                0.859
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "The encoded image z is decoded into a sequence of tokens using a transformer decoder architecture with cross-attention. The tokens are generated in an auto-regressive manner, using self-attention and cross-attention to attend to different parts of the input sequence and encoder output respectively. Finally, the output is projected to the size of the vocabulary v, yielding the logits ℓ ∈ R"
+                },
+                {
+                  "type": "text",
+                  "content": "v",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": ". Following Kim et al. [28], we use the implementation of the mBART [32] decoder. We use the same tokenizer as Taylor et al. [33] because their model is also specialized in the scientific text domain."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nougat-04-11",
+          "page": 4,
+          "operation": "inline_titles",
+          "original_indices": [],
+          "anchors": []
+        }
+      ]
+    },
+    {
+      "name": "mmlu_redux",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/mmlu_redux.pdf",
+      "original_name": "2406.04127v2.pdf",
+      "sha256": "792e5e4578f0e9c98181a86a845fd67d2febf6d7c2de977afb8ad39b5ccb7586",
+      "page_count": 21,
+      "cases": [
+        {
+          "id": "mmlu_redux-02-01",
+          "page": 2,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "mmlu_redux-05-02",
+          "page": 5,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "mmlu_redux-07-03",
+          "page": 7,
+          "operation": "split",
+          "original_indices": [
+            2
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.176,
+                0.413,
+                0.824,
+                0.576
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Zero-Shot prompting",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " We provide the model with a straightforward instruction to classify questions into “ok” or “not ok” without introducing any demonstrations. The prompt can be found in Appendix B. "
+                },
+                {
+                  "type": "text",
+                  "content": "Few-shot prompting",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " We provide the model with two examples for each error type to guide its classification decisions. "
+                },
+                {
+                  "type": "text",
+                  "content": "Chain of Thought (CoT) prompting [15]",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " We encourage the model to generate reasoning steps before producing the final answer, in both zero-shot and few-shot settings. The prompt format can be found in Appendix B. "
+                },
+                {
+                  "type": "text",
+                  "content": "Retrieval-augmented prompting (RAG)",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " We retrieve 5 most relevant paragraphs from Wikipedia and MS-MARCO and append them as context for zero-shot and CoT prompting. "
+                },
+                {
+                  "type": "text",
+                  "content": "Instruction fine-tuning",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " Finally, we fine-tune Llama3 (8B-Instruct) model [8] using curated data and evaluate its performance on MMLU-Redux. Detailed information is provided in Appendix E."
+                }
+              ]
+            }
+          ],
+          "optional": false
+        },
+        {
+          "id": "mmlu_redux-09-04",
+          "page": 9,
+          "operation": "merge",
+          "original_indices": [
+            8,
+            9
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.185,
+                0.777,
+                0.828,
+                0.789
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "[3] Anthropic. Anthropic. model card and evaluations for claude models., 2023. URL "
+                },
+                {
+                  "type": "hyperlink",
+                  "url": "https://www-files.anthropic.com/production/images/Model-Card-Claude-2.pdf",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "https:",
+                      "styles": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.211,
+                0.791,
+                0.791,
+                0.803
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "hyperlink",
+                  "url": "https://www-files.anthropic.com/production/images/Model-Card-Claude-2.pdf",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "//www-files.anthropic.com/production/images/Model-Card-Claude-2.pdf",
+                      "styles": []
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mmlu_redux-10-05",
+          "page": 10,
+          "operation": "merge",
+          "original_indices": [
+            9,
+            10,
+            11,
+            12
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.176,
+                0.654,
+                0.824,
+                0.666
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "[13] Daniel Erenrich. Errors in the MMLU: The Deep Learning Benchmark is"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.437,
+                0.668,
+                0.474,
+                0.679
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "2023."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.522,
+                0.668,
+                0.825,
+                0.679
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "URL: https://derenrich.medium.com/"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.211,
+                0.668,
+                0.969,
+                0.693
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Wrong Surprisingly Often, "
+                },
+                {
+                  "type": "hyperlink",
+                  "url": "https://derenrich.medium.com/errors-in-the-mmlu-the-deep-learning-benchmark-is-wrong-surprisingly-often-7258bb045859",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "errors-in-the-mmlu-the-deep-learning-benchmark-is-wrong-surprisingly-often-7258bb045859",
+                      "styles": []
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mmlu_redux-19-06",
+          "page": 19,
+          "operation": "split",
+          "original_indices": [],
+          "anchors": [],
+          "optional": true
+        },
+        {
+          "id": "mmlu_redux-20-07",
+          "page": 20,
+          "operation": "split",
+          "original_indices": [],
+          "anchors": [],
+          "optional": true
+        }
+      ]
+    },
+    {
+      "name": "frames_v1",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/frames_v1.pdf",
+      "original_name": "2409.12941v1.pdf",
+      "sha256": "1b0bd4a7812b31a340ac1f82871c8441528de6bd0e9c40bd6bf9958d7c1b6cb9",
+      "page_count": 14,
+      "cases": [
+        {
+          "id": "frames_v1-04-01",
+          "page": 4,
+          "operation": "table",
+          "original_indices": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.179,
+                0.141,
+                0.821,
+                0.343
+              ],
+              "type": "table",
+              "content": "<table><tbody><tr><td>Reasoning Type</td><td>Description</td></tr><tr><td>Numerical Reasoning</td><td>This involves counting, comparisons, or calculations. For example, the question \"How many timesfaster is the secondfastest bird in the Americas compared to thefastest human in the world? Round to the nearest integer.\" asks for a calculation comparing the speeds of two objects.</td></tr><tr><td>Tabular Reasoning</td><td>This involves statistics found in tables or infoboxes in Wikipedia. For example, the question \"How many runs did the West Indies vice-captain score in the 1983 World Cup?\" requires the answerer to analyze tabular data of top run scorers and extract the relevant information.</td></tr><tr><td>Multiple Constraints</td><td>This involves questions with multiple constraints whose intersection points towards a unique answer. For example, \"I'm thinking ofan airport near the intersection ofUS-52 and I-95. Can you remind me which one it is?\" This query has two constraints: first, to locate an airport, and second, that it should be near the intersection of US-52 and I-95.</td></tr></tbody></table>"
+            },
+            {
+              "bbox": [
+                0.189,
+                0.348,
+                0.311,
+                0.358
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Temporal Reasoning"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.189,
+                0.392,
+                0.283,
+                0.402
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Post-Processing"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.348,
+                0.348,
+                0.811,
+                0.383
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "This involves reasoning through timelines. For example, \"Leonardo DiCaprio once won an Oscar for best actor. Who won the award for best costume design sixteen years earlier?\"."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.348,
+                0.392,
+                0.811,
+                0.465
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "This requires the answerer to perform specific post-processing steps after all necessary facts have been gathered. For example, consider the question: \"What is five years after the founding of the largest country in North America in Roman numerals?\". This question requires the following sub-instructions: (1) Numerical reasoning: Add five years to the founding date, and (2) Post-processing: Convert the resulting year into Roman numerals."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v1-08-02",
+          "page": 8,
+          "operation": "caption",
+          "original_indices": [
+            5
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.176,
+                0.621,
+                0.824,
+                0.656
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Figure 4:",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " The figure shows the performance improvements when the number of steps (n) and number of queries per step (k) is changed. We achieved the best performance of 0.66 with the combination of (k, n, n_docs) = (5,5,10)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v1-10-03",
+          "page": 10,
+          "operation": "merge",
+          "original_indices": [
+            9,
+            10,
+            11
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.176,
+                0.885,
+                0.826,
+                0.897
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Wenhu Chen, Hanwen Zha, Zhiyu Chen, Wenhan Xiong, Hong Wang, and William Wang. Hybridqa:"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.192,
+                0.899,
+                0.824,
+                0.91
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "A dataset of multi-hop question answering over tabular and textual data. arXiv preprint"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.193,
+                0.913,
+                0.356,
+                0.924
+              ],
+              "type": "footer",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "arXiv:2004.07347, 2020."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v1-11-04",
+          "page": 11,
+          "operation": "merge",
+          "original_indices": [
+            16,
+            17
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.176,
+                0.885,
+                0.824,
+                0.91
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Hunter Lightman, Vineet Kosaraju, Yura Burda, Harri Edwards, Bowen Baker, Teddy Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe. Let’s verify step by step. arXiv preprint"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.193,
+                0.913,
+                0.356,
+                0.924
+              ],
+              "type": "footer",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "arXiv:2305.20050, 2023."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "frames_v2",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/frames_v2.pdf",
+      "original_name": "2409.12941v2.pdf",
+      "sha256": "5e0da5450d0f548f0030a6bfe2097d7a4839ce9c5d27c9ba6df7bba702c9c602",
+      "page_count": 15,
+      "cases": [
+        {
+          "id": "frames_v2-01-01",
+          "page": 1,
+          "operation": "title",
+          "original_indices": [
+            5
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.265,
+                0.265,
+                0.34,
+                0.277
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Abstract",
+                  "styles": [
+                    "bold"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-01-02",
+          "page": 1,
+          "operation": "merge",
+          "original_indices": [
+            10,
+            11
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.514,
+                0.477,
+                0.881,
+                0.505
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "To bridge this gap, we introduce a novel evaluation framework, "
+                },
+                {
+                  "type": "text",
+                  "content": "FRAMES",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "superscript"
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.513,
+                0.494,
+                0.883,
+                0.878
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "(Factuality, Retrieval, And reasoning "
+                },
+                {
+                  "type": "text",
+                  "content": "ME",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "asurement Set), designed to rigorously test LLMs on all three core capabilities—fact retrieval, reasoning across multiple constraints, and accurate synthesis of information into coherent responses. Unlike existing datasets such as TruthfulQA (Lin et al., 2021), HotpotQA (Yang et al., 2018a), or GSM8k (Cobbe et al., 2021), which focus on isolated aspects of LLM performance, "
+                },
+                {
+                  "type": "text",
+                  "content": "FRAMES",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " provides an integrated evaluation that challenges models across these dimensions simultaneously. This approach offers a more accurate reflection of how these systems perform as end-to-end reasoning solutions, especially in scenarios requiring multi-document retrieval and complex reasoning. For example, our dataset includes questions like: \"How many years earlier would Punxsutawney Phil have to be canonically alive to have made a Groundhog Day prediction in the same state as the US capitol?\" This demands temporal and numerical reasoning based on information from multiple retrieved articles. Figure 1 provides another such example. Our work addresses a critical void in the current"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-04-03",
+          "page": 4,
+          "operation": "table",
+          "original_indices": [
+            1,
+            2,
+            3
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.17,
+                0.12,
+                0.83,
+                0.356
+              ],
+              "type": "table",
+              "content": "<table><tbody><tr><td>Reasoning Type</td><td>Description</td></tr><tr><td>Numerical Reasoning</td><td>This involves counting, comparisons, or calculations. For example, the question \"How many timesfaster is the secondfastest bird in the Americas compared to thefastest human in the world? Round to the nearest integer.\" asks for a calculation comparing the speeds of two objects.</td></tr><tr><td>Tabular Reasoning</td><td>This involves statistics found in tables or infoboxes in Wikipedia. For example, the question \"How many runs did the West Indies vice-captain score in the 1983 World Cup?\" requires the answerer to analyze tabular data of top run scorers and extract the relevant information.</td></tr><tr><td>Multiple Constraints</td><td>This involves questions with multiple constraints whose intersection points towards a unique answer. For example, \"I'm thinking ofan airport near the intersection ofUS-52 and I-95. Can you remind me which one it is?\" This query has two constraints: first, to locate an airport, and second, that it should be near the intersection of US-52 and I-95.</td></tr><tr><td>Temporal Reasoning</td><td>This involves reasoning through timelines. For example, \"Leonardo DiCaprio once won an Oscarfor best actor. Who won the awardfor best costume design sixteen years earlier?\".</td></tr></tbody></table>"
+            },
+            {
+              "bbox": [
+                0.343,
+                0.361,
+                0.82,
+                0.429
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "This requires the answerer to perform specific post-processing steps after all necessary facts have been gathered. For example, consider the question: \"What is five years after the founding of the largest country in North America in Roman numerals?\". This question requires the following sub-instructions: (1) Numerical reasoning: Add five years to the founding date, and (2) Post-processing: Convert the resulting year into Roman numerals."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.18,
+                0.361,
+                0.277,
+                0.37
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Post-Processing"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-04-04",
+          "page": 4,
+          "operation": "merge",
+          "original_indices": [
+            8,
+            9
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.536,
+                0.536,
+                0.881,
+                0.564
+              ],
+              "type": "paragraph_title",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "• Removing ambiguity due to freshness (temporal disambiguation):"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.548,
+                0.552,
+                0.882,
+                0.773
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Annotators added extra context to disambiguate answers that could change over time. For example, a question like \"Which country were holders of the FIFA World Cup the last time the UEFA Champions League was won by a club from London?\" was revised to \"As of August 1, 2024, which country were holders of the FIFA World Cup the last time the UEFA Champions League was won by a club from London?\". This approach mitigates issues with frequent manual updates required for maintaining previous datasets (Vu et al., 2023; Kasai et al., 2024)."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-05-05",
+          "page": 5,
+          "operation": "caption",
+          "original_indices": [
+            2
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.119,
+                0.275,
+                0.881,
+                0.308
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Figure 2:",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " The figure shows the distribution of questions in the "
+                },
+                {
+                  "type": "text",
+                  "content": "FRAMES",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": ", with the percentage of questions requiring different numbers of Wikipedia articles (left) and the percentage of the dataset belonging to each reasoning type (right). Please note that the percentage bar for 11 denotes the percentage of questions requiring 11 or more Wikipedia articles."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-05-06",
+          "page": 5,
+          "operation": "merge",
+          "original_indices": [
+            4,
+            5
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.141,
+                0.413,
+                0.489,
+                0.425
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "• "
+                },
+                {
+                  "type": "text",
+                  "content": "Addressing data contamination issues:",
+                  "styles": [
+                    "bold"
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.155,
+                0.43,
+                0.489,
+                0.602
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "To mitigate concerns about potential contamination due to Wikipedia articles being in LLM training sets, we designed questions that require additional reasoning and operations beyond simple fact retrieval. For instance, the question \"How many years earlier would Punxsutawney Phil have to be canonically alive to have made a Groundhog Day prediction in the same state as the US capitol?\" requires not only fact extraction but also additional calculations."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-06-07",
+          "page": 6,
+          "operation": "merge",
+          "original_indices": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.118,
+                0.257,
+                0.184,
+                0.269
+              ],
+              "type": "paragraph_title",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "(Google,"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.208,
+                0.257,
+                0.266,
+                0.269
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "2024b),"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.118,
+                0.258,
+                0.488,
+                0.301
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Gemini-Flash-1.5-0514 (Google, 2024a), Gemma2-27b (Gemma et al., and"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.119,
+                0.29,
+                0.167,
+                0.301
+              ],
+              "type": "paragraph_title",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "2024),"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.118,
+                0.29,
+                0.487,
+                0.559
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "LLama3.2-3B-I (Meta, 2024), Qwen2.5-3B-I (Qwen, 2024) as the state-of-the-art LLM since they have shown great performance on several public benchmarks. Since the gold answers to questions in the dataset are free-form tokens instead of choices from multiple-choice answers, we use an LLM to evaluate if the outcome from the LLM under evaluation matches the gold answer, using the prompt shown in Figure 6 in Appendix. This auto-rating mechanism was tested against human evaluations, in which the LLM-based evaluation showed strong alignment with human annotations (accuracy: 0.96 and Cohen’s 0.889 for Gemini-Pro-1.5-0514 as autorating LLM), making LLM-based evaluation a suitable approach to evaluate the correctness of model responses."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.119,
+                0.499,
+                0.173,
+                0.51
+              ],
+              "type": "paragraph_title",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Kappa:"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-07-08",
+          "page": 7,
+          "operation": "code",
+          "original_indices": [
+            5,
+            6
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.118,
+                0.418,
+                0.486,
+                0.446
+              ],
+              "type": "caption",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Algorithm 1 Multi-Step Evaluation with BM25 Retrieval"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.119,
+                0.445,
+                0.486,
+                0.723
+              ],
+              "type": "table",
+              "content": " 1: Input: Initial question Q, number of iterations\n    n, number of queries k, number of documents\n    n_docs\n 2: Output: Final response R\n 3: Initialize context C ← {Q}\n 4: for iteration i = 1 to n do\n 5:   for query j = 1 to k do\n 6:      Generate search query Qij based on\n         context C\n 7:      Retrieve top n_docs documents Dij\n         using BM25 based on Qij\n 8:      C ← C ∪ (Dij \\ C) {Add only new\n         documents to context}\n 9:   end for\n10: end for\n11: Generate final response R using context C\n12: return R"
+            }
+          ],
+          "body_original_indices": [
+            6
+          ]
+        },
+        {
+          "id": "frames_v2-07-09",
+          "page": 7,
+          "operation": "merge",
+          "original_indices": [
+            9,
+            10
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.514,
+                0.652,
+                0.881,
+                0.679
+              ],
+              "type": "paragraph_title",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Multi-Step retrieval significantly improves model performance."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.514,
+                0.668,
+                0.883,
+                0.921
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "We plot model performance on different combinations of (k, n, n_docs) in Figure 3b. Based on these results, we observe a steady increase in performance as the number of steps and queries are increased with accuracy increasing from ∼ 0.45 to ∼ 0.52 for the case of (k, n, n_docs)=(5,5,2) for vanilla setting where the model is not provided with any specific planning instructions. This is expected, as more steps and queries allow the model to add more relevant documents to its context, leading the model to improve recall, which translates to better accuracy. However, the performance still remains quite low even after five iterations of search retrievals, which is computationally expensive since this requires six non-parallelizable inference"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-09-10",
+          "page": 9,
+          "operation": "merge",
+          "original_indices": [
+            9,
+            10
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.514,
+                0.273,
+                0.883,
+                0.31
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Wenhu Chen, Hanwen Zha, Zhiyu Chen, Wenhan Xiong, Hong Wang, and William Wang. 2020. Hybridqa: A dataset of multi-hop question answering over tabular"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.312,
+                0.875,
+                0.323
+              ],
+              "type": "equation",
+              "content": ""
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-09-11",
+          "page": 9,
+          "operation": "merge",
+          "original_indices": [
+            11,
+            12,
+            13
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.514,
+                0.337,
+                0.884,
+                0.387
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano, Christopher Hesse, and John Schulman."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.389,
+                0.884,
+                0.4
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "2021. Training verifiers to solve math word problems."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.402,
+                0.759,
+                0.413
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "arXiv preprint arXiv:2110.14168."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-09-12",
+          "page": 9,
+          "operation": "merge",
+          "original_indices": [
+            14,
+            15
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.514,
+                0.426,
+                0.884,
+                0.45
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Angela Fan, Yacine Jernite, Ethan Perez, David Grangier, Jason Weston, and Michael Auli. 2019."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.452,
+                0.881,
+                0.476
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Eli5: Long form question answering. arXiv preprint arXiv:1907.09190."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-09-13",
+          "page": 9,
+          "operation": "merge",
+          "original_indices": [
+            16,
+            17
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.514,
+                0.49,
+                0.884,
+                0.501
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Tianyu Gao, Xingcheng Yao, and Danqi Chen. 2021."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.503,
+                0.881,
+                0.527
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Simcse: Simple contrastive learning of sentence embeddings. arXiv preprint arXiv:2104.08821."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-09-14",
+          "page": 9,
+          "operation": "merge",
+          "original_indices": [
+            19,
+            20
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.514,
+                0.617,
+                0.884,
+                0.667
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Team Gemma, Morgane Riviere, Shreya Pathak, Pier Giuseppe Sessa, Cassidy Hardin, Surya Bhupatiraju, Léonard Hussenot, Thomas Mesnard, Bobak Shahriari, Alexandre Ramé, et al. 2024."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.669,
+                0.881,
+                0.693
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Gemma 2: Improving open language models at a practical size. arXiv preprint arXiv:2408.00118."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-09-15",
+          "page": 9,
+          "operation": "merge",
+          "original_indices": [
+            21,
+            22
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.514,
+                0.706,
+                0.887,
+                0.717
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Google. 2024a. Gemini 1.5 flash. "
+                },
+                {
+                  "type": "hyperlink",
+                  "url": "https://deepmind.google/technologies/gemini/flash/",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "https://deepmind.",
+                      "styles": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.72,
+                0.813,
+                0.73
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "hyperlink",
+                  "url": "https://deepmind.google/technologies/gemini/flash/",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "google/technologies/gemini/flash/",
+                      "styles": []
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-09-16",
+          "page": 9,
+          "operation": "merge",
+          "original_indices": [
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.514,
+                0.744,
+                0.569,
+                0.755
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Google."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.597,
+                0.744,
+                0.644,
+                0.755
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "2024b."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.728,
+                0.744,
+                0.779,
+                0.755
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Gemini"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.807,
+                0.744,
+                0.828,
+                0.755
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "1.5"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.857,
+                0.744,
+                0.884,
+                0.755
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "pro."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.757,
+                0.817,
+                0.767
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "hyperlink",
+                  "url": "https://blog.google/technology/ai/google-gemini-next-generation-model-february-2024/",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "https://blog.google/technology/ai/",
+                      "styles": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.77,
+                0.96,
+                0.781
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "hyperlink",
+                  "url": "https://blog.google/technology/ai/google-gemini-next-generation-model-february-2024/",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "google-gemini-next-generation-model-february-2024/",
+                      "styles": []
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "frames_v2-09-17",
+          "page": 9,
+          "operation": "merge",
+          "original_indices": [
+            30,
+            31
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.514,
+                0.794,
+                0.883,
+                0.857
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Kelvin Guu, Kenton Lee, Zora Tung, Panupong Pasupat, and Mingwei Chang. 2020. Retrieval augmented language model pre-training. In International PMLR."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.833,
+                0.884,
+                0.844
+              ],
+              "type": "equation",
+              "content": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nash_review",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/nash_review.pdf",
+      "original_name": "7061196.pdf",
+      "sha256": "4b539d83625d73b52a1825fa07116510af6ac873d0aeaab85ac1ca5a01108aa2",
+      "page_count": 15,
+      "cases": [
+        {
+          "id": "nash_review-01-01",
+          "page": 1,
+          "operation": "footnote",
+          "original_indices": [
+            10
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.07,
+                0.809,
+                0.803,
+                0.872
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Keywords: HSC; NAFLD; FXR; PPAR; GLP-1; FGF-21; OCA; TGFb; scRNA-seq; gut-liver axis; ILC; FGF-19; thyromimetics; THR-b; TR-b. Received 15 January 2023; received in revised form 8 March 2023; accepted 29 March 2023; available online 14 April 2023 * Corresponding author. Address: Charité - Universitätsmedizin Berlin, Department of Hepatology and Gastroenterology, Campus Virchow-Klinikum (CVK) and Campus Charité Mitte (CCM), Augustenburger Platz 1, D-13353 Berlin, Germany; Tel.: +49 (30) 450 553 022, fax: +49 (30) 450 553 902. E-mail address: "
+                },
+                {
+                  "type": "hyperlink",
+                  "url": "mailto:frank.tacke@charite.de",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "frank.tacke@charite.de",
+                      "styles": []
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " (F. Tacke). "
+                },
+                {
+                  "type": "hyperlink",
+                  "url": "https://doi.org/10.1016/j.jhep.2023.03.038",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "https://doi.org/10.1016/j.jhep.2023.03.038",
+                      "styles": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-01-02",
+          "page": 1,
+          "operation": "logo",
+          "original_indices": [
+            11
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.783,
+                0.911,
+                0.93,
+                0.967
+              ],
+              "type": "equation",
+              "content": ""
+            }
+          ]
+        },
+        {
+          "id": "nash_review-03-03",
+          "page": 3,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "nash_review-05-04",
+          "page": 5,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "nash_review-08-05",
+          "page": 8,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "nash_review-12-06",
+          "page": 12,
+          "operation": "merge",
+          "original_indices": [
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.509,
+                0.114,
+                0.93,
+                0.147
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "[1] "
+                },
+                {
+                  "type": "hyperlink",
+                  "url": "http://refhub.elsevier.com/S0168-8278(23)00218-0/sref1",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "Younossi ZM, Golabi P, Paik JM, Henry A, Van Dongen C, Henry L. The global epidemiology of nonalcoholic fatty liver disease (NAFLD) and nonalcoholic",
+                      "styles": []
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " "
+                },
+                {
+                  "type": "hyperlink",
+                  "url": "http://refhub.elsevier.com/S0168-8278(23)00218-0/sref1",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "(NASH):",
+                      "styles": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.527,
+                0.136,
+                0.606,
+                0.147
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "hyperlink",
+                  "url": "http://refhub.elsevier.com/S0168-8278(23)00218-0/sref1",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "steatohepatitis",
+                      "styles": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.694,
+                0.138,
+                0.703,
+                0.145
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "a"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.725,
+                0.136,
+                0.784,
+                0.147
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "hyperlink",
+                  "url": "http://refhub.elsevier.com/S0168-8278(23)00218-0/sref1",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "systematic",
+                      "styles": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.806,
+                0.136,
+                0.845,
+                0.145
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "review."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.868,
+                0.136,
+                0.93,
+                0.147
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "hyperlink",
+                  "url": "http://refhub.elsevier.com/S0168-8278(23)00218-0/sref1",
+                  "content": [
+                    {
+                      "type": "text",
+                      "content": "Hepatology",
+                      "styles": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "nash_review-14-07",
+          "page": 14,
+          "operation": "marginal",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "nash_review-15-08",
+          "page": 15,
+          "operation": "marginal",
+          "original_indices": [],
+          "anchors": []
+        }
+      ]
+    },
+    {
+      "name": "connexin",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/connexin.pdf",
+      "original_name": "12352684 (1)-需要重打印.pdf",
+      "sha256": "022b681f6fed9cbcd46f9d263502b8ba85d27dea25be4332d522572731d1f6ba",
+      "page_count": 5,
+      "cases": [
+        {
+          "id": "connexin-02-01",
+          "page": 2,
+          "operation": "merge",
+          "original_indices": [
+            9,
+            10
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.55,
+                0.107,
+                0.912,
+                0.119
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Plasmid DNA preparation.",
+                  "styles": [
+                    "bold"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " Wizard Genomic DNA Puri-"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.518,
+                0.12,
+                0.918,
+                0.145
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "fication Kit (Promega) was used for purification of plasmid DNA according to the manufacturer’s protocol."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "connexin-05-02",
+          "page": 5,
+          "operation": "merge",
+          "original_indices": [
+            25,
+            26
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.518,
+                0.661,
+                0.917,
+                0.684
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "20. Elmore E, Millan H, Wyatt G. Applications of the chinese hamster V79 metabolic cooperation assay in toxicology."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.556,
+                0.684,
+                0.828,
+                0.696
+              ],
+              "type": "equation",
+              "content": ""
+            }
+          ]
+        },
+        {
+          "id": "connexin-05-03",
+          "page": 5,
+          "operation": "split",
+          "original_indices": [
+            27,
+            28
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.518,
+                0.695,
+                0.919,
+                0.765
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "21. George CH, Martin PEM, Evans WH. Rapid determination of gap junction formation using HeLa cells microinjected with cDNAs encoding wild-type and chimeric connexins. Bio-22. Griffith AJ. Genetic analysis of the connexin-26 M34T variant. J Med Genet 2001;38:e24."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.557,
+                0.73,
+                0.849,
+                0.742
+              ],
+              "type": "equation",
+              "content": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fornax",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/fornax.pdf",
+      "original_name": "公式密集span不规范-两个block重叠部分.pdf",
+      "sha256": "1ba2c42478b66fcb39c0bb5b19abafb2ed726aa4048df6215bc65d262d15c08f",
+      "page_count": 15,
+      "cases": [
+        {
+          "id": "fornax-01-01",
+          "page": 1,
+          "operation": "front_matter",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "fornax-04-02",
+          "page": 4,
+          "operation": "merge",
+          "original_indices": [
+            5,
+            6
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.061,
+                0.48,
+                0.491,
+                0.509
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "for a spherical Binne"
+                },
+                {
+                  "type": "text",
+                  "content": "y (1981",
+                  "styles": [
+                    "underline"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": ") logarithmic halo. In Equations (3), px2 + y2 and z are Galactocentric cylindri-"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.06,
+                0.495,
+                0.492,
+                0.746
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "(4) and (5), R = cal coordinates, and rGc = √R2 + z2 is the Galactocentric distance, while the scale and mass parameters are a = 6.5 kpc, b = 0.26 kpc, c = 0.7 kpc, d = 12 kpc, M"
+                },
+                {
+                  "type": "text",
+                  "content": "bulge",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " = 3.4 × 10"
+                },
+                {
+                  "type": "text",
+                  "content": "10",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " M⊙, M"
+                },
+                {
+                  "type": "text",
+                  "content": "disk",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " = 10"
+                },
+                {
+                  "type": "text",
+                  "content": "11",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " M⊙ and "
+                },
+                {
+                  "type": "text",
+                  "content": "v",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "halo = 128 km/s. At variance with some recent works (e.g. Vasiliev et al. 2021; Battaglia et al. 2022; Lilleengen et al. 2023; Koposov et al. 2023), we do not account for the contribution of the Large Magellanic Cloud (LMC) to the Galactic potential (see also Garavito-Camargo et al. 2021). However, as shown in figure D1 of Battaglia et al. (2022), the perturbations induced by the LMC can affect the orbit of Fornax for different initial conditions, but on average its pericentric radius "
+                },
+                {
+                  "type": "text",
+                  "content": "r",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "peri is only slightly altered. Given that the mass loss via tidal stripping is expected to be maximal around "
+                },
+                {
+                  "type": "text",
+                  "content": "r",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "peri, we can safely assume that neglecting the LMC in a heavier MW model does not influence significantly the mass loss of the Fornax dSph with respect to more realistic models including the effect of the LMC (Vasiliev 2024 and references therein)."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fornax-05-03",
+          "page": 5,
+          "operation": "equation",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "fornax-06-04",
+          "page": 6,
+          "operation": "footnote",
+          "original_indices": [
+            7
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.061,
+                0.86,
+                0.939,
+                0.904
+              ],
+              "type": "page_footnote",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "and x − z planes. The orbit of the Fornax progenitor in the simu-3 As it is usual in simulations with substantial tidal stripping, the centre lation S1 appears to follow closely the corresponding point-mass of mass cannot be used as centre of the satellite, because of its depentrajectory O1 for the whole 12 Gyr-integration. The present-day dence on the geometry of the tidal tails."
+                }
+              ]
+            }
+          ],
+          "expected_type": "page_footnote",
+          "expected_regions": [
+            [
+              0.061,
+              0.87,
+              0.49,
+              0.903
+            ]
+          ],
+          "allowed_bounds": [
+            0.055,
+            0.865,
+            0.5,
+            0.908
+          ],
+          "review_note": "原框错误包含右栏正文；验收仅覆盖左栏脚注。"
+        },
+        {
+          "id": "fornax-08-05",
+          "page": 8,
+          "operation": "caption",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "fornax-11-06",
+          "page": 11,
+          "operation": "table",
+          "original_indices": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.071,
+                0.4,
+                0.09,
+                0.41
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "S1"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.176,
+                0.4,
+                0.239,
+                0.412
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "M⋆ [M⊙]"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.276,
+                0.399,
+                0.291,
+                0.41
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "%"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.344,
+                0.4,
+                0.419,
+                0.412
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "M"
+                },
+                {
+                  "type": "text",
+                  "content": "DM",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " [M⊙]"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.438,
+                0.399,
+                0.453,
+                0.41
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "%"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.062,
+                0.413,
+                0.491,
+                0.469
+              ],
+              "type": "table",
+              "content": " M1.6 kpc(t=0) 1.43 × 107              5.57 × 108\n∆M1.6 kpc      0.07 × 107     (5%)     1.39 × 108    (25%)\n M3.0 kpc(t=0) 1.51 × 107              2.07 × 109\n∆M3.0 kpc      0.001 × 107    (< 1%)   0.39 × 109    (22%)"
+            },
+            {
+              "bbox": [
+                0.062,
+                0.468,
+                0.491,
+                0.538
+              ],
+              "type": "table",
+              "content": "S2\n M1.6 kpc(t=0) 1.30 × 107              8.93 × 108\n∆M1.6 kpc      0.02 × 107     (1.5%)   4.29 × 108    (48%)\n M3.0 kpc(t=0) 1.31 × 107              3.30 × 109\n∆M3.0 kpc      0.001 × 107    (< 1%)   4.16 × 109    (46%)"
+            },
+            {
+              "bbox": [
+                0.061,
+                0.539,
+                0.492,
+                0.586
+              ],
+              "type": "caption",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Table 4. Initial mass within 1.6 kpc (M"
+                },
+                {
+                  "type": "text",
+                  "content": "1.6",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " kpc) and 3 kpc (M"
+                },
+                {
+                  "type": "text",
+                  "content": "3",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " kpc), and corresponding mass loss ∆M ≡ M(t = 12 Gyr)− M(t = 0) for the stellar (second column) and DM (fourth column) components. The third and fifth columns indicate the corresponding per cent mass loss."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fornax-11-07",
+          "page": 11,
+          "operation": "split",
+          "original_indices": [
+            16,
+            17
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.513,
+                0.58,
+                0.94,
+                0.685
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "1. Two MW dSphs with very similar present-day ρ"
+                },
+                {
+                  "type": "text",
+                  "content": "150",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " can have very different orbits (and values of "
+                },
+                {
+                  "type": "text",
+                  "content": "r",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "peri). In both simulation S1 (with "
+                },
+                {
+                  "type": "text",
+                  "content": "r",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "peri ≈ 54 kpc) and simulation S2 (with "
+                },
+                {
+                  "type": "text",
+                  "content": "r",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "peri ≈ 35 kpc) the final (i.e. present-day) central DM density is ρ"
+                },
+                {
+                  "type": "text",
+                  "content": "150",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " ≈ 4 × 107M⊙/pc3 (see Fig. 9). 2. If the satellites are not completely disrupted, the tidal field of the MW might also have the effect of inducing a correlation between ρ"
+                },
+                {
+                  "type": "text",
+                  "content": "150",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " and "
+                },
+                {
+                  "type": "text",
+                  "content": "r",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "peri (see also Kaplinghat et al. 2019)."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.684,
+                0.94,
+                0.787
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "This is illustrated by Fig. 11, showing for both simulations S1 and S2, as a function of time, ρ"
+                },
+                {
+                  "type": "text",
+                  "content": "150",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " normalized to its initial value. In both cases ρ"
+                },
+                {
+                  "type": "text",
+                  "content": "150",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " decreases with time, but it is apparent that ρ"
+                },
+                {
+                  "type": "text",
+                  "content": "150",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " decreases at a faster rate in the simulation with lower "
+                },
+                {
+                  "type": "text",
+                  "content": "r",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "peri. Given that the ratio of "
+                },
+                {
+                  "type": "text",
+                  "content": "r",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "peri is ≈ 1.6 and the ratio of ρ"
+                },
+                {
+                  "type": "text",
+                  "content": "150",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " variation is ≈ 0.7, this effect is opposite, but quantitatively similar, to the empirical anticorrelation (see Cardona-Barrero et al. 2023)."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "fornax-13-08",
+          "page": 13,
+          "operation": "references",
+          "original_indices": [],
+          "anchors": [],
+          "optional": true
+        },
+        {
+          "id": "fornax-14-09",
+          "page": 14,
+          "operation": "equation",
+          "original_indices": [
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.349,
+                0.198,
+                0.377,
+                0.21
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "2X2"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.354,
+                0.199,
+                0.467,
+                0.23
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "√π exp(−X"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": ")#v3"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.061,
+                0.199,
+                0.345,
+                0.23
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "aDF = −2πG2Mtotρ(r) ln(1 + Λ2)\"erf(X) −"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.455,
+                0.202,
+                0.466,
+                0.21
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "v"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.454,
+                0.233,
+                0.491,
+                0.245
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "(A.2)"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "k2_treap",
+      "path": "tests/unittest/pdfs/flash_layout/annotated/k2_treap.pdf",
+      "original_name": "公式密集span不规范论文.pdf",
+      "sha256": "9218df208183211c6ecbd97f7250283658290cffdbd73f44dcf4fe7680af14d2",
+      "page_count": 16,
+      "cases": [
+        {
+          "id": "k2_treap-02-01",
+          "page": 2,
+          "operation": "merge",
+          "original_indices": [
+            2,
+            3
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.066,
+                0.075,
+                0.388,
+                0.103
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "k heaviest points in some range Q ¼½i1; i2 the grid."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.41,
+                0.075,
+                0.477,
+                0.088
+              ],
+              "type": "equation",
+              "content": ""
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-02-02",
+          "page": 2,
+          "operation": "merge",
+          "original_indices": [
+            13,
+            14
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.538,
+                0.216,
+                0.717,
+                0.229
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "A range query Q ¼½x1; x2"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.516,
+                0.216,
+                0.928,
+                0.412
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "½y1; y2 defines a rectangle with all the columns in the range ½x1; x2 and the rows in ½y1; y2 (see Fig. 3). An aggregated range query defines, in addition to the range, an aggregate function that must be applied to the data points in the query range. Examples of aggregated queries are COUNT ðQÞ, which counts the number of data points in the query range, MAX=MIN ðQÞ, which computes the maximum (alt. minimum) value in the query range, and its generalization top-k, which retrieves the k lightest (alt. heaviest) points in the query range. These top-k queries are also referred to in the literature as ranked range queries. For the range query q in Fig. 3 the result of COUNT ðqÞ is 6, MAXðqÞ returns 7, MIN ðqÞ returns 1, and the top-3 heaviest elements are 7, 4, and 3."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-03-03",
+          "page": 3,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "k2_treap-03-04",
+          "page": 3,
+          "operation": "merge",
+          "original_indices": [
+            8,
+            9
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.524,
+                0.402,
+                0.934,
+                0.486
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "When the grids may contain more than one point per column, an additional bitmap B is used to map from the original domain to a new domain that has one point per column. This bitmap stores, for each column, a bit 1 followed by as many zeros as the number of points in such column. Then, a range of columns ½c"
+                },
+                {
+                  "type": "text",
+                  "content": "s",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; c"
+                },
+                {
+                  "type": "text",
+                  "content": "e",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.524,
+                0.473,
+                0.933,
+                0.557
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "in the original domain can be mapped to a new range ½select"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "ðB; c"
+                },
+                {
+                  "type": "text",
+                  "content": "s",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Þc"
+                },
+                {
+                  "type": "text",
+                  "content": "s",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " þ1; select"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "ðB; c"
+                },
+                {
+                  "type": "text",
+                  "content": "e",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " þ1Þc"
+                },
+                {
+                  "type": "text",
+                  "content": "e",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " 1 . If the grid is very sparse and/or the distribution of the data points is very skewed, this bitmap can be compressed with RRR [17] or the sd-bitvector [21]."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-04-05",
+          "page": 4,
+          "operation": "merge",
+          "original_indices": [
+            5,
+            6
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.066,
+                0.359,
+                0.475,
+                0.443
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Among other types of queries (such as direct/reverse neighbors, check edge, etc.), the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree can answer range queries with multi-branch top-down traversal of the tree, following only the branches that overlap the query range. This is illustrated in Algorithm 1 (adapted from [8, Algorithm 1]), which solves the query Q ¼½x1; x2"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.066,
+                0.429,
+                0.476,
+                0.528
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "½y1; y2 by invoking Rangeðn; x"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; x"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; y"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; y"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; 0; 0; 1Þ. To show an example, in Fig. 4 the edges traversed in the computation of the range query in Fig. 3 are highlighted. As mentioned above, this traversal is computed via rank queries on T. While this algorithm has no good worst-case time guarantees, in practice times are competitive."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-04-06",
+          "page": 4,
+          "operation": "code",
+          "original_indices": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.066,
+                0.538,
+                0.469,
+                0.566
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Algorithm 1. Range ðn; x"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; x"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; y"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; y"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; d"
+                },
+                {
+                  "type": "text",
+                  "content": "p",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; d"
+                },
+                {
+                  "type": "text",
+                  "content": "q",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; pÞ lists all non-½y1; y2 with a k2-tree."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.067,
+                0.552,
+                0.211,
+                0.566
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "empty cells in ½x1; x2"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.077,
+                0.57,
+                0.207,
+                0.581
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "if pZjTj then /*leaf"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.23,
+                0.571,
+                0.245,
+                0.58
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "*/"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.078,
+                0.581,
+                0.284,
+                0.593
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "j if L½pjTj- ¼ 1 then output ðd"
+                },
+                {
+                  "type": "text",
+                  "content": "p",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; d"
+                },
+                {
+                  "type": "text",
+                  "content": "q",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Þ;"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.077,
+                0.593,
+                0.213,
+                0.603
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "else /*internal node"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.236,
+                0.595,
+                0.252,
+                0.603
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "*/"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.083,
+                0.605,
+                0.324,
+                0.772
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "if p ¼1 or T½p- ¼ 1 then y’rank"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "ðT; pÞ k"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " for i’⌊x"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "=ðn=kÞc…⌊x"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "=ðn=kÞc do if i’⌊x"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "=ðn=kÞc then x"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "1’x"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " modðn=kÞ; else x"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "1’0; if i’⌊x"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "=ðn=kÞc then x"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "2’x"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " modðn=kÞ; else x"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "2’ðn=kÞ1; for j’⌊y"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "=ðn=kÞc…⌊y"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "=ðn=kÞc do if j ¼ ⌊y1=ðn=kÞc then y"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "’y1 modðn=kÞ; else y"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "1’0; if j ¼ ⌊y2=ðn=kÞc then y"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "’y2 modðn=kÞ; else y"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "2’ðn=kÞ1; Rangeðn=k; x"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "1; x"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.206,
+                0.76,
+                0.43,
+                0.772
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "1; y"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "2; d"
+                },
+                {
+                  "type": "text",
+                  "content": "p",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " þðn=kÞ i; d"
+                },
+                {
+                  "type": "text",
+                  "content": "q",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " þðn=kÞ j; yþk iþjÞ"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.188,
+                0.76,
+                0.211,
+                0.772
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "2; y"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.083,
+                0.775,
+                0.12,
+                0.81
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "end end end"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.077,
+                0.812,
+                0.102,
+                0.822
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "end"
+                }
+              ]
+            }
+          ],
+          "body_original_indices": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ]
+        },
+        {
+          "id": "k2_treap-04-07",
+          "page": 4,
+          "operation": "merge",
+          "original_indices": [
+            25,
+            26
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.516,
+                0.677,
+                0.926,
+                0.905
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "To solve top-k queries on a grid range Q ¼½x1; x2 ½y1; y2 , we first traverse the wavelet tree to identify the Oðlog mÞ bitmap intervals where the points in Q lie. The heaviest point in Q in each bitmap interval is obtained with an RMQ, but we need to obtain the actual priorities in order to find the heaviest among the Oðlog mÞ candidates. The priorities are stored sorted by x- or y-coordinate, so we obtain each one in Oðlog mÞ time by tracking the point with maximum weight in each interval. Thus a top-1 query is solved in Oðlog"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " mÞ time. For a top-k query, we must maintain a priority queue of the candidate intervalsand, each time the next heaviest element is found, we remove it from its interval and reinsert in the queue the two resulting subintervals. The total query time is Oððkþlog mÞlogðkmÞÞ. It is possible to reduce the time to Oððkþlog mÞlog"
+                },
+                {
+                  "type": "text",
+                  "content": "ϵ",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "mÞ time and O 1"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.517,
+                0.892,
+                0.926,
+                0.932
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "ϵ"
+                },
+                {
+                  "type": "text",
+                  "content": "n",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " log m bits, for any constant ϵ40 [30], but the space usage is much higher, even if linear."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-05-08",
+          "page": 5,
+          "operation": "merge",
+          "original_indices": [
+            2,
+            3
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.074,
+                0.075,
+                0.483,
+                0.133
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Wavelet trees can also compute range counting queries in Oðlog mÞ time with n log mþoðn log mÞ bits. The algorithm to solve range counting queries on a grid range Q ¼½x1; x2"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.074,
+                0.119,
+                0.483,
+                0.177
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "½y1; y2 also starts by traversing the wavelet tree to identify the Oðlog mÞ bitmap intervals where the points in Q lie, but then it just adds up all the bitmap interval lengths."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-05-09",
+          "page": 5,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "k2_treap-06-10",
+          "page": 6,
+          "operation": "merge",
+          "original_indices": [
+            2,
+            3
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.129,
+                0.075,
+                0.475,
+                0.088
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "(w.l.o.g. we assume mrn). As the topology of the"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.066,
+                0.076,
+                0.476,
+                0.146
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "M½n nmatrix is represented with a K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree, this does not cause a significant overhead because the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree is efficient to handle large areas of zeros. Actually, we round n up to the next power of K [8]."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-06-11",
+          "page": 6,
+          "operation": "merge",
+          "original_indices": [
+            6,
+            7
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.089,
+                0.294,
+                0.277,
+                0.308
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Consider a matrix M½n n-"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.066,
+                0.294,
+                0.476,
+                0.612
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "where each cell can either be empty or contain a weight in the range ½0; d1 . We consider a quadtree-like recursive partition of M into K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " submatrices, the same performed in the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree with binary matrices. We build a conceptual K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-ary tree similar to the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree, as follows: the root of the tree will store the coordinates of the cell with the maximum weight of the matrix, and the corresponding weight. Then the cell just added to the tree is marked as empty, deleting it from the matrix. If many cells share the maximum weight, we pick any of them. Then, the matrix is conceptually decomposed into K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " equal-sized submatrices, and we add K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " children nodes to the root of the tree, each representing one of the submatrices. We repeat the assignment process recursively for each child, assigning to each of them the coordinates and value of the heaviest cell in the corresponding submatrix and removing the chosen point. The procedure continues recursively on each branch until we reach the cells of the matrix, or we find a completely empty submatrix (either because the submatrix was initially empty or because we emptied it by successively extracting heaviest points)."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-06-12",
+          "page": 6,
+          "operation": "merge",
+          "original_indices": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.516,
+                0.38,
+                0.926,
+                0.583
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "The conceptual K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-treap is traversed level-wise, reading the sequence of cell coordinates from left to right in each level. The sequence of coordinates at each level ℓ is stored in a different sequence coord½ℓ . The coordinates at each level ℓ of the tree are transformed into an offset in the corresponding submatrix, representing each c"
+                },
+                {
+                  "type": "text",
+                  "content": "i",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " as c"
+                },
+                {
+                  "type": "text",
+                  "content": "i",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " mod ðn=K"
+                },
+                {
+                  "type": "text",
+                  "content": "ℓ",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Þ using ⌈logðnÞℓ log K⌉ bits. For example, in Fig. 6 (top) the coordinates of node N1 have been transformed from the global value (4, 4) to a local offset (0,0). In the bottom of Fig. 6 we highlight the coordinates of nodes N0, N1 and N2 in the corresponding coord arrays. In the last level all nodes represent single cells, so there is no coord array in this level. With this representation, the worst-case space for storing t points is"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.816,
+                0.584,
+                0.926,
+                0.597
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": ", that is, the"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.517,
+                0.58,
+                0.573,
+                0.598
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "P"
+                },
+                {
+                  "type": "text",
+                  "content": "logK2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " ðtÞ"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.517,
+                0.597,
+                0.869,
+                0.612
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "same as if we stored the points using the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree."
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.704,
+                0.581,
+                0.805,
+                0.601
+              ],
+              "type": "equation",
+              "content": ""
+            },
+            {
+              "bbox": [
+                0.634,
+                0.582,
+                0.713,
+                0.6
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Kℓ ¼ t log n2"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.533,
+                0.582,
+                0.647,
+                0.599
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "ℓ ¼ 0 2K"
+                },
+                {
+                  "type": "text",
+                  "content": "2ℓ",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " log n"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-06-13",
+          "page": 6,
+          "operation": "image",
+          "original_indices": [
+            18
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.554,
+                0.801,
+                0.706,
+                0.831
+              ],
+              "type": "equation",
+              "content": ""
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-07-14",
+          "page": 7,
+          "operation": "merge",
+          "original_indices": [
+            8,
+            9
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.074,
+                0.609,
+                0.483,
+                0.638
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "To access a cell C ¼ðx; yÞ in the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-treap we start K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree root. accessing the The"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.073,
+                0.624,
+                0.485,
+                0.934
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "coordinates and weight of the element stored at the root node are ðx"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; y0Þ¼ coord½0 ½0 and w0 ¼ values½0 . If ðx0; y0Þ¼ C, we return w"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " immediately. Otherwise, we find the quadrant where the cell would be located and navigate to that node in the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree. Let p be the position of the node in T. If T½p- ¼ 0 we know that the complete submatrix is empty and return immediately. Otherwise, we need to find the coordinates and weight of the new node. Since only nodes set to 1 in T have coordinates and weights, we compute r ¼ rank"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "ðT; pÞ. The value of the current node will be at values½r- , and its coordinates at coord½ℓ ½rfirst½ℓ , where ℓ is the current level. We rebuild the absolute value and coordinates, w"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " as w"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " values½r- and ðx"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; y"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Þ by adding the current submatrix offset to coord½ℓ ½rfirst½ℓ . If ðx"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "; y"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Þ¼ C we return w"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": ", otherwise we find again the appropriate quadrant in the current submatrix where C would be located, and so on. The formula to find the children is identical to that of the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree. The process is repeated recursively until we find a 0 bit in the target submatrix, we find a 1 in the last level of the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree, or we find the coordinates of the cell in an explicit point."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-07-15",
+          "page": 7,
+          "operation": "merge",
+          "original_indices": [
+            11,
+            12
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.524,
+                0.089,
+                0.935,
+                0.117
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "The process to answer top-k queries starts at the root of the tree. Given a range Q ¼½x1; x2"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.524,
+                0.103,
+                0.934,
+                0.287
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "½y1; y2 , the process initializes an empty max-priority queue and inserts the root of the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree. The priority queue stores, in general, K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree nodes sorted by their associated maximum weight (for the root node, this is w0). Now, we iteratively extract the first element from the priority queue (the first time this is the root). If the coordinates of its maximum element fall inside Q, we output it as the next answer. In either case, we insert all the children of the extracted node whose submatrix intersects with Q, and iterate. The process finishes when k results have been found or when the priority queue becomes empty (in which case there are less than k elements in Q)."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-07-16",
+          "page": 7,
+          "operation": "merge",
+          "original_indices": [
+            16,
+            17
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.546,
+                0.546,
+                0.788,
+                0.56
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Consider a binary matrix BM½n n-"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.524,
+                0.546,
+                0.935,
+                0.701
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "where each cell can either be empty or contain data."
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " In this case, a K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree can be used to represent BM succinctly while supporting range queries, as explained in Section 2.4. Obviously, the algorithm presented for range reporting can be optimized to count the number of elements in a range, instead of reporting such elements. In this section, we show how to augment the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree with additional data to further optimize those range counting queries. In Section 7 we show that this adds a small overhead in space, while drastically reducing the running time of those queries."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-08-17",
+          "page": 8,
+          "operation": "merge",
+          "original_indices": [
+            4,
+            5,
+            6
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.066,
+                0.371,
+                0.477,
+                0.427
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "the differential encoding technique presented in Section 4. Let v be a node of the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree, children(v) the number of children of v, and count(v) the number of elements in the submatrix represented by v. Then, countðv0Þ¼ countðvÞ"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.422,
+                0.419,
+                0.475,
+                0.43
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "childrenðvÞ"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.066,
+                0.427,
+                0.477,
+                0.567
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "represents the expected number of elements in the submatrix associated with each child v"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " of v, assuming a uniform distribution. Thus, the count of each node v"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " is stored as the difference of the actual count and its expected value. In the running example, the root has three children and there are 22 elements in the matrix. Each of the corresponding submatrices is expected to contain ⌊22=3c¼ 7 elements whereas they actually contain 10, 7 and 5 elements, respectively. Hence, the differential encoding stores 107 ¼ 3, 77 ¼ 0, and 57 ¼2."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-08-18",
+          "page": 8,
+          "operation": "merge",
+          "original_indices": [
+            10,
+            11
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.067,
+                0.836,
+                0.475,
+                0.906
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "The base of the range counting algorithm is the range reporting algorithm of the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree, Algorithm 1. We modify this divide-and-conquer algorithm in order to navigate both the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree and counts at the same time. Given a query range Q ¼½x1; x2"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.066,
+                0.893,
+                0.476,
+                0.934
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "½y1; y2 , we start accessing the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree root, and set c0 ¼ counts½0 and result¼0. Then, the algorithm explores all the children of the root"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-08-19",
+          "page": 8,
+          "operation": "merge",
+          "original_indices": [
+            14,
+            15,
+            16
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.516,
+                0.671,
+                0.926,
+                0.699
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Given a node v with absolute counting value c"
+                },
+                {
+                  "type": "text",
+                  "content": "v",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " and NumChildren(v) children, each child v"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " is expected to con-"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.663,
+                0.701,
+                0.675,
+                0.709
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "c"
+                },
+                {
+                  "type": "text",
+                  "content": "v",
+                  "styles": [
+                    "subscript"
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.517,
+                0.701,
+                0.926,
+                0.789
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "tain countðv0Þ¼ NumChildrenðvÞ elements. Let p be the level order number of child v"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": ". Then, the absolute counting value of v"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " can be computed as c"
+                },
+                {
+                  "type": "text",
+                  "content": "v",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " ¼ counts½p- þcountðv0Þ. Note that counts is stored using DACs, which support direct access. We use the computed value c"
+                },
+                {
+                  "type": "text",
+                  "content": "v",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " to recursively visit the children of v"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-08-20",
+          "page": 8,
+          "operation": "merge",
+          "original_indices": [
+            17,
+            18
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.516,
+                0.791,
+                0.926,
+                0.934
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Let us consider a query example q ¼½0; 1 We start at the root with c"
+                },
+                {
+                  "type": "text",
+                  "content": "0",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " ¼ 22 and result¼0. The root has three children, but only the first one, stored at position 4 in T, intersects q. Each child is expected to represent ⌊22=3c¼ 7 elements, so we set c"
+                },
+                {
+                  "type": "text",
+                  "content": "4",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " ¼ counts½rank1ðT; 0þ0Þ þ7 ¼ 3þ7 ¼ 10. Similarly, we recurse on the first and third child of this node. On the first branch of the recursion, we process node 16 and set c"
+                },
+                {
+                  "type": "text",
+                  "content": "16",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " ¼ counts½rank1ðT; 4þ0Þ þ⌊10=4c¼ counts½4 þ2 ¼ 2. As the submatrix corresponding with this node is contained"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.888,
+                0.792,
+                0.926,
+                0.805
+              ],
+              "type": "equation",
+              "content": ""
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-09-21",
+          "page": 9,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "k2_treap-09-22",
+          "page": 9,
+          "operation": "merge",
+          "original_indices": [
+            16,
+            17
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.074,
+                0.512,
+                0.483,
+                0.61
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "This data structure obviously supports all the queries that can be implemented on a K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree, such as range reporting or emptiness queries. More interesting is that it can also support other types of queries with minor modifications. A natural generalization of range counting queries are aggregated sum queries. In this case, we consider a matrix M½n n-"
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.073,
+                0.596,
+                0.483,
+                0.807
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "where each cell can either be empty or contain a weight in the range ½0; d1 . We perform the same data partitioning on the conceptual binary matrix that represents the non-empty cells. In other words, we use a K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree to represent the topology of the matrix. Then, instead of augmenting the nodes with the count of the non-empty cells in the corresponding submatrix, we store the sum of the weights contained in such submatrix. The same differential encoding used for range counting can be used to store these sums. In this case, however, the space-efficiency achieved by the data structure depends not only on the clustering of the data, but also on the distribution of the weights. The encoding achieves its best performance when the sums of the weights of all the children of a node are similar."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k2_treap-10-23",
+          "page": 10,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "k2_treap-11-24",
+          "page": 11,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "k2_treap-12-25",
+          "page": 12,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "k2_treap-13-26",
+          "page": 13,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "k2_treap-14-27",
+          "page": 14,
+          "operation": "image",
+          "original_indices": [],
+          "anchors": []
+        },
+        {
+          "id": "k2_treap-15-28",
+          "page": 15,
+          "operation": "merge",
+          "original_indices": [
+            3,
+            4
+          ],
+          "anchors": [
+            {
+              "bbox": [
+                0.073,
+                0.104,
+                0.483,
+                0.345
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "Our augmented data structure consistently outperforms the original K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree for all domains and query selectivities. The only exception is the rck2tree"
+                },
+                {
+                  "type": "text",
+                  "content": "4",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " in the two SN datasets and Geo-dense for very selective queries (i.e., with the smallest areas). The influence of the query selectivity in the results is evident. The larger the query, the higher the impact of the additional range counting data in the performance of the data structure. Larger queries are expected to stop the recursion of the range counting algorithm in higher levels of the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree because those queries are more likely to contain the whole area covered by nodes of the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree. Recall that a node of the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree at level i represents u"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "=ðK"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Þ"
+                },
+                {
+                  "type": "text",
+                  "content": "i",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " cells. In our experiments we use a configuration of the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree in which the first six levels use a value of K"
+                },
+                {
+                  "type": "text",
+                  "content": "1",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " ¼ 4 (thus partitioning the space into K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                }
+              ]
+            },
+            {
+              "bbox": [
+                0.073,
+                0.332,
+                0.483,
+                0.482
+              ],
+              "type": "text",
+              "content": [
+                {
+                  "type": "text",
+                  "content": "1 ¼ 16 regions) and the remaining levels use a value of K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "subscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " ¼ 2. Therefore, for the rck2tree"
+                },
+                {
+                  "type": "text",
+                  "content": "4",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " to improve the performance of the range counting queries, those queries must contain at least u"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "=ð4"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Þ"
+                },
+                {
+                  "type": "text",
+                  "content": "4",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " ¼ u"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "=2"
+                },
+                {
+                  "type": "text",
+                  "content": "16",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " cells. In the rck2tree"
+                },
+                {
+                  "type": "text",
+                  "content": "8",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": " and rck2tree"
+                },
+                {
+                  "type": "text",
+                  "content": "16",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": ", which contain range counting data for more levels of the K"
+                },
+                {
+                  "type": "text",
+                  "content": "2",
+                  "styles": [
+                    "superscript"
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "-tree, this value is much lower, and thus the recursion can be stopped early even for small queries. For larger queries, the performance improvement reaches several orders of magnitude in some datasets (note the logarithmic scale)."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

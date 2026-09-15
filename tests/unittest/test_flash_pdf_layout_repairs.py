@@ -238,7 +238,7 @@ def test_fraction_rule_above_visible_ink_is_not_strikethrough() -> None:
     "name,index,fingerprint",
     [
         ("demo2.pdf", 2, "d10b184573a059cdbd8ccb13e2fd8d76eefcf8f73295fc386f29b96e017c43aa"),
-        ("mixed_elements_pages_03_06.pdf", 1, "5c889585cf0f9bdd6d4cc387381a3c954d269f941ac05e69b70dde2f9227ab11"),
+        ("mixed_elements_pages_03_06.pdf", 1, "8662f48c81797c9ae3b7ffca69607538e08080f279545145e1b2c875e055c371"),
     ],
 )
 def test_reviewed_existing_formula_geometry(name: str, index: int, fingerprint: str) -> None:

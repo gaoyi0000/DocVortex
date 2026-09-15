@@ -814,6 +814,49 @@ def _restore_dense_split_visual_rows(
     return output
 
 
+def _demote_runin_title_fragments(lines: list[_LineItem], page_size: tuple[float, float]) -> None:
+    """同行正文延续的小标题属于段落内强调，保留原始字体证据供行内样式物化。"""
+    for line in lines:
+        if line.semantic_type != "paragraph_title":
+            continue
+        bbox = _rotate_bbox_to_upright(line.ink_bbox or line.bbox, page_size, line.angle)
+        height = _line_effective_height(line, bbox)
+        for other in lines:
+            if other is line or other.angle != line.angle or other.semantic_type is not None:
+                continue
+            if other.formula_candidate_only or other.compact_formula_cluster:
+                continue
+            other_bbox = _rotate_bbox_to_upright(other.ink_bbox or other.bbox, page_size, other.angle)
+            other_height = _line_effective_height(other, other_bbox)
+            if height > 1.3 * other_height or len(other.text.strip()) < 3:
+                continue
+            if (
+                abs(_bbox_center_y(bbox) - _bbox_center_y(other_bbox)) <= 0.45 * min(height, other_height)
+                and min(bbox[2], other_bbox[2]) - max(bbox[0], other_bbox[0]) <= 0.5 * height
+                and (
+                    int((bbox[0] + bbox[2]) / page_size[0]) == int((other_bbox[0] + other_bbox[2]) / page_size[0])
+                    or other_bbox[2] - other_bbox[0] > 0.5 * page_size[0]
+                )
+                and _same_baseline_geometry(bbox, height, other_bbox, other_height, maximum_gap=5 * max(height, other_height))
+            ):
+                line.semantic_type = None
+                line.title_suppressed = True
+                line.structural_title = False
+                line.explicit_section_title = False
+                for prefix in lines:
+                    if (
+                        prefix.semantic_type == "paragraph_title"
+                        and prefix.angle == line.angle
+                        and not prefix.explicit_section_title
+                        and abs(prefix.bbox[0] - line.bbox[0]) < height
+                        and 0 <= line.bbox[1] - prefix.bbox[3] <= height
+                        and prefix.font_signature == line.font_signature
+                    ):
+                        prefix.semantic_type = None
+                        prefix.title_suppressed = True
+                break
+
+
 def _merge_title_resolved_visual_rows(
     lines: list[_LineItem],
     page_size: tuple[float, float],

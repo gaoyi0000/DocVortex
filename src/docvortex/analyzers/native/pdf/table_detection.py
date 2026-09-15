@@ -1,6 +1,9 @@
 """PDF 表格检测编排与续表标题；保留原有认领顺序与判定规则。"""
 
 from __future__ import annotations
+import re
+import statistics
+from dataclasses import replace
 from ....schema import BBox
 from .models import _PageSource, _TableAnnotation, _TableCandidate
 from .geometry import (
@@ -95,7 +98,7 @@ def _detect_table_candidates(
         for candidate in _merge_table_candidates(rule_candidates)
         if not any(_bbox_overlap_in_smaller(candidate.bbox, filled_bbox) >= 0.2 for filled_bbox in filled_grid_bboxes)
     ]
-    candidates = [*filled_grid_candidates, *merged_rule_candidates]
+    candidates = _join_caption_supported_table_groups(source, [*filled_grid_candidates, *merged_rule_candidates])
     _externalize_table_continuation_captions(
         source,
         candidates,
@@ -104,6 +107,68 @@ def _detect_table_candidates(
         candidates,
         key=lambda candidate: (candidate.bbox[1], candidate.bbox[0]),
     )
+
+
+def _join_caption_supported_table_groups(source: _PageSource, candidates: list[_TableCandidate]) -> list[_TableCandidate]:
+    """以同一底部表题连接紧邻的分组子表，并补回第一横线上方的多列表头。"""
+    output = list(candidates)
+    heights = [line.effective_height for line in source.lines if line.angle == 0 and line.effective_height > 0]
+    em = statistics.median(heights) if heights else 10.0
+    captions = [
+        line
+        for line in source.lines
+        if line.angle == 0 and re.match(r"^\s*(?:table|tab\.?|表)\s*(?:[A-Z][.]?)?\d", line.text, re.IGNORECASE)
+    ]
+    for caption in captions:
+        cb = caption.bbox
+        group = [
+            candidate
+            for candidate in output
+            if candidate.angle == 0
+            and 0 <= cb[1] - candidate.local_bbox[3] <= 18 * em
+            and _bbox_axis_overlap_ratio(cb, candidate.local_bbox, axis="x") >= 0.8
+        ]
+        group.sort(key=lambda candidate: candidate.local_bbox[1])
+        if len(group) < 2 or cb[1] - group[-1].local_bbox[3] > 2 * em:
+            continue
+        if any(
+            second.local_bbox[1] - first.local_bbox[3] > 1.5 * em
+            or abs(first.local_bbox[0] - second.local_bbox[0]) > em
+            or abs(first.local_bbox[2] - second.local_bbox[2]) > em
+            for first, second in zip(group, group[1:])
+        ):
+            continue
+        bbox = group[0].local_bbox
+        for candidate in group[1:]:
+            bbox = _bbox_union(bbox, candidate.local_bbox)
+        header = [
+            line
+            for line in source.lines
+            if line.angle == 0
+            and bbox[0] - em <= line.bbox[0]
+            and line.bbox[2] <= bbox[2] + em
+            and 0 <= bbox[1] - line.bbox[3] <= 1.5 * em
+        ]
+        if len(header) >= 2 and max(line.bbox[1] for line in header) - min(line.bbox[1] for line in header) < em:
+            bbox = (bbox[0], min(line.bbox[1] for line in header), bbox[2], bbox[3])
+        members = {
+            line.source_index
+            for line in source.lines
+            if line.angle == 0
+            and bbox[0] - 0.25 * em <= line.bbox[0]
+            and line.bbox[2] <= bbox[2] + 0.25 * em
+            and bbox[1] <= (line.bbox[1] + line.bbox[3]) / 2 <= bbox[3]
+        }
+        merged = replace(
+            group[0],
+            bbox=bbox,
+            local_bbox=bbox,
+            core_bbox=bbox,
+            line_indices=members,
+            annotations=[annotation for candidate in group for annotation in candidate.annotations],
+        )
+        output = [candidate for candidate in output if not any(candidate is item for item in group)] + [merged]
+    return output
 
 
 def _externalize_table_continuation_captions(

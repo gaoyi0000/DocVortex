@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from collections import deque
 from dataclasses import dataclass, replace
 from typing import Any
@@ -12,6 +14,9 @@ from ....schema import BBox
 from .._shared.xycut import sort_entries
 from ..contracts import NativePdfSource, RawBlock
 from .auxiliary_text import (
+    _classify_first_page_correspondence_footnotes,
+    _classify_image_footnotes,
+    _classify_page_footnotes,
     _build_marginal_candidate,
     _classify_deferred_image_footnotes,
     _classify_isolated_first_page_footer,
@@ -41,6 +46,7 @@ from .geometry import (
     _bbox_axis_overlap_ratio,
     _bbox_center_y,
     _bbox_overlap_in_smaller,
+    _bbox_overlap_in_first,
     _bbox_union_many,
     _clip_bbox,
     _coerce_bbox,
@@ -49,6 +55,7 @@ from .geometry import (
     _rotate_bbox_to_upright,
 )
 from .graphics import (
+    _build_caption_graphic_blocks,
     _IMAGE_CONTAINER_OVERLAP_THRESHOLD,
     _build_form_image_blocks,
     _build_graphic_like_blocks,
@@ -67,6 +74,7 @@ from .inline.materialize import (
 from .inline.scripts import detect_pdf_text_script_lines
 from .inline.types import PDFTextLinkLine, PDFTextStyleLine
 from .line_merging import (
+    _demote_runin_title_fragments,
     _merge_overlapping_inline_text_clusters,
     _merge_post_semantic_text_runs,
     _merge_same_baseline_text_lines,
@@ -101,6 +109,12 @@ from .text_assembly.annotations import (
 )
 from .text_assembly.assembly import _build_text_blocks
 from .text_assembly.common import _merge_internal_text_block_group
+from .text_assembly.continuity import (
+    group_front_matter_lines,
+    group_reference_lines,
+    mark_document_reference_regions,
+    merge_overlapping_member_blocks,
+)
 from .title_analysis.body_profile import _infer_document_body_profile
 from .title_analysis.document_profile import _infer_document_title_profile
 from .title_analysis.page_titles import _classify_page_titles
@@ -111,7 +125,7 @@ from .title_analysis.structural import (
     _classify_inline_typography_reset_titles,
     _promote_noninitial_document_title_band,
 )
-from .visual_annotations import _classify_and_bind_visual_annotations
+from .visual_annotations import _classify_and_bind_visual_annotations, _is_strong_caption_text
 
 _TEXT_SEMANTIC_TYPES = {
     "doc_title",
@@ -501,6 +515,7 @@ def _analyze_native_document(
         )
 
     profiles = _classify_document_text(prepared_pages)
+    mark_document_reference_regions(prepared_pages)
     finalized_pages = [
         _finalize_prepared_page(
             prepared,
@@ -513,6 +528,35 @@ def _analyze_native_document(
     ]
     _materialize_document_inline(finalized_pages, prepared_pages, sources, script_diagnostics)
     return finalized_pages
+
+
+def _build_caption_supported_graphics(source: _PageSource) -> tuple[list[dict[str, Any]], set[int]]:
+    """在流水线汇总图题、表格和真实代码屏障，图形领域不反向依赖其他领域分类器。"""
+    from .table_detection import _detect_table_candidates
+
+    caption_indices = {line.source_index for line in source.lines if _is_strong_caption_text(line.text)}
+    if not any(
+        line.source_index in caption_indices and re.match(r"^\s*(?:figure|fig\.)", line.text, re.IGNORECASE)
+        for line in source.lines
+    ):
+        return [], set()
+    table_bboxes = []
+    if any(re.match(r"^\s*(?:table|tab\.?|表)\s*\d", line.text, re.IGNORECASE) for line in source.lines):
+        table_bboxes = [
+            candidate.core_bbox or candidate.bbox for candidate in _detect_table_candidates(source) if candidate.annotations
+        ]
+    code_bboxes = [block["bbox"] for block in _build_code_blocks(source, [], set())[0]]
+    code_bboxes.extend(
+        block["bbox"]
+        for block in _build_rule_delimited_code_blocks(source, [], set())[0]
+        if len(
+            re.findall(r"(?im)^\s*(?:\d+\s*[:.]?\s*)?(?:int|float|void|class|def|for|while|if|return|else)\b", block["content"])
+        )
+        >= 2
+    )
+    return _build_caption_graphic_blocks(
+        source, caption_line_indices=caption_indices, table_bboxes=table_bboxes, code_bboxes=code_bboxes
+    )
 
 
 def _prepare_page_source(
@@ -529,13 +573,21 @@ def _prepare_page_source(
 ) -> _PreparedPage:
     """先认领视觉容器，再标注辅助文本并留下可跨页比较的轻量文本行。"""
 
+    if page_index == 0:
+        _classify_first_page_correspondence_footnotes(source)
+    caption_graphics, caption_graphic_claims = _build_caption_supported_graphics(source)
+    caption_graphic_bboxes = [block["bbox"] for block in caption_graphics]
     protected_line_indices = {line.source_index for line in source.lines if line.semantic_type is not None}
     analysis_source = replace(
         source,
-        lines=[line for line in source.lines if line.source_index not in protected_line_indices],
+        lines=[line for line in source.lines if line.source_index not in protected_line_indices | caption_graphic_claims],
     )
-    form_bboxes = _select_form_image_bboxes(source)
-    strong_graphic_bboxes = _detect_strong_graphic_bboxes(analysis_source)
+    form_bboxes = [
+        bbox
+        for bbox in _select_form_image_bboxes(source)
+        if not any(_bbox_overlap_in_smaller(bbox, graphic) >= 0.8 for graphic in caption_graphic_bboxes)
+    ]
+    strong_graphic_bboxes = _detect_strong_graphic_bboxes(analysis_source) + caption_graphic_bboxes
     rule_code_blocks, claimed_rule_code_line_indices = _build_rule_delimited_code_blocks(
         analysis_source,
         form_bboxes + strong_graphic_bboxes + list(source.image_bboxes) + list(source.signature_bboxes),
@@ -564,6 +616,7 @@ def _prepare_page_source(
         tight_bboxes=tight_bboxes,
         origins=origins,
     )
+    claimed_line_indices.update(caption_graphic_claims)
     claimed_line_indices.update(claimed_rule_code_line_indices)
     table_bboxes = [block["bbox"] for block in table_blocks]
     active_form_bboxes = [
@@ -586,18 +639,24 @@ def _prepare_page_source(
     )
     graphic_blocks, claimed_graphic_line_indices = _build_graphic_like_blocks(
         analysis_source,
-        table_bboxes + active_form_bboxes + rule_code_bboxes + code_bboxes,
+        table_bboxes + active_form_bboxes + rule_code_bboxes + code_bboxes + caption_graphic_bboxes,
         claimed_line_indices | claimed_code_line_indices | claimed_form_line_indices,
         strong_graphic_bboxes,
     )
     raster_image_blocks, claimed_raster_line_indices = _build_raster_image_blocks(
         analysis_source,
-        table_blocks + rule_code_blocks + code_blocks + form_image_blocks + graphic_blocks,
+        table_blocks + rule_code_blocks + code_blocks + form_image_blocks + graphic_blocks + caption_graphics,
         claimed_line_indices | claimed_code_line_indices | claimed_form_line_indices | claimed_graphic_line_indices,
     )
     vector_formula_blocks, claimed_vector_number_indices = _build_vector_formula_blocks(
         analysis_source,
-        table_blocks + rule_code_blocks + code_blocks + form_image_blocks + graphic_blocks + raster_image_blocks,
+        table_blocks
+        + rule_code_blocks
+        + code_blocks
+        + form_image_blocks
+        + graphic_blocks
+        + raster_image_blocks
+        + caption_graphics,
         claimed_line_indices
         | claimed_code_line_indices
         | claimed_form_line_indices
@@ -668,6 +727,19 @@ def _prepare_page_source(
         source.page_size,
         source_index_start=next_source_index,
     )
+    # 跨栏原生 run 在 X 校准后才能正确拆开，补认领这时才暴露出的图内标签。
+    image_containers = caption_graphics + form_image_blocks
+    reclaimed = set()
+    for line in remaining_lines:
+        if line.semantic_type is not None or _is_strong_caption_text(line.text):
+            continue
+        ink = line.ink_bbox or line.bbox
+        matches = [block for block in image_containers if _bbox_overlap_in_first(ink, block["bbox"]) >= 0.98]
+        if matches:
+            owner = min(matches, key=lambda block: _bbox_area(block["bbox"]))
+            owner["content"] += "\n" + line.text
+            reclaimed.add(line.source_index)
+    remaining_lines = [line for line in remaining_lines if line.source_index not in reclaimed]
     canonical_formula_source_lines = (
         [
             replace(
@@ -679,6 +751,17 @@ def _prepare_page_source(
         ]
         if geometry_plan is not None and geometry_plan.document_style_anomaly
         else []
+    )
+    early_visual_bboxes = [
+        block["bbox"] for block in caption_graphics + form_image_blocks + graphic_blocks + raster_image_blocks
+    ]
+    _classify_image_footnotes(remaining_lines, early_visual_bboxes, table_bboxes, source.drawing_lines, source.page_size)
+    early_footnote_groups = _classify_page_footnotes(
+        remaining_lines,
+        table_bboxes,
+        source.drawing_lines,
+        source.page_size,
+        visual_bboxes=early_visual_bboxes,
     )
     remaining_lines = merge_text_line_clusters(remaining_lines, source.page_size, table_bboxes)
     formula_candidate_lines = [line for line in remaining_lines if line.formula_candidate_only]
@@ -707,11 +790,13 @@ def _prepare_page_source(
             + graphic_blocks
             + raster_image_blocks
             + vector_formula_blocks
+            + caption_graphics
         ),
         canonical_formula_source_lines=canonical_formula_source_lines,
         script_lines=script_lines,
         formula_candidate_lines=formula_candidate_lines,
         formula_ink_bboxes=_unmapped_formula_ink_bboxes(source.chars),
+        page_footnote_groups=early_footnote_groups,
     )
     _classify_page_auxiliary_text(prepared)
     return prepared
@@ -943,6 +1028,13 @@ def _finalize_prepared_page(
             line.source_index for line in remaining_lines if line.semantic_type == "paragraph_title"
         },
     )
+    remaining_lines = semantic_lines + remaining_lines
+    semantic_lines = []
+    if page_index == 0:
+        for line in remaining_lines:
+            if line.text.strip().casefold() in {"abstract", "摘要"}:
+                line.semantic_type = "paragraph_title"
+    _demote_runin_title_fragments(remaining_lines, prepared.page_size)
     remaining_lines = _merge_title_resolved_visual_rows(
         remaining_lines,
         prepared.page_size,
@@ -952,6 +1044,9 @@ def _finalize_prepared_page(
         prepared.page_size,
         prepared.table_bboxes,
     )
+    group_reference_lines(remaining_lines, prepared)
+    if page_index == 0:
+        group_front_matter_lines(remaining_lines, prepared.page_size)
     text_blocks = _build_text_blocks(
         semantic_lines + remaining_lines,
         prepared.table_bboxes,
@@ -961,6 +1056,7 @@ def _finalize_prepared_page(
         page_index=page_index,
         visual_bboxes=[block["bbox"] for block in prepared.fixed_blocks if block.get("type") == "image"],
     )
+    text_blocks = merge_overlapping_member_blocks(text_blocks, prepared.page_size)
     text_blocks = _merge_multiline_title_blocks(text_blocks)
     text_blocks = _merge_front_matter_column_blocks(
         text_blocks,
@@ -991,9 +1087,41 @@ def _finalize_prepared_page(
         prepared.page_size,
         visual_annotation_regions=visual_annotation_regions,
     )
+    sorted_blocks = _preserve_narrow_graphic_column_order(sorted_blocks, prepared.page_size)
+    # 首页机构编号按物理行排列，避免长机构行使 XY-cut 将短机构先后顺序交错。
+    front_matter = iter(
+        sorted(
+            (block for block in sorted_blocks if (block.get("_reference_group") or 0) < 0),
+            key=lambda block: block["bbox"][1],
+        )
+    )
+    sorted_blocks = [next(front_matter) if (block.get("_reference_group") or 0) < 0 else block for block in sorted_blocks]
     return [
         normalized for block in sorted_blocks if (normalized := _normalize_output_block(block, prepared.page_size)) is not None
     ]
+
+
+def _preserve_narrow_graphic_column_order(blocks: list[dict[str, Any]], page_size: tuple[float, float]) -> list[dict[str, Any]]:
+    """同栏子图合并不应把另一栏的图表插进连续正文；跨栏页面继续使用原排序。"""
+    if not any(block.get("_caption_graphic") for block in blocks):
+        return blocks
+    width = page_size[0]
+    marginals = {"header", "footer", "page_number", "aside_text"}
+    content = [block for block in blocks if block["type"] not in marginals]
+    if any(block["bbox"][0] < 0.45 * width and block["bbox"][2] > 0.55 * width for block in content):
+        return blocks
+    body = [block for block in content if block["type"] == "text" and len(block.get("_local_line_bboxes", [])) >= 2]
+    left = sum(block["bbox"][2] <= 0.52 * width for block in body)
+    right = sum(block["bbox"][0] >= 0.48 * width for block in body)
+    if min(left, right) < 1 or max(left, right) < 2:
+        return blocks
+    ordered = iter(
+        sorted(
+            content,
+            key=lambda block: ((block["bbox"][0] + block["bbox"][2]) / 2 >= width / 2, block["bbox"][1], block["bbox"][0]),
+        )
+    )
+    return [block if block["type"] in marginals else next(ordered) for block in blocks]
 
 
 def _analyze_page_source(source: _PageSource) -> list[dict[str, Any]]:

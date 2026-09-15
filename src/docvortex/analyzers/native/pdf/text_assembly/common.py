@@ -97,6 +97,7 @@ def _merge_internal_text_block_group(
         *[row_ids for index in ordered_indices if isinstance((row_ids := blocks[index].get("_visual_row_ids")), set)]
     )
     merged["_single_run_row_id"] = None
+    merged["_text_lines"] = [line for index in ordered_indices for line in blocks[index].get("_text_lines", [])]
     merged["_local_line_bboxes"] = [bbox for index in ordered_indices for bbox in blocks[index].get("_local_line_bboxes", [])]
     merged["_local_output_line_bboxes"] = [
         bbox for index in ordered_indices for bbox in blocks[index].get("_local_output_line_bboxes", [])

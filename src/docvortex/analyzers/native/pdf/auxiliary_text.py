@@ -47,13 +47,47 @@ def _classify_page_auxiliary_text(prepared: _PreparedPage) -> None:
         prepared.drawing_lines,
         prepared.page_size,
     )
-    prepared.page_footnote_groups = _classify_page_footnotes(
+    prepared.page_footnote_groups += _classify_page_footnotes(
         prepared.remaining_lines,
         prepared.table_bboxes,
         prepared.drawing_lines,
         prepared.page_size,
         visual_bboxes=[block["bbox"] for block in prepared.fixed_blocks if block.get("type") == "image"],
     )
+
+
+def _classify_first_page_correspondence_footnotes(source: _PageSource) -> None:
+    """将首页底部紧凑的收稿、通讯作者和联系方式带作为脚注，要求明确通讯作者证据。"""
+    width, height = source.page_size
+    lower = [line for line in source.lines if line.angle == 0 and line.bbox[1] >= 0.75 * height and line.semantic_type is None]
+    if not any(re.search(r"correspond(?:ing|ence)\b", line.text, re.IGNORECASE) for line in lower):
+        return
+    body = [
+        _line_effective_height(line, line.bbox)
+        for line in source.lines
+        if line.angle == 0 and 0.2 * height < line.bbox[1] < 0.75 * height and line.bbox[2] - line.bbox[0] > 0.3 * width
+    ]
+    if not body:
+        return
+    body_height = statistics.median(body)
+    starts = [
+        line.bbox[1] for line in lower if re.match(r"^\s*(?:keywords?|received|\*?\s*correspond)", line.text, re.IGNORECASE)
+    ]
+    if not starts:
+        return
+    top = min(starts)
+    members = []
+    for line in sorted(lower, key=lambda line: (line.bbox[1], line.bbox[0])):
+        if line.bbox[1] < top:
+            continue
+        if _line_effective_height(line, line.bbox) > 0.85 * body_height:
+            break
+        if members and line.bbox[1] - members[-1].bbox[3] > 1.5 * body_height:
+            break
+        members.append(line)
+    if len(members) >= 3:
+        for line in members:
+            line.semantic_type = "page_footnote"
 
 
 def _classify_aside_text(
@@ -310,6 +344,9 @@ def _classify_page_footnotes(
 
     candidate_groups: list[set[int]] = []
     visual_bboxes = visual_bboxes or []
+    ink_bboxes = [
+        _rotate_bbox_to_upright(line.ink_bbox or line.bbox, page_size, dominant_angle) for line, _bbox in line_geometry
+    ]
     for axis_line in local_axis_lines:
         if axis_line.orientation != "horizontal":
             continue
@@ -317,6 +354,20 @@ def _classify_page_footnotes(
         # 依靠严格的单栏对齐和字号收缩证据提前触发。
         rule_center_y = _bbox_center_y(axis_line.bbox)
         if rule_center_y < 0.55 * local_page_height:
+            continue
+        # 短横线上下紧贴且同宽的两行是分式几何，不能提前认领分母及后续正文为脚注。
+        rule_width = axis_line.bbox[2] - axis_line.bbox[0]
+        compact_neighbors = [
+            bbox
+            for bbox in ink_bboxes
+            if 0.4 * rule_width <= bbox[2] - bbox[0] <= rule_width + median_height
+            and _bbox_axis_overlap_ratio(bbox, axis_line.bbox, axis="x") >= 0.8
+        ]
+        if (
+            rule_width < 0.25 * local_page_width
+            and any(0 <= rule_center_y - bbox[3] <= median_height for bbox in compact_neighbors)
+            and any(0 <= bbox[1] - rule_center_y <= median_height for bbox in compact_neighbors)
+        ):
             continue
         # 表格边界会产生断裂横线；除框内线段外，也排除与其同高且近邻的框外线段。
         if _rule_belongs_to_confirmed_table(
@@ -527,6 +578,10 @@ def _footnote_lane_members(
     first_gap_limit = max(3.0 * median_height, 0.035 * local_page_height)
     first_index: int | None = None
     for index, (_line, bbox) in enumerate(lane_lines):
+        if min(rule_bbox[2], bbox[2]) <= max(rule_bbox[0], bbox[0]):
+            continue
+        if bbox[2] - bbox[0] < 2 * median_height:
+            continue
         rule_gap = bbox[1] - rule_bbox[3]
         if rule_gap < -0.5 * median_height:
             continue
@@ -560,6 +615,8 @@ def _footnote_lane_members(
     )
     members = [lane_lines[first_index]]
     for current in lane_lines[first_index + 1 :]:
+        if _bbox_axis_overlap_ratio(members[0][1], current[1], axis="x") < 0.5:
+            continue
         if lower_barrier_y is not None and current[1][1] >= lower_barrier_y:
             break
         if _effective_text_row_gap(members[-1], current) > continuation_gap_limit:
@@ -1026,6 +1083,13 @@ def _classify_raw_page_marginals(sources: list[_PageSource]) -> None:
         and (
             _bbox_center_y(candidate.local_bbox) / candidate.local_page_size[1] <= 0.08
             or _bbox_center_y(candidate.local_bbox) / candidate.local_page_size[1] >= 0.92
+            or (
+                _parse_page_number_value(line.text) is not None
+                and (
+                    _bbox_center_y(candidate.local_bbox) / candidate.local_page_size[1] <= 0.15
+                    or _bbox_center_y(candidate.local_bbox) / candidate.local_page_size[1] >= 0.85
+                )
+            )
         )
     ]
     _classify_marginal_candidates(candidates)
@@ -1070,7 +1134,7 @@ def _classify_marginal_candidates(
                 right.line.semantic_type = "page_number"
 
     for left_index, left in enumerate(candidates):
-        if left.line.semantic_type == "page_number":
+        if left.line.semantic_type == "page_number" or _parse_page_number_value(left.line.text) is not None:
             continue
         for right in candidates[left_index + 1 :]:
             page_delta = right.page_index - left.page_index
@@ -1081,6 +1145,7 @@ def _classify_marginal_candidates(
                 and left.region != "side"
                 and right.region != "side"
                 and right.line.semantic_type != "page_number"
+                and _parse_page_number_value(right.line.text) is None
                 and _marginal_geometry_matches(left, right)
                 and _marginal_text_matches(left.line.text, right.line.text)
             ):
@@ -1363,6 +1428,34 @@ def _classify_isolated_first_page_footer(pages: list[_PreparedPage]) -> None:
     if len(body_lines) < 4:
         return
     body_height = statistics.median(_line_effective_height(line, line.bbox) for line in body_lines)
+    # 首页刊物编号和版权声明有明确语义，允许略高于普通孤立页脚，并恢复同行碎片。
+    copyright_lines = [
+        line
+        for line in page.remaining_lines
+        if line.semantic_type is None
+        and line.angle == 0
+        and line.bbox[1] >= 0.92 * page_height
+        and re.search(r"(?:©|copyright).*\bpublish", line.text, re.IGNORECASE)
+    ]
+    if len(copyright_lines) == 1:
+        anchor = copyright_lines[0]
+        members = [
+            line
+            for line in page.remaining_lines
+            if line.semantic_type is None
+            and line.angle == 0
+            and abs(_bbox_center_y(line.bbox) - _bbox_center_y(anchor.bbox)) <= 0.3 * body_height
+        ]
+        bbox = _bbox_union_many([line.bbox for line in members])
+        body_above = [line.bbox[3] for line in body_lines if line.bbox[3] < bbox[1]]
+        if (
+            bbox[2] - bbox[0] <= 0.6 * page_width
+            and body_above
+            and bbox[1] - max(body_above) >= 0.5 * body_height
+            and all(_line_effective_height(line, line.bbox) <= body_height for line in members)
+        ):
+            for line in members:
+                line.semantic_type = "footer"
     body_bottom = max(line.bbox[3] for line in body_lines)
     if body_bottom < 0.7 * page_height:
         return
@@ -1374,13 +1467,21 @@ def _classify_isolated_first_page_footer(pages: list[_PreparedPage]) -> None:
         and line.angle == 0
         and line.bbox[1] >= 0.94 * page_height
         and line.bbox[2] - line.bbox[0] <= 0.6 * page_width
-        and abs(_bbox_center_x(line.bbox) - 0.5 * page_width) <= 0.08 * page_width
         and _line_effective_height(line, line.bbox) <= 0.95 * body_height
         and line.bbox[1] - body_bottom >= 1.5 * body_height
         and not any(_bbox_intersects(line.bbox, container_bbox) for container_bbox in container_bboxes)
     ]
-    if len(candidates) == 1:
-        candidates[0].semantic_type = "footer"
+    # 出版编号和版权文字可能被字体拆成多个 run，先按同一视觉行验证整体净空。
+    if candidates:
+        bbox = _bbox_union_many([line.bbox for line in candidates])
+        if (
+            bbox[2] - bbox[0] <= 0.6 * page_width
+            and abs(_bbox_center_x(bbox) - 0.5 * page_width) <= 0.08 * page_width
+            and max(_bbox_center_y(line.bbox) for line in candidates) - min(_bbox_center_y(line.bbox) for line in candidates)
+            <= 0.4 * body_height
+        ):
+            for line in candidates:
+                line.semantic_type = "footer"
 
 
 def _classify_repeated_visual_headers(pages: list[_PreparedPage]) -> None:
@@ -1662,6 +1763,11 @@ def _chinese_page_number_to_int(value: str) -> int | None:
 
 def _marginal_text_matches(first_text: str, second_text: str) -> bool:
     """在屏蔽变化数字后比较边缘稳定文本，短文本只接受完全一致。"""
+
+    # 年份、卷页和预印本编号是参考条目尾行，不是可复用的刊头文字。
+    citation_tail = r"(?:\b(?:18|19|20)\d{2}\s*[;,.:]|\barxiv\s*:\s*\d|\d+\s*:\s*\d+\s*[–—-]\s*\d+)"
+    if any(re.match(citation_tail, text.strip(), re.IGNORECASE) for text in (first_text, second_text)):
+        return False
 
     # 公式编号在数字屏蔽后都会成为同一标记，不能作为重复页脚的文本证据。
     if any(re.fullmatch(r"[（(﹙]\s*[A-Za-z]?\d+(?:[.\-]\d+)*\s*[)）﹚]", text.strip()) for text in (first_text, second_text)):

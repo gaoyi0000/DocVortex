@@ -212,8 +212,7 @@ def test_labels_keep_sparse_indices_missing_children_and_algorithm_body() -> Non
     assert page.model_dump(mode="json") == before
     assert PdfReader(BytesIO(output)).pages[0].extract_text().splitlines() == [
         "Original page 0",
-        "list: 0",
-        "text: -",
+        "list: 0text: -",
         "text: 0",
         "text: 7",
         "algorithm_body: 12",
@@ -222,24 +221,37 @@ def test_labels_keep_sparse_indices_missing_children_and_algorithm_body() -> Non
 
 
 @pytest.mark.parametrize("top", [0, 0.2])
-def test_labels_stay_on_page_and_avoid_nested_collisions(top: float) -> None:
-    """验证页顶回退、右侧收拢和相同框父子标签逐行避让，且不移动布局框。"""
+def test_labels_stay_at_block_top_with_only_page_edge_clamping(top: float) -> None:
+    """相同框的标签保持同一高度，页顶和右侧仅就近收拢，不再跨行避让。"""
     bbox = (0.95, top, 1.0, top + 0.1)
     children = [_text_block(index=index, bbox=bbox) for index in range(3)]
     parent = {"type": "list", "index": 0, "bbox": bbox, "content": children}
     output = render_layout_pdf(_source_pdf(), [_page(blocks=[parent])])
     backgrounds = _label_backgrounds(output)
     assert len(backgrounds) == 4
-    for index, (x, y, width, height) in enumerate(backgrounds):
+    for x, y, width, height in backgrounds:
         assert x >= 0 and y >= 0
         assert x + width <= 200.00001 and y + height <= 300.00001
-        if top == 0:
-            assert y + height <= 299.00001
-        else:
-            assert y >= 241
-        for ox, oy, ow, oh in backgrounds[:index]:
-            assert x + width <= ox or ox + ow <= x or y + height <= oy or oy + oh <= y
+        assert y == pytest.approx(min((1 - top) * 300 + 1, 300 - height), abs=1e-5)
+    assert len({round(y, 5) for _, y, _, _ in backgrounds}) == 1
     assert all(rect == pytest.approx((190, (1 - top - 0.1) * 300, 10, 30)) for _, rect in _outlines(output))
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_dense_labels_remain_attached_to_each_block_regardless_of_order(reverse: bool) -> None:
+    """密集短段落的标签即使互相重叠也保持对应上边界，输入顺序不能改变锚点。"""
+    blocks = [_text_block(index=index, bbox=(0.1, 0.2 + index * 0.015, 0.6, 0.21 + index * 0.015)) for index in range(30)]
+    if reverse:
+        blocks.reverse()
+        # Schema 要求 index 递增；倒置的是物理位置，重新编号后仍覆盖反向绘制顺序。
+        for index, block in enumerate(blocks):
+            block["index"] = index
+    output = render_layout_pdf(_source_pdf(), [_page(blocks=blocks)])
+    backgrounds = _label_backgrounds(output)
+    assert len(backgrounds) == len(blocks)
+    for block, (x, y, _width, _height) in zip(blocks, backgrounds, strict=True):
+        assert x == 20
+        assert y == pytest.approx((1 - block["bbox"][1]) * 300 + 1, abs=1e-5)
 
 
 @pytest.mark.parametrize("blocks", [[], [_text_block(bbox=None)]])

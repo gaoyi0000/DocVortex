@@ -126,9 +126,8 @@ def _build_text_blocks(
                     page_index,
                 )
             )
-            protected_break_sources.update(
-                _explicit_text_break_sources(lane),
-            )
+            explicit_break_sources = _explicit_text_break_sources(lane)
+            protected_break_sources.update(explicit_break_sources)
             structured_break_sources.update(
                 protected_break_sources,
             )
@@ -156,7 +155,9 @@ def _build_text_blocks(
             for previous, current in zip(lane.lines, lane.lines[1:]):
                 previous_type = previous[0].semantic_type
                 current_type = current[0].semantic_type
-                if current[0].source_index in rule_break_sources or previous_type != current_type:
+                if previous[0].paragraph_group is not None or current[0].paragraph_group is not None:
+                    should_connect = previous[0].paragraph_group == current[0].paragraph_group
+                elif current[0].source_index in rule_break_sources or previous_type != current_type:
                     should_connect = False
                 elif previous_type is not None:
                     should_connect = _should_connect_semantic_rows(
@@ -258,6 +259,8 @@ def _build_text_blocks(
                         "bbox": _bbox_union_many([line.bbox for line in component_lines]),
                         "angle": angle,
                         "content": content,
+                        "_text_lines": component_lines,
+                        "_reference_group": component_lines[0].paragraph_group,
                         "_visual_row_ids": visual_row_ids,
                         "_single_run_row_id": single_run_row_id,
                         "_local_line_bboxes": [bbox for _line, bbox in component_geometry],
@@ -278,7 +281,10 @@ def _build_text_blocks(
                         "_lane_is_span": component_local_lane.is_span,
                         "_hard_break_before": (component_lines[0].source_index in structured_break_sources),
                         "_protected_hard_break_before": (component_lines[0].source_index in protected_break_sources),
-                        "_hanging_indent_group": hanging_indent_groups.get(
+                        "_explicit_break_before": component_lines[0].source_index in explicit_break_sources,
+                        "_rule_break_before": component_lines[0].source_index in rule_break_sources,
+                        "_hanging_indent_group": component_lines[0].paragraph_group
+                        or hanging_indent_groups.get(
                             component_lines[0].source_index,
                         ),
                         "_leading_emphasis_start": _component_starts_with_emphasized_row(
@@ -286,6 +292,9 @@ def _build_text_blocks(
                         ),
                     }
                 )
+    # 编号机构和参考条目已有明确成员关系，交由成员归组统一合并，避免通用续行跨组拼接。
+    grouped_blocks = [block for block in blocks if block.get("_reference_group") is not None]
+    blocks = [block for block in blocks if block.get("_reference_group") is None]
     blocks = _merge_short_same_baseline_prefix_blocks(
         blocks,
         page_size,
@@ -298,7 +307,7 @@ def _build_text_blocks(
         blocks,
         page_size,
     )
-    return _merge_paragraph_formula_context_blocks(
+    return grouped_blocks + _merge_paragraph_formula_context_blocks(
         blocks,
         page_size,
     )

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 import statistics
 import unicodedata
 from typing import Any
@@ -59,7 +60,86 @@ def _build_rule_delimited_code_blocks(
         excluded_bboxes,
         claimed_line_indices or set(),
     )
+    candidates += _detect_caption_algorithm_candidates(
+        source, excluded_bboxes + [candidate.bbox for candidate in candidates], claimed_line_indices or set()
+    )
     return _materialize_code_candidates(source, candidates)
+
+
+def _detect_caption_algorithm_candidates(
+    source: _PageSource,
+    excluded_bboxes: list[BBox],
+    claimed: set[int],
+) -> list[_CodeCandidate]:
+    """按算法标题及重复控制行恢复清单，无横线时以正文或下一节边界停止。"""
+    width, _height = source.page_size
+    headings = [
+        line
+        for line in source.lines
+        if line.angle == 0 and re.match(r"^\s*(?:algorithm|算法)\s*\d+[.:\s]", line.text, re.IGNORECASE)
+    ]
+    control = re.compile(
+        r"^\s*(?:\d+\s*[:.]\s*)?(?:if|else|end|for|while|input|output|return|repeat|until|require|ensure)\b", re.IGNORECASE
+    )
+    output = []
+    for heading in headings:
+        hb = heading.bbox
+        left, right = (
+            (0.0, width)
+            if hb[2] - hb[0] > 0.55 * width
+            else (0.0, width / 2)
+            if (hb[0] + hb[2]) / 2 < width / 2
+            else (width / 2, width)
+        )
+        em = max(1.0, heading.effective_height)
+        available = sorted(
+            [
+                line
+                for line in source.lines
+                if line.angle == 0
+                and line.source_index not in claimed
+                and left <= (line.bbox[0] + line.bbox[2]) / 2 < right
+                and line.bbox[1] >= hb[1]
+                and line is not heading
+            ],
+            key=lambda line: (line.bbox[1], line.bbox[0]),
+        )
+        starts = [i for i, line in enumerate(available) if control.match(line.text) and line.bbox[1] - hb[3] < 5 * em]
+        if not starts:
+            continue
+        members = []
+        bottom = available[starts[0]].bbox[3]
+        for line in available[starts[0] :]:
+            if line.bbox[1] - bottom > 1.5 * em:
+                break
+            if re.match(r"^\s*\d+(?:\.\d+)*[.]?\s+[A-Z]", line.text) and not control.match(line.text):
+                break
+            if any(_bbox_overlap_in_smaller(line.bbox, bbox) >= 0.5 for bbox in excluded_bboxes):
+                break
+            members.append(line)
+            bottom = max(bottom, line.bbox[3])
+        if sum(bool(control.match(line.text)) for line in members) < 3:
+            continue
+        bbox = _bbox_union_many([line.bbox for line in members])
+        if bbox[3] - bbox[1] < 5 * em:
+            continue
+        rules = [
+            rule.bbox
+            for rule in source.drawing_lines
+            if rule.orientation == "horizontal"
+            and abs(rule.bbox[0] - hb[0]) < em
+            and rule.bbox[2] >= bbox[2] - em
+            and rule.bbox[2] <= right + em
+        ]
+        borders = [
+            rule
+            for rule in rules
+            if hb[3] <= rule[1] <= bbox[1] and bbox[1] - rule[3] <= 1.5 * em or bbox[3] <= rule[1] <= bbox[3] + 1.5 * em
+        ]
+        if borders:
+            bbox = _bbox_union_many([bbox, *borders])
+        output.append(_CodeCandidate(bbox=bbox, angle=0, line_indices={line.source_index for line in members}))
+    return output
 
 
 def _materialize_code_candidates(

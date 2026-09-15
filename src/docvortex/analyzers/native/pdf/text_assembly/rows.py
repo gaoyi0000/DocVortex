@@ -482,6 +482,13 @@ def _leading_typography_reset_break_sources(
         key=lambda item: (item[1][1], item[1][0], item[0].source_index),
     )
     lane_width = max(0.1, lane.right - lane.left)
+    repeated_emphasis = (
+        sum(
+            line.leading_emphasis_width is not None and 0.03 * lane_width <= line.leading_emphasis_width <= 0.65 * lane_width
+            for line, _bbox in rows
+        )
+        >= 3
+    )
     output: set[int] = set()
     for previous, current in zip(rows, rows[1:]):
         previous_width = previous[1][2] - previous[1][0]
@@ -490,10 +497,20 @@ def _leading_typography_reset_break_sources(
             _line_effective_height(*previous),
             _line_effective_height(*current),
         )
+        explicit_emphasis = (
+            repeated_emphasis
+            and current[0].leading_emphasis_width is not None
+            and current[0].leading_emphasis_width <= 0.65 * lane_width
+            and re.search(r"[.!?。！？][\])’\"']*$", previous[0].text.rstrip()) is not None
+        )
         if (
-            current[0].leading_typography_width is None
-            or current[0].leading_typography_width > 0.2 * lane_width
-            or previous_width > 0.45 * lane_width
+            (current[0].leading_typography_width is None and not explicit_emphasis)
+            or (
+                current[0].leading_typography_width is not None
+                and current[0].leading_typography_width > 0.2 * lane_width
+                and not explicit_emphasis
+            )
+            or (previous_width > 0.45 * lane_width and not explicit_emphasis)
             or current_width < 0.75 * lane_width
             or abs(previous[1][0] - lane.left) > 0.75 * pair_height
             or abs(current[1][0] - lane.left) > 0.75 * pair_height
@@ -612,6 +629,12 @@ def _explicit_text_break_sources(
         key=lambda item: (item[1][1], item[1][0], item[0].source_index),
     )
     output = {line.source_index for line, _bbox in rows if _ABSTRACT_METADATA_RE.match(line.text) is not None}
+    numbered = [(line, bbox, re.match(r"^(\d{1,2})[.]\s+\D", line.text)) for line, bbox in rows]
+    numbered = [(line, bbox, int(match.group(1))) for line, bbox, match in numbered if match is not None]
+    for first, second in zip(numbered, numbered[1:]):
+        em = max(_line_effective_height(first[0], first[1]), _line_effective_height(second[0], second[1]))
+        if second[2] == first[2] + 1 and abs(first[1][0] - second[1][0]) <= em:
+            output.update((first[0].source_index, second[0].source_index))
     lane_width = max(0.1, lane.right - lane.left)
     output.update(
         line.source_index
