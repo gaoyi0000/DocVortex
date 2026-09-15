@@ -620,6 +620,61 @@ def _assign_component(
         roles[index] = "body"
 
 
+def paired_script_roles(
+    chars: list[Char],
+    roles: list[ScriptRole],
+    tight_bboxes: dict[int, BBox],
+    origins: dict[int, tuple[float, float]],
+) -> dict[int, ScriptRole]:
+    """确认同一基字符右侧横向叠放的上下标，排除分式和远距邻列。"""
+
+    features = build_script_features(chars, tight_bboxes, origins, set())
+    visible = [feature for feature in features if feature.text.isprintable() and not feature.text.isspace()]
+    paired: dict[int, ScriptRole] = {}
+    for position, (base, first, second) in enumerate(zip(visible, visible[1:], visible[2:])):
+        if (
+            not all(feature.is_valid and feature.text.isalnum() for feature in (base, first, second))
+            or roles[base.index] != "body"
+            or {roles[first.index], roles[second.index]} != {"sup", "sub"}
+        ):
+            continue
+        assert base.tight_bbox is not None and base.origin is not None
+        assert first.tight_bbox is not None and first.origin is not None
+        assert second.tight_bbox is not None and second.origin is not None
+        scale = base.tight_height
+        if scale <= 0 or any(feature.tight_height > 0.8 * scale for feature in (first, second)):
+            continue
+        overlap = min(first.tight_bbox[2], second.tight_bbox[2]) - max(first.tight_bbox[0], second.tight_bbox[0])
+        minimum_width = min(first.tight_bbox[2] - first.tight_bbox[0], second.tight_bbox[2] - second.tight_bbox[0])
+        if overlap < 0.5 * minimum_width:
+            continue
+        if any(
+            not -0.15 * scale <= feature.tight_bbox[0] - base.tight_bbox[2] <= 0.5 * scale
+            or abs(feature.origin[1] - base.origin[1]) < 0.15 * scale
+            or abs(feature.origin[1] - base.origin[1]) > scale
+            for feature in (first, second)
+        ):
+            continue
+        if (first.origin[1] - base.origin[1]) * (second.origin[1] - base.origin[1]) >= 0:
+            continue
+        # 本补证据只接纳完整单字符角标，不能只给 grid 等多字母角标的首字母加样式。
+        following = visible[position + 3] if position + 3 < len(visible) else None
+        if (
+            following is not None
+            and following.is_valid
+            and following.text.isalnum()
+            and following.tight_bbox is not None
+            and following.origin is not None
+            and following.tight_height <= 0.8 * scale
+            and abs(following.origin[1] - second.origin[1]) <= 0.15 * scale
+            and -0.15 * scale <= following.tight_bbox[0] - second.tight_bbox[2] <= 0.5 * scale
+        ):
+            continue
+        paired[first.index] = roles[first.index]
+        paired[second.index] = roles[second.index]
+    return paired
+
+
 def classify_char_script_roles(
     chars: list[Char],
     *,

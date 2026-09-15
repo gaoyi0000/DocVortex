@@ -7,7 +7,7 @@ import unicodedata
 from typing import Any, Literal, Sequence
 
 from .....schema import BBox
-from .._script_geometry import ScriptRole, classify_char_script_roles
+from .._script_geometry import ScriptRole, classify_char_script_roles, paired_script_roles
 from ..geometry import _rotate_bbox_to_upright
 from .common import _coerce_bbox, _normalize_match_fragment, _ordered_line_chars
 from .types import (
@@ -678,7 +678,7 @@ def _strong_structural_script_roles(
         tight_bboxes=tight_bboxes,
         origins=origins,
     )
-    strong_roles: dict[int, ScriptRole] = {}
+    strong_roles: dict[int, ScriptRole] = paired_script_roles(chars, roles, tight_bboxes, origins)
     for index in _citation_script_indices(chars, roles):
         if roles[index] != "body":
             strong_roles[index] = roles[index]

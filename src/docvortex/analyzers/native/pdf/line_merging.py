@@ -18,6 +18,7 @@ from .geometry import (
 from .line_layout import _connection_crosses_table, _font_signatures_share_family, _infer_text_lanes, _line_effective_height
 from .models import _LineItem, _TextLane
 from .native_text import _fill_native_typography, _median_native_glyph_width
+from ._script_geometry import classify_char_script_roles, paired_script_roles
 
 
 def _merge_same_baseline_text_lines(
@@ -273,11 +274,33 @@ def _classify_overlapping_inline_cluster(
         and line.font_coverage >= 0.75
         for line, bbox in members
     )
-    if has_body_host:
+    if has_body_host or _has_paired_script_body_host(members, median_height):
         return "inline"
     if len(members) >= 3 and len(visual_row_ids) >= 3 and union_bbox[2] - union_bbox[0] <= 0.6 * lane_width:
         return "formula"
     return None
+
+
+def _has_paired_script_body_host(members: list[tuple[_LineItem, BBox]], median_height: float) -> bool:
+    """用正文宿主和跨 run 的成对上下标补证据，不放宽普通同行重叠阈值。"""
+
+    if len(members) != 2 or any(line.angle != 0 or line.preserve_split_boundary or line.semantic_type for line, _ in members):
+        return False
+    host, bbox = max(members, key=lambda item: item[1][2] - item[1][0])
+    has_prose = len(re.findall(r"[\u3400-\u9fff]", host.text)) >= 2 or len(re.findall(r"\b[A-Za-z]{2,}\b", host.text)) >= 2
+    if not has_prose or bbox[2] - bbox[0] < 4.0 * median_height:
+        return False
+    owned_chars = [(char, line.source_index) for line, _ in members for char in line.chars]
+    if not owned_chars or any(not isinstance(char.get("char_idx"), int) for char, _ in owned_chars):
+        return False
+    owned_chars.sort(key=lambda item: item[0]["char_idx"])
+    chars = [char for char, _ in owned_chars]
+    tight = {char["char_idx"]: char["tight_bbox"] for char in chars if char.get("tight_bbox") is not None}
+    origins = {char["char_idx"]: char["origin"] for char in chars if char.get("origin") is not None}
+    roles = classify_char_script_roles(chars, tight_bboxes=tight, origins=origins)
+    paired = paired_script_roles(chars, roles, tight, origins)
+    # 上下标必须分属两个待合并 run，避免把一侧已有角标当作吞并邻块的依据。
+    return len(paired) == 2 and len({owned_chars[index][1] for index in paired}) == 2
 
 
 def _select_overlapping_inline_cluster_host(
@@ -335,8 +358,10 @@ def _merge_overlapping_inline_cluster(
         if compact_formula_cluster
         else [line.bbox for line in ordered_members if line is not host]
     )
+    # 成对角标跨 run 只是 PDF 物理拆行，不应在上、下标之间补正文空格。
+    separator = "" if _has_paired_script_body_host(members, median_height) else " "
     merged = _LineItem(
-        text=" ".join(text for line in ordered_members if (text := line.text.strip())),
+        text=separator.join(text for line in ordered_members if (text := line.text.strip())),
         bbox=_bbox_union_many([line.bbox for line in ordered_members]),
         angle=host.angle,
         source_index=min(line.source_index for line in ordered_members),

@@ -52,6 +52,56 @@ def test_real_unnumbered_math_components_keep_prose_outside() -> None:
     assert any("其中" in _text(block["content"]) and block["type"] == "text" for block in page)
 
 
+def test_math_note_merges_without_losing_paired_scripts() -> None:
+    """跨 run 的组合数上下标与注释同属一个文本块，正文 m、k 不被升降标。"""
+    page = _pages("math_display_formulas")[0]
+    notes = [block for block in page if 0.31 < block["bbox"][1] < 0.34]
+    assert len(notes) == 1 and notes[0]["type"] == "text"
+    spans = notes[0]["content"]
+    assert _text(spans) == "注: 当 m < k 时, 规定 Ckm = 0."
+    assert [(span["content"], span.get("styles")) for span in spans if span.get("styles")] == [
+        ("k", ["superscript"]),
+        ("m", ["subscript"]),
+    ]
+    assert sum(block["type"] == "equation" for block in page) == 3
+
+
+@pytest.mark.parametrize("barrier", ["explicit_split", "no_ink", "separate_columns", "multichar_script", "table"])
+def test_paired_script_merge_respects_missing_evidence_and_barriers(barrier: str) -> None:
+    """成对角标补证据不能绕过显式边界、缺失几何、邻列距离或表格认领。"""
+    from docvortex.analyzers.native.pdf import line_merging
+    from docvortex.analyzers.native.pdf.models import _TextLane
+
+    with PDFDocument(str(FIXTURES / "math_display_formulas.pdf")) as document:
+        source = pipeline._collect_document_sources(document).page_sources[0]
+    lines = [line for line in source.lines if 264 < line.bbox[1] < 280]
+    assert len(lines) == 2
+    if barrier == "explicit_split":
+        lines[1].preserve_split_boundary = True
+    elif barrier == "no_ink":
+        for char in lines[1].chars:
+            char.pop("tight_bbox", None)
+    elif barrier == "separate_columns":
+        for char in lines[1].chars:
+            if char.get("tight_bbox") is not None:
+                x0, y0, x1, y1 = char["tight_bbox"]
+                char["tight_bbox"] = (x0 + 30, y0, x1 + 30, y1)
+    elif barrier == "multichar_script":
+        continuation = lines[1].chars[1]
+        continuation.update(
+            char="r",
+            bbox=(236, 272, 240, 279),
+            tight_bbox=(236, 274, 240, 278),
+            origin=(236, 277.65),
+            font=dict(lines[1].chars[0]["font"]),
+        )
+        lines[1].text = "mr = 0."
+    members = [(line, line.bbox) for line in lines]
+    lane = _TextLane(100, 300, members)
+    tables = [(95, 260, 270, 285)] if barrier == "table" else []
+    assert line_merging._classify_overlapping_inline_cluster(members, lane, 10.6, tables) is None
+
+
 def test_real_form_labels_and_blank_mapped_bracket_are_inside() -> None:
     """Form 收紧不能丢掉边缘标签，映射为空格的大括号仍须计入公式裁图。"""
     pages = _pages("bloom_form_labels")
