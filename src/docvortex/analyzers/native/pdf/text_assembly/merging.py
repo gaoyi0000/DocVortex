@@ -25,7 +25,6 @@ from .common import (
     _find_short_opener_pairs,
     _has_parallel_text_component,
     _merge_internal_text_block_group,
-    _merge_text_line_content,
     _nearest_following_text_component,
     _nearest_tapered_tail_component,
     _text_component_sort_key,
@@ -913,41 +912,7 @@ def _merge_spatial_text_components(
             indices,
             key=lambda index: _text_component_sort_key(blocks[index]),
         )
-        merged = dict(blocks[ordered_indices[0]])
-        merged["bbox"] = _bbox_union_many([blocks[index]["bbox"] for index in ordered_indices])
-        merged["content"] = _merge_text_line_content([str(blocks[index].get("content", "")) for index in ordered_indices])
-        merged["_visual_row_ids"] = set().union(
-            *[
-                block_ids
-                for index in ordered_indices
-                if isinstance(
-                    (block_ids := blocks[index].get("_visual_row_ids")),
-                    set,
-                )
-            ]
-        )
-        merged["_single_run_row_id"] = None
-        merged["_local_line_bboxes"] = [
-            bbox for index in ordered_indices for bbox in blocks[index].get("_local_line_bboxes", [])
-        ]
-        merged["_local_output_line_bboxes"] = [
-            bbox for index in ordered_indices for bbox in blocks[index].get("_local_output_line_bboxes", [])
-        ]
-        merged["_output_bbox_repaired"] = any(blocks[index].get("_output_bbox_repaired") is True for index in ordered_indices)
-        merged["_line_heights"] = [height for index in ordered_indices for height in blocks[index].get("_line_heights", [])]
-        merged["_font_signatures"] = set().union(
-            *[
-                signatures
-                for index in ordered_indices
-                if isinstance(
-                    (signatures := blocks[index].get("_font_signatures")),
-                    set,
-                )
-            ]
-        )
-        merged["_inline_math_regions"] = [
-            region for index in ordered_indices for region in blocks[index].get("_inline_math_regions", [])
-        ]
+        merged = _merge_internal_text_block_group(blocks, ordered_indices)
         output.append(merged)
     return output
 
@@ -956,6 +921,30 @@ def _merge_list_intro_text_components(
     blocks: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """在编号列表硬边界前合并被误拆的连续引导段和冒号短尾。"""
+
+    blocks = list(blocks)
+    for boundary in list(blocks):
+        if boundary.get("type") != "text" or not re.match(r"^\s*[（(]1[）)]\s", str(boundary.get("content", ""))):
+            continue
+        rows = boundary.get("_local_line_bboxes", [])
+        if not rows or boundary.get("_protected_hard_break_before"):
+            continue
+        em = statistics.median(boundary.get("_line_heights") or [rows[0][3] - rows[0][1]])
+        intros = [
+            block
+            for block in blocks
+            if block is not boundary
+            and block.get("type") == "text"
+            and len(block.get("_local_line_bboxes", [])) == 1
+            and 0 <= rows[0][1] - block["bbox"][3] <= 0.5 * em
+            and abs(rows[0][0] - block["bbox"][0]) < 0.3 * em
+            and block.get("_font_signatures") == boundary.get("_font_signatures")
+        ]
+        if len(intros) == 1:
+            intro = intros[0]
+            merged = _merge_internal_text_block_group([intro, boundary], [0, 1])
+            blocks[blocks.index(intro)] = merged
+            blocks.remove(boundary)
 
     consumed: set[int] = set()
     replacements: dict[int, dict[str, Any]] = {}
@@ -1095,10 +1084,17 @@ def _merge_unterminated_text_components(
             key=lambda index: _text_component_sort_key(output[index]),
         )
         merged_pair: tuple[int, int] | None = None
-        for first_index, second_index in zip(
-            text_indices,
-            text_indices[1:],
-        ):
+        pairs = []
+        for position, first_index in enumerate(text_indices):
+            first_bounds = output[first_index]["_local_line_bboxes"][-1]
+            following = [
+                index
+                for index in text_indices[position + 1 :]
+                if _bbox_axis_overlap_ratio(first_bounds, output[index]["_local_line_bboxes"][0], axis="x") >= 0.5
+            ]
+            if following:
+                pairs.append((first_index, following[0]))
+        for first_index, second_index in pairs:
             first = output[first_index]
             second = output[second_index]
             second_rows = second["_local_line_bboxes"]

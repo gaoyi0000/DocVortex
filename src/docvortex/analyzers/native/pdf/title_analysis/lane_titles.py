@@ -240,6 +240,9 @@ def _classify_paragraph_titles_in_lane(
                 or gap_above_excess >= 0.35
             )
         )
+        # 正文原型不能反向充当标题原型；通栏长行和常规行距共同否决弱提升。
+        if document_regular_body_candidate and width_ratio >= 0.8 and not weight_emphasized and height_ratio < 1.18:
+            continue
         prototype_inline_heading = (
             document_body_profile is not None
             and line_height <= 1.15 * document_body_profile.body_height
@@ -711,7 +714,11 @@ def _expand_paragraph_title_neighbors(
             if not 0 <= candidate_index < len(rows) or candidate_index in selected_indices:
                 continue
             candidate_line, candidate_bbox = rows[candidate_index]
-            if candidate_line.semantic_type is not None:
+            if (
+                candidate_line.semantic_type is not None
+                or candidate_line.title_suppressed
+                or candidate_line.paragraph_group is not None
+            ):
                 continue
             candidate_height = _line_effective_height(candidate_line, candidate_bbox)
             if not 0.75 <= candidate_height / selected_height <= 1.25:

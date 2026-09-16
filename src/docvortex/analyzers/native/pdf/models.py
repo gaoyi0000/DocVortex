@@ -52,6 +52,8 @@ class _LineItem:
     inline_math_regions: list[BBox] = field(default_factory=list)
     paragraph_group: int | None = None
     paragraph_terminal: bool = False
+    reference_start: bool | None = None
+    title_band_id: int | None = None
     caption_start: bool = False
 
     def __post_init__(self) -> None:
@@ -193,6 +195,7 @@ class _PreparedPage:
     canonical_formula_source_lines: list[_LineItem] = field(default_factory=list)
     page_footnote_groups: list[set[int]] = field(default_factory=list)
     reference_regions: list[BBox] = field(default_factory=list)
+    numbered_references: bool = False
     script_lines: list[PDFTextScriptLine] = field(default_factory=list)
     formula_candidate_lines: list[_LineItem] = field(default_factory=list)
     formula_ink_bboxes: list[BBox] = field(default_factory=list)

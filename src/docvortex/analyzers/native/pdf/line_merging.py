@@ -431,6 +431,7 @@ def _merge_post_semantic_text_runs(
     if len(lines) < 2:
         return list(lines)
     local_bboxes = [_rotate_bbox_to_upright(line.bbox, page_size, line.angle) for line in lines]
+    layout = build_layout_evidence(lines, page_size, barriers=table_bboxes)
     parents = list(range(len(lines)))
 
     def find(index: int) -> int:
@@ -470,11 +471,53 @@ def _merge_post_semantic_text_runs(
                 continue
             second_bbox = local_bboxes[second_index]
             second_height = _line_effective_height(second_line, second_bbox)
-            if _post_semantic_same_baseline_geometry(
-                first_bbox,
-                first_height,
-                second_bbox,
-                second_height,
+            left, right = sorted((first_bbox, second_bbox), key=lambda bbox: bbox[0])
+            pair_height = min(first_height, second_height)
+            shared_physical_row = (
+                first_line.visual_row_id is not None
+                and first_line.visual_row_id == second_line.visual_row_id
+                # 宽空格放宽只服务连续文字，数值列与标签列不能据此跨单元格连接。
+                and all(
+                    any(char.isalpha() for char in member.text)
+                    for member in lines
+                    if member.angle == first_line.angle and member.visual_row_id == first_line.visual_row_id
+                )
+            )
+            row_bounds = (
+                _bbox_union_many(
+                    [
+                        local_bboxes[index]
+                        for index, member in enumerate(lines)
+                        if member.angle == first_line.angle and member.visual_row_id == first_line.visual_row_id
+                    ]
+                )
+                if shared_physical_row
+                else _bbox_union_many([first_bbox, second_bbox])
+            )
+            justified_row = (
+                first_line.font_signature == second_line.font_signature
+                and first_line.paragraph_group == second_line.paragraph_group
+                and first_line.angle == 0
+                and abs(_bbox_center_y(first_bbox) - _bbox_center_y(second_bbox)) < 0.2 * pair_height
+                and 0 <= right[0] - left[2] <= (3 if shared_physical_row else 2) * pair_height
+                and not layout.separated(first_bbox, second_bbox)
+                and any(
+                    other is not first_line
+                    and other is not second_line
+                    and 0 < other.bbox[1] - max(first_bbox[3], second_bbox[3]) <= pair_height
+                    and abs(other.bbox[0] - row_bounds[0]) < (1.5 if shared_physical_row else 1) * pair_height
+                    and other.bbox[2] >= row_bounds[2] - pair_height
+                    for other in lines
+                )
+            )
+            if (
+                _post_semantic_same_baseline_geometry(
+                    first_bbox,
+                    first_height,
+                    second_bbox,
+                    second_height,
+                )
+                or justified_row
             ):
                 union(first_index, second_index)
 

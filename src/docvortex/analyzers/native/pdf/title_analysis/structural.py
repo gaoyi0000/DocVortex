@@ -992,6 +992,17 @@ def _classify_body_height_section_titles(
                 continue
             if abs(bbox[0] - lane.left) > 0.75 * body_height:
                 continue
+            previous_rows = [
+                (other, bounds)
+                for other, bounds in lane.lines
+                if bounds[1] < bbox[1]
+                and other.font_signature == line.font_signature
+                and bounds[2] - bounds[0] >= 0.75 * lane_width
+            ]
+            if previous_rows:
+                previous, bounds = max(previous_rows, key=lambda item: item[1][1])
+                if bbox[1] - bounds[3] <= 0.5 * body_height and not previous.paragraph_terminal:
+                    continue
             if _line_inside_visual_container(bbox, local_container_bboxes):
                 continue
 
@@ -1083,6 +1094,35 @@ __all__ = [
 ]
 
 
+def _following_stable_body_bounds(rows: list[_LineItem], start: int, em: float) -> BBox | None:
+    """从后继正文的重复左右缘估计局部栏宽，首行和列表缩进不决定栏中心。"""
+    members: list[list[_LineItem]] = []
+    for line in rows[start : start + 20]:
+        if line.semantic_type is not None or line.paragraph_group is not None or line.title_suppressed:
+            break
+        if members and line.font_signature != members[0][0].font_signature:
+            break
+        if members and abs(_bbox_center_y(line.bbox) - _bbox_center_y(members[-1][0].bbox)) < 0.2 * em:
+            members[-1].append(line)
+            continue
+        if members and (line.bbox[1] - max(item.bbox[3] for item in members[-1]) > 0.8 * em or len(members) >= 5):
+            break
+        members.append([line])
+    if len(members) < 2:
+        return None
+    bounds = [_bbox_union_many([line.bbox for line in group]) for group in members]
+    widths = [bbox[2] - bbox[0] for bbox in bounds]
+    wide = [bbox for bbox, width in zip(bounds, widths) if width >= 0.8 * max(widths)]
+    if len(wide) < 2:
+        return None
+    return (
+        statistics.median(bbox[0] for bbox in wide),
+        bounds[0][1],
+        statistics.median(bbox[2] for bbox in wide),
+        bounds[-1][3],
+    )
+
+
 def _classify_recurrent_unknown_weight_titles(pages: list[_PreparedPage]) -> None:
     """字重不可用时，以跨页独立短行组和字体切换恢复标题，普通连续正文样式不能成为种子。"""
     candidates = []
@@ -1118,7 +1158,10 @@ def _classify_recurrent_unknown_weight_titles(pages: list[_PreparedPage]) -> Non
                 while (
                     j < len(rows)
                     and rows[j].font_signature == first.font_signature
-                    and abs(rows[j].bbox[0] - first.bbox[0]) <= 0.5 * em
+                    and (
+                        abs(rows[j].bbox[0] - first.bbox[0]) <= 0.5 * em
+                        or abs(_bbox_center_x(rows[j].bbox) - _bbox_center_x(first.bbox)) <= 0.5 * em
+                    )
                     and -0.25 * em <= rows[j].bbox[1] - rows[j - 1].bbox[3] <= 0.8 * em
                 ):
                     j += 1
@@ -1133,6 +1176,7 @@ def _classify_recurrent_unknown_weight_titles(pages: list[_PreparedPage]) -> Non
                     and first.text.strip().isalpha()
                     and 5 <= len(first.text.strip()) <= 25
                 )
+                body_bounds = _following_stable_body_bounds(rows, j, em)
                 if (
                     signature is not None
                     and len(group) <= 3
@@ -1143,7 +1187,13 @@ def _classify_recurrent_unknown_weight_titles(pages: list[_PreparedPage]) -> Non
                     and rows[j].font_signature != signature
                     and rows[j].bbox[2] - rows[j].bbox[0] >= 0.25 * (right - left)
                     and len(re.findall(r"[A-Za-z]{2,}", rows[j].text)) >= 4
-                    and abs(rows[j].bbox[0] - first.bbox[0]) <= em
+                    and (
+                        abs(rows[j].bbox[0] - first.bbox[0]) <= em
+                        or abs(_bbox_center_x(first.bbox) - (lane.left + lane.right) / 2) <= em
+                        or body_bounds is not None
+                        and abs(_bbox_center_x(_bbox_union_many([line.bbox for line in group])) - _bbox_center_x(body_bounds))
+                        <= 0.5 * em
+                    )
                     and -0.1 * em <= rows[j].bbox[1] - group[-1].bbox[3] <= 1.5 * em
                     and (i == 0 or first.bbox[1] - rows[i - 1].bbox[3] >= 0.3 * em)
                 ):

@@ -13,9 +13,96 @@ from ..models import _LineItem, _PreparedPage
 from .common import _merge_internal_text_block_group, _merge_text_line_content
 
 
+_REFERENCE_NUMBER = re.compile(r"^\s*(?:\[(\d{1,4})\]|(\d{1,3})[.])\s*(?=\D)")
+
+
+def _numbered_reference_regions(page: _PreparedPage, active: bool) -> list[tuple]:
+    """由连续编号的重复左缘恢复局部参考栏，栏顶不沿整页正文栏传播。"""
+    candidates = []
+    for line in page.remaining_lines:
+        match = _REFERENCE_NUMBER.match(line.text)
+        if line.angle == 0 and match and line.semantic_type not in {"header", "footer", "page_number"}:
+            candidates.append((line, int(match.group(1) or match.group(2)), bool(match.group(1))))
+    clusters = []
+    for item in sorted(candidates, key=lambda item: item[0].bbox[0]):
+        em = _line_effective_height(item[0], item[0].bbox)
+        if clusters and abs(item[0].bbox[0] - statistics.median(v[0].bbox[0] for v in clusters[-1])) <= 0.8 * em:
+            clusters[-1].append(item)
+        else:
+            clusters.append([item])
+    accepted = []
+    for cluster in clusters:
+        cluster.sort(key=lambda item: item[0].bbox[1])
+        minimum = 2 if active else 3
+        if len(cluster) < minimum or sum(b[1] == a[1] + 1 for a, b in zip(cluster, cluster[1:])) < minimum - 1:
+            continue
+        if not active and not all(item[2] for item in cluster):
+            continue
+        accepted.append(cluster)
+    if not accepted:
+        return []
+    accepted.sort(key=lambda c: c[0][0].bbox[0])
+    regions = []
+    for i, cluster in enumerate(accepted):
+        em = statistics.median(_line_effective_height(v[0], v[0].bbox) for v in cluster)
+        left = statistics.median(v[0].bbox[0] for v in cluster)
+        next_left = min(v[0].bbox[0] for v in accepted[i + 1]) if i + 1 < len(accepted) else page.page_size[0]
+        top = min(v[0].bbox[1] for v in cluster)
+        headings = [
+            line for line in page.remaining_lines if re.fullmatch(r"references|bibliography|参考文献", line.text.strip(), re.I)
+        ]
+        local_headings = [line for line in headings if left - em <= line.bbox[0] < next_left - em]
+        floor = (
+            max(line.bbox[3] for line in local_headings)
+            if local_headings
+            else min(line.bbox[1] for line in headings) - 0.5 * em
+            if headings
+            else 0.0
+        )
+        # 后栏首项前可能有上一条的续行，但必须与参考文字同字号、同左缘。
+        if active or i:
+            peers = [
+                peer
+                for peer in page.remaining_lines
+                if left - em <= peer.bbox[0] < left + 3 * em
+                and peer.bbox[2] < next_left
+                and floor <= peer.bbox[1] < top
+                and peer.semantic_type not in {"header", "footer", "page_number"}
+                and not peer.structural_title
+                and not peer.explicit_section_title
+                and not re.fullmatch(r"references|bibliography|参考文献", peer.text.strip(), re.I)
+                and 0.85 <= _line_effective_height(peer, peer.bbox) / em <= 1.15
+            ]
+            if peers:
+                top = min(top, min(peer.bbox[1] for peer in peers))
+        endings = [
+            line.bbox[1]
+            for line in page.remaining_lines
+            if top < line.bbox[1]
+            and left - em <= line.bbox[0] < next_left - em
+            and (
+                re.match(r"^\s*(?:appendix\b|附录)", line.text, re.I)
+                or line.semantic_type == "paragraph_title"
+                and (line.structural_title or line.explicit_section_title)
+                and not _REFERENCE_NUMBER.match(line.text)
+                and all(
+                    line.bbox[1] - other.bbox[3] >= 0.6 * em
+                    for other in page.remaining_lines
+                    if other is not line
+                    and left - em <= other.bbox[0] < next_left - em
+                    and other.bbox[1] < line.bbox[1]
+                    and _bbox_axis_overlap_ratio(other.bbox, line.bbox, axis="x") >= 0.2
+                )
+            )
+        ]
+        regions.append((left - em, top - 0.2 * em, next_left - em, min(endings) if endings else 0.94 * page.page_size[1]))
+    return regions
+
+
 def mark_document_reference_regions(pages: list[_PreparedPage]) -> None:
     """沿实际栏序处理参考文献开始及章节结束事件，同页附录不丢弃此前的有效条目。"""
     active = False
+    numbered_active = False
     for page in pages:
         _width, height = page.page_size
         lines = page.remaining_lines
@@ -24,6 +111,22 @@ def mark_document_reference_regions(pages: list[_PreparedPage]) -> None:
             for line in lines
             if re.fullmatch(r"(?:references|bibliography|参考文献)\s*[:：]?", line.text.strip(), re.IGNORECASE)
         }
+        # 作者年代式参考区不能为后续附录的普通数字列表提供编号文献证据。
+        numbered = _numbered_reference_regions(page, numbered_active or bool(headings))
+        if numbered:
+            page.numbered_references = True
+            page.reference_regions.extend(numbered)
+            for line in lines:
+                if line.source_index in headings:
+                    line.semantic_type = "paragraph_title"
+                    line.structural_title = True
+                    page.page_footnote_groups = [
+                        g - {line.source_index} for g in page.page_footnote_groups if g - {line.source_index}
+                    ]
+            active = numbered[-1][3] == 0.94 * height
+            numbered_active = active
+            continue
+        numbered_active = False
         if not active and not headings:
             continue
         layout = build_layout_evidence(lines, page.page_size, barriers=[block["bbox"] for block in page.fixed_blocks])
@@ -60,7 +163,8 @@ def group_reference_lines(lines: list[_LineItem], page: _PreparedPage) -> None:
             if line.angle == 0
             and region[0] <= (line.bbox[0] + line.bbox[2]) / 2 < region[2]
             and region[1] <= _bbox_center_y(line.bbox) <= region[3]
-            and line.semantic_type not in {"page_number", "page_footnote", "doc_title", "header", "footer"}
+            and line.semantic_type not in {"page_number", "doc_title", "header", "footer"}
+            and (page.numbered_references or line.semantic_type != "page_footnote")
         ]
         if len(members) < 3:
             continue
@@ -87,7 +191,8 @@ def group_reference_lines(lines: list[_LineItem], page: _PreparedPage) -> None:
         # 没有重复首行和续行缩进就不推断条目，以免普通附注变成逐行段落。
         if sum(abs(line.bbox[0] - left) <= 0.5 * em for line in members) < 1:
             continue
-        if sum(0.5 * em < line.bbox[0] - left < 4 * em for line in members) < 2:
+        numbered = page.numbered_references and sum(bool(_REFERENCE_NUMBER.match(line.text)) for line in members) >= 2
+        if not numbered and sum(0.5 * em < line.bbox[0] - left < 4 * em for line in members) < 2:
             continue
         rows: list[list[_LineItem]] = []
         for line in members:
@@ -101,13 +206,17 @@ def group_reference_lines(lines: list[_LineItem], page: _PreparedPage) -> None:
                 rows.append([line])
         for index, row in enumerate(rows):
             row.sort(key=lambda line: line.bbox[0])
-            starts = row[0].bbox[0] - left <= 0.5 * em or re.match(r"^(?:\[\d+\]|\d{1,3}[.])\s", row[0].text)
+            starts = bool(_REFERENCE_NUMBER.match(row[0].text)) or (not numbered and row[0].bbox[0] - left <= 0.5 * em)
             if index == 0 or starts:
                 group += 1
             for line in row:
                 line.paragraph_group = group
+                if numbered:
+                    line.reference_start = starts
                 line.semantic_type = None
                 line.title_suppressed = True
+        claimed = {line.source_index for line in members}
+        page.page_footnote_groups = [group - claimed for group in page.page_footnote_groups if group - claimed]
 
 
 def _reassemble_member_lines(members: list[_LineItem], previous_content: str = "") -> str:
@@ -144,9 +253,48 @@ def _reassemble_member_lines(members: list[_LineItem], previous_content: str = "
     return rebuilt
 
 
+def order_body_above_reference_band(blocks: list[dict], page: _PreparedPage) -> list[dict]:
+    """混合栏页的上方正文按自身栏序排列，上标顶边不能把右栏首段提前。"""
+    if not page.numbered_references or not page.reference_regions:
+        return blocks
+    top = min(region[1] for region in page.reference_regions)
+    body = [
+        block
+        for block in blocks
+        if block.get("type") == "text"
+        and block["bbox"][3] < top
+        and block.get("_text_lines")
+        and block.get("_reference_group") is None
+        and block["bbox"][2] - block["bbox"][0]
+        >= 3 * statistics.median(_line_effective_height(line, line.bbox) for line in block["_text_lines"])
+    ]
+    if len(body) < 4:
+        return blocks
+    layout = build_layout_evidence([line for block in body for line in block["_text_lines"]], page.page_size)
+    if len(layout.lanes) < 2:
+        return blocks
+    keys = {}
+    for block in body:
+        lane = layout.corridor(block["bbox"])
+        if lane is None or lane == (0.0, layout.width):
+            return blocks
+        keys[id(block)] = (lane[0], block["bbox"][1])
+    indices = [index for index, block in enumerate(blocks) if id(block) in keys]
+    if any(
+        block.get("type") in {"image", "table", "equation", "paragraph_title"}
+        for block in blocks[min(indices) : max(indices) + 1]
+    ):
+        return blocks
+    ordered = iter(sorted(body, key=lambda block: keys[id(block)]))
+    return [next(ordered) if id(block) in keys else block for block in blocks]
+
+
 def group_front_matter_lines(lines: list[_LineItem], page_size: tuple) -> None:
     """以首页摘要之前连续的机构编号组织作者附属信息，邮箱不另立小标题。"""
     abstracts = [line for line in lines if text_role(line.text) == "abstract"]
+    if not abstracts:
+        # 无显式摘要标题时，独立的出版日期带仍是作者机构区的可靠下界。
+        abstracts = [line for line in lines if re.match(r"^\s*[（(]?(?:received|accepted|published)\b", line.text, re.I)]
     if not abstracts:
         return
     end = min(line.bbox[1] for line in abstracts)
@@ -186,6 +334,7 @@ def group_front_matter_lines(lines: list[_LineItem], page_size: tuple) -> None:
         if group is not None:
             line.paragraph_group = group
             line.semantic_type = None
+            line.title_suppressed = True
         previous = line
 
 
@@ -254,7 +403,22 @@ def merge_overlapping_member_blocks(blocks: list[dict], page_size: tuple) -> lis
                     and second.get("_protected_hard_break_before") is not True
                 )
                 adjacent = adjacent or bool(math_continuation)
-                if not adjacent and min(fb[3], sb[3]) <= max(fb[1], sb[1]) or _bbox_axis_overlap_ratio(fb, sb, axis="x") < 0.75:
+                narrow, host = sorted((first, second), key=lambda block: block["bbox"][2] - block["bbox"][0])
+                nb, hb = narrow["bbox"], host["bbox"]
+                inline_prefix = (
+                    len(narrow["_text_lines"]) == 1
+                    and re.fullmatch(r"[^\W\d_]{1,2}", str(narrow["content"]).strip())
+                    and nb[2] - nb[0] <= 1.5 * em
+                    and 0 <= hb[0] - nb[2] <= 1.5 * em
+                    and hb[1] <= _bbox_center_y(nb) <= hb[3]
+                    and len(host.get("_font_signatures", set())) >= 2
+                )
+                if (
+                    not adjacent
+                    and min(fb[3], sb[3]) <= max(fb[1], sb[1])
+                    or _bbox_axis_overlap_ratio(fb, sb, axis="x") < 0.75
+                    and not inline_prefix
+                ):
                     continue
                 if first.get("_reference_group") != second.get("_reference_group"):
                     continue

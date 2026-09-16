@@ -1,0 +1,378 @@
+{
+  "schema_version": 1,
+  "baseline_code_sha256": "1533f54963374b15a3cb18ff581f594a1a75fdc9eea47e88ee44cbddbf6988f8",
+  "code_sha256": "d9a40dab073789eafc52b25fd2fc5771ae0ccc930b44222735eac7c4310f774c",
+  "environment": {
+    "commit": "a8511caa6615fcf479a2b861061b4633ae1eef5f",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "sys_platform": "darwin",
+    "python": "3.13.5",
+    "pypdfium2": "5.10.1",
+    "pdfium_build": "151.0.7891.0",
+    "font_runtime": {
+      "pdfium_version": "151.0.7891.0",
+      "font_policy": "droid-cjk-v1",
+      "font_name": "Droid Sans Fallback Full",
+      "font_sha256": "8a4dea0899424438af25a6f1f6eb61e5d111d85367eece0a5d30170861ae6b2e"
+    }
+  },
+  "new_cases": [
+    {
+      "id": "dual_caption-05-followup-01",
+      "page": 5,
+      "document": "dual_caption",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "decision": "accept",
+      "reason": "独立小字号粗体标题 Hypermetabolism"
+    },
+    {
+      "id": "dual_caption-10-followup-02",
+      "page": 10,
+      "document": "dual_caption",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "decision": "accept",
+      "reason": "独立小字号粗体标题 Glucocorticoids"
+    },
+    {
+      "id": "dual_caption-12-followup-03",
+      "page": 12,
+      "document": "dual_caption",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "decision": "accept",
+      "reason": "独立小字号粗体标题 Branched-chain Amino Acids"
+    },
+    {
+      "id": "dual_caption-12-followup-04",
+      "page": 12,
+      "document": "dual_caption",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "decision": "accept",
+      "reason": "独立小字号粗体标题 Prokinetic Agents"
+    },
+    {
+      "id": "dual_caption-12-followup-05",
+      "page": 12,
+      "document": "dual_caption",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "decision": "accept",
+      "reason": "独立小字号粗体标题 Eicosapentanoic Acid"
+    },
+    {
+      "id": "dual_caption-15-followup-06",
+      "page": 15,
+      "document": "dual_caption",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "decision": "accept",
+      "reason": "独立小字号粗体标题 Others"
+    },
+    {
+      "id": "dual_caption-15-followup-07",
+      "page": 15,
+      "document": "dual_caption",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "decision": "accept",
+      "reason": "完整双行小字号粗体标题"
+    },
+    {
+      "id": "dual_caption-10-followup-08",
+      "page": 10,
+      "document": "dual_caption",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "decision": "accept",
+      "reason": "段首 Prescribing 完整且唯一归于后段；文字、行框、块框一致"
+    },
+    {
+      "id": "fix-10-followup-01",
+      "page": 10,
+      "document": "fix",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "decision": "accept",
+      "reason": "完整居中的双行附录标题，后继正文不入标题"
+    }
+  ],
+  "changed_pages": [
+    {
+      "document": "dual_caption",
+      "page": 3,
+      "decision": "accept",
+      "titles_promoted": [
+        "Anorexia"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "8295168f688f19a96096058c5db0df044836e28bc8763b259e58b8e8b23321f3",
+      "after_fingerprint": "81a3b748b59b31bed9910fc709c6aa0fe29e4187caafbe1b34eb70ca70d5b33c",
+      "before_bbox_fingerprint": "63c1300c57b7ce85eee8d7db9254a2ae1dabaae6c4d2c16140b4f81cefb406e8",
+      "after_bbox_fingerprint": "1943ea2ed15a6eebf9c71745e62ec699ad675af24f2abf21703990a087eb9592",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-03-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-03-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-03-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 5,
+      "decision": "accept",
+      "titles_promoted": [
+        "Hypermetabolism"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "d5766531e6f6b0b705aff3040e7e549c5cef91c53c8a07fdf3c3f71098c22654",
+      "after_fingerprint": "92f69acb604c4456fcff9f9bfe886b03bf16d6f3e44cedeb38ebb2b77c14ed05",
+      "before_bbox_fingerprint": "28619b34992bcf49162ef7d3a227b338f29e9ed32e41ad8ba9051d51ed80cefb",
+      "after_bbox_fingerprint": "9a5169895478839459fefab40b4bd55eecbf53f4eb92084421feced97a7bc34c",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-05-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-05-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-05-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 7,
+      "decision": "accept",
+      "titles_promoted": [
+        "Altered Carbohydrate Metabolism",
+        "Altered Lipid Metabolism"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "5a096627f17abe7522fd1f1f49d36dc2bc8ccb212f3e7a2c4254833b076e973f",
+      "after_fingerprint": "99b06071d55674b7c1057d4deaa02d35fd3fe55b938e1f808006f315e0cf8569",
+      "before_bbox_fingerprint": "18bfb4e3bbdc74945e9674fabe2ca1a8a9df19a1f8c9a02567ba234781dad373",
+      "after_bbox_fingerprint": "28181aefe902dfe8cabc00e8a6017bce4cc1a991e5e5f25577e259da1f552a62",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-07-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-07-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-07-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 8,
+      "decision": "accept",
+      "titles_promoted": [
+        "Gastrointestinal Dysfunction"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "eb855a28099ada3cdd5f912c055eae1ad68089e9026be20df837ea8795ac0249",
+      "after_fingerprint": "0ae66ddb0fa20da01b2e4472a065ce962b555cb120233120e8aa247aaef93d14",
+      "before_bbox_fingerprint": "03fde9361471e23c4583dbef7520c0a5cbe232a904ef19e18b311ced52f22215",
+      "after_bbox_fingerprint": "55b4d2fbe325de64a6a175dbbb7ae083b55f18c0fe9209792800256c429c7e1c",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-08-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-08-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-08-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 9,
+      "decision": "accept",
+      "titles_promoted": [
+        "Hypercaloric Feeding"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "86f5d136e1cd6b218bd871c9f5d49819302fe6524a780ad1286c281e254abece",
+      "after_fingerprint": "4340809b3cd505d7047e7499212a2362078069f1bff6aa0305cb52f13bdcaebe",
+      "before_bbox_fingerprint": "ec08807327a0f954cfc65c0f04262fa71a794fcc14eaa28dfbc61df364f0064b",
+      "after_bbox_fingerprint": "391f7ba202f2657e3de5ca74b00db2e4071acca5c3b4b0433c6f8f5dc3c0eb1c",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-09-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-09-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-09-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 10,
+      "decision": "accept",
+      "titles_promoted": [
+        "Glucocorticoids"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。 段首 Prescribing 及其物理行完整归入下一段，上一段框退出该行。",
+      "before_fingerprint": "56e4d061a146adfdbc8179269dace2b6b52d969d89f1160d2fb93ce58908fac3",
+      "after_fingerprint": "10e9c9088105d7751f020fac6b92d1fb5cbf766b20fb04b017b3b2ebd479bbc1",
+      "before_bbox_fingerprint": "241e1cab49feac81fd5e0116392ea1cb822ad3d7beb01be2418eea6523708f38",
+      "after_bbox_fingerprint": "9c79a7dea75cab73f5c3aa5ea33e1f591b513cf4b95d0cb3c427046dcc031b2e",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-10-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-10-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-10-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 11,
+      "decision": "accept",
+      "titles_promoted": [
+        "Progestational Drugs"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "2ecb68bb4c40f72903258128b0fa55c973f9d6176379ac98e9956560c2ac8616",
+      "after_fingerprint": "e1708f5fe73673912ddd9b95188dff8c4b452f3fde7a9e5992846d8f4952e8c0",
+      "before_bbox_fingerprint": "a9af673ff391addf0966a77a42d5816aad60da040e2f3e23dfb267f6be2344ce",
+      "after_bbox_fingerprint": "f47d7a1848de8221771ce1e30acbf1b32bbee50fd0777510368cd71fb478f1ac",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-11-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-11-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-11-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 12,
+      "decision": "accept",
+      "titles_promoted": [
+        "Branched-chain Amino Acids",
+        "Prokinetic Agents",
+        "Eicosapentanoic Acid"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "c89adfd48c51a8884bbc37508acce1c04d061ec31244780b8e1d7295bf343db1",
+      "after_fingerprint": "64370d53039be52f8de0e03a41050bcedb4f9d9e046e4b0a38b2d46d48c85962",
+      "before_bbox_fingerprint": "abeddc941ab4b67b6f07ef1cfe979a694327261417222422a679d1cfd665bf2c",
+      "after_bbox_fingerprint": "8ef414a2a18c58aa5b6eba52c900b360fab5a373acc98e341ab1005d8bda641a",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-12-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-12-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-12-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 13,
+      "decision": "accept",
+      "titles_promoted": [
+        "Cannabinoids",
+        "5′-Deoxy-5-Fluorouridine"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "01211b2f27b7a31cd9aa9cac5efd60dc128924c9fb04cb7303bdeefb89ef0664",
+      "after_fingerprint": "44f9d75466c436edfb264178f0e92b42c31ec9449264c2c3319c14a1b67527b0",
+      "before_bbox_fingerprint": "f375ae525f962b0a0013d149fb25ea8048d833919def2be163a68b5b2609b241",
+      "after_bbox_fingerprint": "c59af0f29fb4880f90cacdb694b318cbcbfe53288141618907d7da0943f5adad",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-13-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-13-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-13-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 14,
+      "decision": "accept",
+      "titles_promoted": [
+        "Emerging Drugs"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "bd76e6421f9c6f5127649e27a99a436b9d068df07310e6b7c436d2106e00c942",
+      "after_fingerprint": "cc9e99c247904063623c8d5e0878a245f7adae8c8f2047e683946e62dcc43f96",
+      "before_bbox_fingerprint": "fe629cf4067a75d561bdffb5d7469189c90dbdc72a7f67336763af3c44186707",
+      "after_bbox_fingerprint": "54a61ec7afc8a7bcb219695df02cd83a763a7db617080a06c4cc8bb912f3b5b1",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-14-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-14-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-14-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 15,
+      "decision": "accept",
+      "titles_promoted": [
+        "Others",
+        "Nutritional, Psychological, and Behavioral Therapies"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "9ba72910c5cd43e6556cb00f46d809dc26e0072d502beb44d4e9b347376986e9",
+      "after_fingerprint": "c79df0938cddbb8bd06dd49d33e965ca652aa1ce20519c48321b3bf08642296a",
+      "before_bbox_fingerprint": "5dfc92d4d471fd59709a2017563badd2e64126f98dd03982d86b36a87a2581a0",
+      "after_bbox_fingerprint": "e4379df35167c9dc725c620b4684c24e791782d8481d2d30894530417ea43801",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/dual_caption/page-15-source.png",
+        "before": "output/pdf/flash-round3-followup/final/dual_caption/page-15-before.png",
+        "after": "output/pdf/flash-round3-followup/final/dual_caption/page-15-after.png"
+      }
+    },
+    {
+      "document": "fix",
+      "page": 10,
+      "decision": "accept",
+      "titles_promoted": [
+        "APPENDIX E: REFINING SINGLE-QUBIT GATE CALIBRATION"
+      ],
+      "reason": "独立标题带与正文之间有可靠留白和样式转折。",
+      "before_fingerprint": "6cf1b338e220a09e687582b5c0bb71449df4345c352a75914955177e736a3188",
+      "after_fingerprint": "cc594f47b443ea40839350788b59d24f91171c8f8b2054298d06aa32576d8980",
+      "before_bbox_fingerprint": "2dcae7bcc223e5542768105edda4f4b9edd7605a7063322c0835e66ef5146240",
+      "after_bbox_fingerprint": "064055e81ef3a47dcf471b0881e4a72f0bfa38103e234fe16185643db7ce9bee",
+      "evidence": {
+        "source": "output/pdf/flash-round3-followup/final/fix/page-10-source.png",
+        "before": "output/pdf/flash-round3-followup/final/fix/page-10-before.png",
+        "after": "output/pdf/flash-round3-followup/final/fix/page-10-after.png"
+      }
+    }
+  ],
+  "new_title_blocks": 17,
+  "baseline_updates": [],
+  "rejected_candidates": [
+    {
+      "document": "nougat",
+      "page": 17,
+      "decision": "adjust_rule_keep_baseline",
+      "reason": "宽空格连接把标签和百分数列并入同一正文组，破坏两条记录边界。仅连续文字片段可使用新增宽空格放宽，数值列保留旧行为。",
+      "evidence": "output/pdf/flash-round3-followup/rejected/nougat/comparison.png",
+      "verified_restoration": "output/pdf/flash-round3-followup/final-manual-comparison.json"
+    }
+  ],
+  "verification": {
+    "tests_passed": 1480,
+    "tests_failed": 0,
+    "test_seconds": 206.37,
+    "test_log": "output/pdf/flash-round3-followup/final-tests.log",
+    "focus_tests_passed": 200,
+    "target_pages": 41,
+    "manual_documents": 8,
+    "manual_pages": 118,
+    "manual_changed_pages": 0,
+    "round2_documents": 6,
+    "round2_pages": 98,
+    "round2_note": "第二轮包含在第一轮八份完整文档中，不累计独立覆盖量。",
+    "history_documents": 19,
+    "history_pages": 168,
+    "history_changed_pages": 0,
+    "exports": [
+      {
+        "name": "dual_caption",
+        "sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+        "code_sha256": "d9a40dab073789eafc52b25fd2fc5771ae0ccc930b44222735eac7c4310f774c",
+        "pages": 20,
+        "assets": 3,
+        "seconds": 8.09,
+        "diagnostics": [],
+        "missing_images": []
+      },
+      {
+        "name": "fix",
+        "sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+        "code_sha256": "d9a40dab073789eafc52b25fd2fc5771ae0ccc930b44222735eac7c4310f774c",
+        "pages": 21,
+        "assets": 31,
+        "seconds": 7.65,
+        "diagnostics": [],
+        "missing_images": []
+      }
+    ],
+    "static_checks": [
+      "ruff check",
+      "ruff format --check (21 Python files)",
+      "git diff --check"
+    ],
+    "browser_checks": [
+      "附录 E 为一个 h2，后继正文独立",
+      "七处小标题均为标题，P15 双行标题为一个 h2",
+      "Prescribing 只在下一段开头出现一次",
+      "两个 HTML 文档均无损坏图片"
+    ]
+  }
+}

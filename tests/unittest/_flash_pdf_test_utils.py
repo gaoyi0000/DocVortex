@@ -20,6 +20,9 @@ _IGNORED_FINGERPRINT_KEYS = {
     "image_url",
     "img_path",
     "_layout_tree",
+    # 临时段界证据由公共页面连续性测试验收，不属于可见内容或版面指纹。
+    "_reference_start",
+    "_paragraph_boundary",
 }
 
 _BBOX_GRID = 1000

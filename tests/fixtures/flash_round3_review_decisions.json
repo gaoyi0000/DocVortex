@@ -1,0 +1,703 @@
+{
+  "schema_version": 1,
+  "baseline_revision": "a8511caa6615fcf479a2b861061b4633ae1eef5f",
+  "code_sha256": "1533f54963374b15a3cb18ff581f594a1a75fdc9eea47e88ee44cbddbf6988f8",
+  "environment": {
+    "commit": "a8511caa6615fcf479a2b861061b4633ae1eef5f",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "sys_platform": "darwin",
+    "python": "3.13.5",
+    "pypdfium2": "5.10.1",
+    "pdfium_build": "151.0.7891.0",
+    "font_runtime": {
+      "pdfium_version": "151.0.7891.0",
+      "font_policy": "droid-cjk-v1",
+      "font_name": "Droid Sans Fallback Full",
+      "font_sha256": "8a4dea0899424438af25a6f1f6eb61e5d111d85367eece0a5d30170861ae6b2e"
+    }
+  },
+  "cases": [
+    {
+      "id": "dual_caption-01-r3-01",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 1,
+      "decision": "accept",
+      "reason": "正文并接回前文",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-01-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-01-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-01-after.png"
+      },
+      "accepted_page_fingerprint": "cb64f58c56f7f78709a329e1e80771742ce2f117e66611b0cf05090f1a0cf7d5",
+      "accepted_bbox_fingerprint": "5fab43a786bca44e86352c97fa755d0fd188185aa8a4571e49f299fab5525c74"
+    },
+    {
+      "id": "dual_caption-02-r3-02",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 2,
+      "decision": "accept",
+      "reason": "正文合并",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-02-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-02-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-02-after.png"
+      },
+      "accepted_page_fingerprint": "fa26d3f8ebb4ff9725965b7e93a25740950664ad9bf2acf8cf719a9d9738e6e5",
+      "accepted_bbox_fingerprint": "e003d72ff786134efb65e1264eab28f9dd5558849101d178a5aabd7645fd700d"
+    },
+    {
+      "id": "dual_caption-04-r3-03",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 4,
+      "decision": "accept",
+      "reason": "图注合并",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-04-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-04-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-04-after.png"
+      },
+      "accepted_page_fingerprint": "38f7189afb420e80fd4038dfd98a9cb905efc23ae52c89bf3c2badc62809b090",
+      "accepted_bbox_fingerprint": "5b7d57de9425042d46647e7539af647cde2652050abf4d95598a142db73304e5"
+    },
+    {
+      "id": "dual_caption-05-r3-04",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 5,
+      "decision": "accept",
+      "reason": "表体与表注分离",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-05-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-05-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-05-after.png"
+      },
+      "accepted_page_fingerprint": "d5766531e6f6b0b705aff3040e7e549c5cef91c53c8a07fdf3c3f71098c22654",
+      "accepted_bbox_fingerprint": "28619b34992bcf49162ef7d3a227b338f29e9ed32e41ad8ba9051d51ed80cefb"
+    },
+    {
+      "id": "dual_caption-06-r3-05",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 6,
+      "decision": "accept",
+      "reason": "图注合并",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-06-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-06-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-06-after.png"
+      },
+      "accepted_page_fingerprint": "83fdd4fcae0eeb9e96057a1b89937a56fbf8b07102cdadb4352339157953fcd4",
+      "accepted_bbox_fingerprint": "0ab706300346336ad38297e27565a9a6f0b25e54db2bc69725276c8ed18bfa14"
+    },
+    {
+      "id": "dual_caption-06-r3-06",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 6,
+      "decision": "accept",
+      "reason": "图例分类及同行符号对应",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-06-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-06-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-06-after.png"
+      },
+      "accepted_page_fingerprint": "83fdd4fcae0eeb9e96057a1b89937a56fbf8b07102cdadb4352339157953fcd4",
+      "accepted_bbox_fingerprint": "0ab706300346336ad38297e27565a9a6f0b25e54db2bc69725276c8ed18bfa14"
+    },
+    {
+      "id": "dual_caption-10-r3-07",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 10,
+      "decision": "accept",
+      "reason": "正文分类",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-10-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-10-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-10-after.png"
+      },
+      "accepted_page_fingerprint": "56e4d061a146adfdbc8179269dace2b6b52d969d89f1160d2fb93ce58908fac3",
+      "accepted_bbox_fingerprint": "241e1cab49feac81fd5e0116392ea1cb822ad3d7beb01be2418eea6523708f38"
+    },
+    {
+      "id": "dual_caption-15-r3-08",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 15,
+      "decision": "accept",
+      "reason": "正文拆为三段",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-15-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-15-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-15-after.png"
+      },
+      "accepted_page_fingerprint": "9ba72910c5cd43e6556cb00f46d809dc26e0072d502beb44d4e9b347376986e9",
+      "accepted_bbox_fingerprint": "5dfc92d4d471fd59709a2017563badd2e64126f98dd03982d86b36a87a2581a0"
+    },
+    {
+      "id": "dual_caption-16-r3-09",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 16,
+      "decision": "accept",
+      "reason": "正文拆为两段",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-16-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-16-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-16-after.png"
+      },
+      "accepted_page_fingerprint": "a8ff1d30d15c86d3f609f99dec90d267cb1794421295b17e7f9738928e69e6a0",
+      "accepted_bbox_fingerprint": "c54d3e553a529b84e41c5f91086c015ea618ef9e0aef41a330787eb7ceee5109"
+    },
+    {
+      "id": "dual_caption-17-r3-10",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 17,
+      "decision": "accept",
+      "reason": "正文合并",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-17-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-17-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-17-after.png"
+      },
+      "accepted_page_fingerprint": "e6e796a678799544d890bf7c251fc48f13fea9b0b2dfb12bafa5e0590bbc2109",
+      "accepted_bbox_fingerprint": "2be5c38a418184023291dcbdd04937cfd7221d28099971930e52fc32aa8d0d70"
+    },
+    {
+      "id": "dual_caption-17-r3-11",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 17,
+      "decision": "accept",
+      "reason": "右栏四段与下方三栏参考区",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-17-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-17-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-17-after.png"
+      },
+      "accepted_page_fingerprint": "e6e796a678799544d890bf7c251fc48f13fea9b0b2dfb12bafa5e0590bbc2109",
+      "accepted_bbox_fingerprint": "2be5c38a418184023291dcbdd04937cfd7221d28099971930e52fc32aa8d0d70"
+    },
+    {
+      "id": "dual_caption-18-r3-12",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 18,
+      "decision": "accept",
+      "reason": "逐条参考文献",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-18-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-18-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-18-after.png"
+      },
+      "accepted_page_fingerprint": "68339e66694c87bc1a1d63ce7e31dd8dfa3b40f19ed367f96c637e67e705f6b0",
+      "accepted_bbox_fingerprint": "1c80cab8c54fc204ffb626182d98c6f4ebddc43abf4d5c9393919a4003224d42"
+    },
+    {
+      "id": "dual_caption-19-r3-13",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 19,
+      "decision": "accept",
+      "reason": "逐条参考文献",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-19-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-19-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-19-after.png"
+      },
+      "accepted_page_fingerprint": "52128b57534672dc744d226627e5883452c09d5d6bc6dfd54886269a51a3585b",
+      "accepted_bbox_fingerprint": "86ab8becdeea48752b21a8e2c137c0bb0240c6449352129923d43dcd6184fa00"
+    },
+    {
+      "id": "dual_caption-20-r3-14",
+      "source_sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+      "page": 20,
+      "decision": "accept",
+      "reason": "逐条参考文献",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/dual_caption/page-20-source.png",
+        "before": "output/pdf/flash-round3/final/dual_caption/page-20-before.png",
+        "after": "output/pdf/flash-round3/final/dual_caption/page-20-after.png"
+      },
+      "accepted_page_fingerprint": "11a8acb479ae7bf8ce6353291567d6008529c339b55dc5c7162f8074fc40d28b",
+      "accepted_bbox_fingerprint": "5d2cf226d2766e31059fdd907a10e7a7e81523a6a49a4ef2c0d559065f32282f"
+    },
+    {
+      "id": "fix-01-r3-01",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 1,
+      "decision": "accept",
+      "reason": "文档标题",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-01-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-01-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-01-after.png"
+      },
+      "accepted_page_fingerprint": "f6e6d9de14c2e7f5cdebfbfdef37365d44fe4a72663983d121f79fcacb9a9b52",
+      "accepted_bbox_fingerprint": "abfb6393fa82d0102429fa28c7c2a5dc63cde950f9de09db623e3d1f111155ff"
+    },
+    {
+      "id": "fix-01-r3-02",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 1,
+      "decision": "accept",
+      "reason": "机构正文",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-01-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-01-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-01-after.png"
+      },
+      "accepted_page_fingerprint": "f6e6d9de14c2e7f5cdebfbfdef37365d44fe4a72663983d121f79fcacb9a9b52",
+      "accepted_bbox_fingerprint": "abfb6393fa82d0102429fa28c7c2a5dc63cde950f9de09db623e3d1f111155ff"
+    },
+    {
+      "id": "fix-09-r3-03",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 9,
+      "decision": "accept",
+      "reason": "完整公式",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-09-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-09-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-09-after.png"
+      },
+      "accepted_page_fingerprint": "77ae99ba35908391fd425f0d25bd52bb7380d66200ed76f0c0060364f17cd382",
+      "accepted_bbox_fingerprint": "198c094853cd4b566f3fdc0ec7ae2ff4410358e0455c7be2e772afb38b7b54a9"
+    },
+    {
+      "id": "fix-09-r3-04",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 9,
+      "decision": "accept",
+      "reason": "完整公式",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-09-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-09-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-09-after.png"
+      },
+      "accepted_page_fingerprint": "77ae99ba35908391fd425f0d25bd52bb7380d66200ed76f0c0060364f17cd382",
+      "accepted_bbox_fingerprint": "198c094853cd4b566f3fdc0ec7ae2ff4410358e0455c7be2e772afb38b7b54a9"
+    },
+    {
+      "id": "fix-10-r3-05",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 10,
+      "decision": "accept",
+      "reason": "引导句与首项合并",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-10-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-10-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-10-after.png"
+      },
+      "accepted_page_fingerprint": "6cf1b338e220a09e687582b5c0bb71449df4345c352a75914955177e736a3188",
+      "accepted_bbox_fingerprint": "2dcae7bcc223e5542768105edda4f4b9edd7605a7063322c0835e66ef5146240"
+    },
+    {
+      "id": "fix-11-r3-06",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 11,
+      "decision": "accept",
+      "reason": "标题与正文分离",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-11-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-11-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-11-after.png"
+      },
+      "accepted_page_fingerprint": "1b1b6b4554b502b2c55a8f2221708409b29f82ae13a2f0bdb2aed845bd48ee52",
+      "accepted_bbox_fingerprint": "16cea71aa0ea13258586b3bb7ef854081ff6c0ff4cc3fa1d25c70b5d8b10abc2"
+    },
+    {
+      "id": "fix-12-r3-07",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 12,
+      "decision": "accept",
+      "reason": "附录标题",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-12-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-12-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-12-after.png"
+      },
+      "accepted_page_fingerprint": "3fdeac01a18560149ac132bd15c3bd33f80fb1409029d9592019641a6fc3fa68",
+      "accepted_bbox_fingerprint": "c248b98d4ab2c23d0dc62ce8aeebe1c1c6ea1437300121e7a73cc8661550b3e9"
+    },
+    {
+      "id": "fix-12-r3-08",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 12,
+      "decision": "accept",
+      "reason": "正文合并",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-12-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-12-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-12-after.png"
+      },
+      "accepted_page_fingerprint": "3fdeac01a18560149ac132bd15c3bd33f80fb1409029d9592019641a6fc3fa68",
+      "accepted_bbox_fingerprint": "c248b98d4ab2c23d0dc62ce8aeebe1c1c6ea1437300121e7a73cc8661550b3e9"
+    },
+    {
+      "id": "fix-13-r3-09",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 13,
+      "decision": "accept",
+      "reason": "正文公式正文分离",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-13-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-13-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-13-after.png"
+      },
+      "accepted_page_fingerprint": "10c3608a6987a260b9056c342dae53c2402bdc1fd5f87aeb3c7deeb0ca5fa516",
+      "accepted_bbox_fingerprint": "8d7cbebb200996469ebff9c04bc5ba90cccc68e35149e88dfcb6dca6b8674f9a"
+    },
+    {
+      "id": "fix-13-r3-10",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 13,
+      "decision": "accept",
+      "reason": "完整公式",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-13-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-13-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-13-after.png"
+      },
+      "accepted_page_fingerprint": "10c3608a6987a260b9056c342dae53c2402bdc1fd5f87aeb3c7deeb0ca5fa516",
+      "accepted_bbox_fingerprint": "8d7cbebb200996469ebff9c04bc5ba90cccc68e35149e88dfcb6dca6b8674f9a"
+    },
+    {
+      "id": "fix-13-r3-11",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 13,
+      "decision": "accept",
+      "reason": "正文合并",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-13-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-13-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-13-after.png"
+      },
+      "accepted_page_fingerprint": "10c3608a6987a260b9056c342dae53c2402bdc1fd5f87aeb3c7deeb0ca5fa516",
+      "accepted_bbox_fingerprint": "8d7cbebb200996469ebff9c04bc5ba90cccc68e35149e88dfcb6dca6b8674f9a"
+    },
+    {
+      "id": "fix-14-r3-12",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 14,
+      "decision": "accept",
+      "reason": "正文公式分离",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-14-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-14-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-14-after.png"
+      },
+      "accepted_page_fingerprint": "00c2db003e1d1db16b431969ca94d3f5828699568df1f6261dcf04b6387dc76e",
+      "accepted_bbox_fingerprint": "8f4094abb51d196b4697c75361c59a9d458c9e38ab872a6df8c55625194ea5ed"
+    },
+    {
+      "id": "fix-15-r3-13",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 15,
+      "decision": "accept",
+      "reason": "正文公式分离",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-15-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-15-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-15-after.png"
+      },
+      "accepted_page_fingerprint": "5912e70d60df23789a4f8fc1e745a8ece385ce630483a3dc5ee700e6b8060336",
+      "accepted_bbox_fingerprint": "1a29e75a8c498122683540fe5018bc96cd087a5e02e29ad66acba17094a21269"
+    },
+    {
+      "id": "fix-16-r3-14",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 16,
+      "decision": "accept",
+      "reason": "完整公式",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-16-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-16-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-16-after.png"
+      },
+      "accepted_page_fingerprint": "898a30dd3766d23ed0a3fb686fa6662438bcb24b5bcac6c73435c0ca28de6004",
+      "accepted_bbox_fingerprint": "5611d3529534b0bcd679b38ce4da8c135d135a2c1cf61a88d557d854b11c60ae"
+    },
+    {
+      "id": "fix-16-r3-15",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 16,
+      "decision": "accept",
+      "reason": "小标题与正文分离",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-16-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-16-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-16-after.png"
+      },
+      "accepted_page_fingerprint": "898a30dd3766d23ed0a3fb686fa6662438bcb24b5bcac6c73435c0ca28de6004",
+      "accepted_bbox_fingerprint": "5611d3529534b0bcd679b38ce4da8c135d135a2c1cf61a88d557d854b11c60ae"
+    },
+    {
+      "id": "fix-17-r3-16",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 17,
+      "decision": "accept",
+      "reason": "完整图注",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-17-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-17-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-17-after.png"
+      },
+      "accepted_page_fingerprint": "b11d6f0077509104921aca0561f108c86f706adcb711154a40b0ede78b307406",
+      "accepted_bbox_fingerprint": "d518b4fe44172a0629af463a64c247eff442b2be317987fd5f1867e9891f3c86"
+    },
+    {
+      "id": "fix-17-r3-17",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 17,
+      "decision": "accept",
+      "reason": "公式成员与正文边界",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-17-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-17-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-17-after.png"
+      },
+      "accepted_page_fingerprint": "b11d6f0077509104921aca0561f108c86f706adcb711154a40b0ede78b307406",
+      "accepted_bbox_fingerprint": "d518b4fe44172a0629af463a64c247eff442b2be317987fd5f1867e9891f3c86"
+    },
+    {
+      "id": "fix-18-r3-18",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 18,
+      "decision": "accept",
+      "reason": "正文分离及完整公式",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-18-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-18-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-18-after.png"
+      },
+      "accepted_page_fingerprint": "6cfd7f8ab46e093c419034bf0a6475265f538f0e7ac21c1d82b56caf9650399a",
+      "accepted_bbox_fingerprint": "99db8af3707bfdca8681f1fde9cd35995afd88dd723299cc6d973ed3cc3d4b2f"
+    },
+    {
+      "id": "fix-19-r3-19",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 19,
+      "decision": "accept",
+      "reason": "参考条目合并",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-19-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-19-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-19-after.png"
+      },
+      "accepted_page_fingerprint": "166a2f9c1c23f86f188f894eb30700fd94893b0e6c7b463040a8d2d34d6eeced",
+      "accepted_bbox_fingerprint": "54ba207f788acb88417179d7a0a1cdb8015a088dcee92f1ff545aa741205c07a"
+    },
+    {
+      "id": "fix-19-r3-20",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 19,
+      "decision": "accept",
+      "reason": "参考条目合并",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-19-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-19-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-19-after.png"
+      },
+      "accepted_page_fingerprint": "166a2f9c1c23f86f188f894eb30700fd94893b0e6c7b463040a8d2d34d6eeced",
+      "accepted_bbox_fingerprint": "54ba207f788acb88417179d7a0a1cdb8015a088dcee92f1ff545aa741205c07a"
+    },
+    {
+      "id": "fix-19-r3-21",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 19,
+      "decision": "accept",
+      "reason": "参考条目合并",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-19-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-19-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-19-after.png"
+      },
+      "accepted_page_fingerprint": "166a2f9c1c23f86f188f894eb30700fd94893b0e6c7b463040a8d2d34d6eeced",
+      "accepted_bbox_fingerprint": "54ba207f788acb88417179d7a0a1cdb8015a088dcee92f1ff545aa741205c07a"
+    },
+    {
+      "id": "fix-20-r3-22",
+      "source_sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+      "page": 20,
+      "decision": "accept",
+      "reason": "逐条参考文献",
+      "evidence": {
+        "source": "output/pdf/flash-round3/final/fix/page-20-source.png",
+        "before": "output/pdf/flash-round3/final/fix/page-20-before.png",
+        "after": "output/pdf/flash-round3/final/fix/page-20-after.png"
+      },
+      "accepted_page_fingerprint": "ab98bd5192f790a482d2c5e4f14f2f48aaf61aba247497846d8aebcdaed26212",
+      "accepted_bbox_fingerprint": "fd87a9ca23b778d83bdd0d6ed486a874ad710508b3a00061f6f270e12416b760"
+    }
+  ],
+  "additional_target_pages": [
+    {
+      "document": "dual_caption",
+      "page": 12,
+      "decision": "accept",
+      "reason": "同栏段落的短尾 gluconeogenesis 与前行连续，恢复为一个自然段。"
+    },
+    {
+      "document": "fix",
+      "page": 7,
+      "decision": "accept",
+      "reason": "独立居中的 Appendix A 标题与其下正文分开，符合相同附录标题排版。"
+    }
+  ],
+  "accepted_replay_changes": [
+    {
+      "document": "fornax",
+      "page": 1,
+      "decision": "accept",
+      "reason": "首页独立居中的双行主标题位于作者和机构之上，接受 paragraph_title 改为 doc_title。",
+      "before_fingerprint": "e4eeca024c697aa3ed0b06423e962ccde5b4376be7cb89f6649e01371ed64d62",
+      "after_fingerprint": "56b17419bc54976f0e2ed88adf632dafdaf65153952a1c4b396c58d6a45509ed",
+      "before_bbox_fingerprint": "b2b435164d53ea95f5283b006afaaa7083373ab3cdbe0d4328d541fd48b5f326",
+      "after_bbox_fingerprint": "7f5a639cca39261450cf91d83d61d4fb56cf24916662065671f4b79c19968b17",
+      "evidence": "output/pdf/flash-round3/manual-visuals/fornax-01.jpg"
+    },
+    {
+      "document": "k2_treap",
+      "page": 3,
+      "decision": "accept",
+      "reason": "段内区间右括号的原生映射字符被保留，避免与后继正文粘连；块框及顺序不变，不添加字符替换。",
+      "before_fingerprint": "d2014fe8e848f7330925ef0f5ee5c0a7bbe9edb29f5ee14069080f548ab11c61",
+      "after_fingerprint": "d0e649d5731c403ae3a6a372ee53811ffde7d5d415e1ae64b03e486c93580ca7",
+      "before_bbox_fingerprint": "fcc43594d0012c045778e0664fbf02efbb2e710f3e2bd1f97868aa33b3f00b6d",
+      "after_bbox_fingerprint": "2df478aba0633351e4844a79fe00dd35180e271d71ed4dd7b7415be31f5ca38c",
+      "evidence": "output/pdf/flash-round3/manual-visuals/k2_treap-03.jpg"
+    },
+    {
+      "document": "k2_treap",
+      "page": 9,
+      "decision": "accept",
+      "reason": "矩阵维数后的原生右括号映射字符不再丢弃，正文间隔恢复；块框及顺序不变。",
+      "before_fingerprint": "de39609481539a4410a7ada80e064c71a5b4658645da89a2b0ad35b58899967f",
+      "after_fingerprint": "ebd5df141ce4f73b8d4159208c1fc8127e4ef6c2315a4755387769254c65e350",
+      "before_bbox_fingerprint": "ebf4098b5cfb2370eb5da0dd44d263d002e9e361ea7dd4fc6bc92f7823054844",
+      "after_bbox_fingerprint": "ebf1254f1820699cec63e284df9c8a19c0654cf36aa2d5639ac47a8ab2b82924",
+      "evidence": "output/pdf/flash-round3/manual-visuals/k2_treap-09.jpg"
+    },
+    {
+      "document": "mmlu_redux",
+      "page": 13,
+      "decision": "accept",
+      "reason": "Checklist 为独立加粗标题，后继为缩进编号正文，接受 text 改为 paragraph_title。",
+      "before_fingerprint": "2f15a98098d25663a8e65d43d9814006cb6b3ccd47af32b660b917e6dc6af81c",
+      "after_fingerprint": "30d9ce138f2e97192b8b278f980cbe158a3df877e95e7a8ff8a5ded33b5588cd",
+      "before_bbox_fingerprint": "794a114ce2dd3c4c925f766c71a939eb603abb74cfc0437bfbf411bcc15395f2",
+      "after_bbox_fingerprint": "5b2c9ed21c999788b52b4c4cb402bb993092c312c0724d2932e0ad4d95d7dee2",
+      "evidence": "output/pdf/flash-round3/manual-visuals/mmlu_redux-13.jpg"
+    }
+  ],
+  "existing_test_baseline_updates": [],
+  "rejected_candidates": [
+    {
+      "case": "frames_v1 P13-P14; frames_v2 P13-P14; mmlu_redux P15",
+      "decision": "adjust_rule_keep_baseline",
+      "reason": "作者年代式跨页上下文不能激活数字参考模式；传统分组仍须保留普通编号列表的条目边界。",
+      "evidence": "output/pdf/flash-round3/rejected-manual-visuals/frames_v1-13.jpg",
+      "corrected_evidence": "output/pdf/flash-round3/manual-visuals/frames_v1-13.jpg"
+    },
+    {
+      "case": "demo2 P3",
+      "decision": "adjust_rule_keep_baseline",
+      "reason": "短正文不得被独立数学带吸收，完整旧公式不重建。",
+      "evidence": "output/pdf/flash-round3/current-history/demo2/page-03-after.png"
+    },
+    {
+      "case": "caibao1 P2",
+      "decision": "adjust_rule_keep_baseline",
+      "reason": "图注恢复仅从独立图编号开始，已有完整图注及并列图片沿用原归属。",
+      "evidence": "output/pdf/flash-round3/current-history/caibao1/page-02-after.png"
+    },
+    {
+      "case": "中文论文4 P2",
+      "decision": "adjust_rule_keep_baseline",
+      "reason": "仅移出新增公式成员，保留原有正文行内数学恢复成员。",
+      "evidence": "output/pdf/flash-round3/refined2-history/中文论文4/page-02-after.png"
+    }
+  ],
+  "content_audit": {
+    "differences": [
+      {
+        "name": "dual_caption",
+        "page": 5,
+        "lost": {
+          "-": 1
+        },
+        "added": {}
+      },
+      {
+        "name": "dual_caption",
+        "page": 17,
+        "lost": {
+          "-": 1
+        },
+        "added": {}
+      },
+      {
+        "name": "fix",
+        "page": 20,
+        "lost": {
+          "-": 2
+        },
+        "added": {}
+      }
+    ],
+    "decision": "仅既有行末断词连接删除连字符，未发现其他非空白字符丢失或新增。"
+  },
+  "verification": {
+    "pytest": {
+      "passed": 1445,
+      "failed": 0,
+      "seconds": 198.5,
+      "log": "output/pdf/flash-round3/accepted-tests.log"
+    },
+    "historical": {
+      "documents": 19,
+      "pages": 168,
+      "changed_pages": 0,
+      "summary": "output/pdf/flash-round3/accepted-history/summary.json"
+    },
+    "manual": {
+      "documents": 8,
+      "pages": 118,
+      "unchanged_pages": 114,
+      "accepted_changes": 4,
+      "comparison": "output/pdf/flash-round3/manual-comparison.json"
+    },
+    "round2": {
+      "documents": 6,
+      "pages": 98,
+      "note": "第二轮清单包含在第一轮八份完整文档中，不作为额外独立页数累加。"
+    },
+    "target": {
+      "documents": 2,
+      "pages": 41,
+      "annotated_pages": 25,
+      "reviewed_pages": 27,
+      "cases": 36
+    },
+    "exports": [
+      {
+        "name": "dual_caption",
+        "sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+        "code_sha256": "1533f54963374b15a3cb18ff581f594a1a75fdc9eea47e88ee44cbddbf6988f8",
+        "pages": 20,
+        "assets": 3,
+        "seconds": 7.07,
+        "diagnostics": [],
+        "missing_images": []
+      },
+      {
+        "name": "fix",
+        "sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+        "code_sha256": "1533f54963374b15a3cb18ff581f594a1a75fdc9eea47e88ee44cbddbf6988f8",
+        "pages": 21,
+        "assets": 31,
+        "seconds": 7.43,
+        "diagnostics": [],
+        "missing_images": []
+      }
+    ],
+    "static_checks": [
+      "ruff check passed",
+      "ruff format --check passed (19 Python files)",
+      "git diff --check passed"
+    ],
+    "remote_ci": "not run"
+  }
+}

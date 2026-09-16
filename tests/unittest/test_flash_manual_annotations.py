@@ -33,6 +33,25 @@ def _model(name: str) -> list[list[dict]]:
         return PdfModel().predict(pdf)
 
 
+@pytest.mark.parametrize("name,page", [("frames_v1", 13), ("frames_v1", 14), ("frames_v2", 13), ("frames_v2", 14)])
+def test_appendix_numbered_list_does_not_absorb_figure_description(name: str, page: int) -> None:
+    """数字列表位于参考文献之后时，页下图说明仍必须独立于列表正文。"""
+    blocks = _model(name)[page - 1]
+    descriptions = [block for block in blocks if "Figure " in visible(block.get("content"))]
+    assert descriptions
+    assert all(visible(block.get("content")).startswith("Figure ") for block in descriptions)
+    for number in (1, 2, 3):
+        assert any(visible(block.get("content")).startswith(f"{number}. ") for block in blocks)
+
+
+def test_numeric_comparison_rows_are_not_joined_as_justified_prose():
+    """原件中数值表的两条比较记录不因宽空格恢复而合为一个自然段。"""
+    blocks = _model("nougat")[16]
+    assert not any(
+        "Language model" in visible(block["content"]) and "Hierarchical Model" in visible(block["content"]) for block in blocks
+    )
+
+
 @pytest.mark.parametrize(
     "name,case",
     [

@@ -64,6 +64,8 @@ def merge_para_text_blocks(pages: list[dict[str, Any]]) -> None:
             if "lines" not in current_block:
                 continue
             current_block.pop("continues_prev", None)
+            if current_block.get("_reference_start") is True or current_block.get("_paragraph_boundary") is True:
+                continue
             is_ref_text = current_type == BlockType.REF_TEXT
             previous_block = (
                 _find_previous_ref_text_block(ordered_blocks, current_index)
@@ -74,6 +76,9 @@ def merge_para_text_blocks(pages: list[dict[str, Any]]) -> None:
                 continue
             previous_page_idx, _, previous_text_block = previous_block
             if not _is_same_or_consecutive_page(current_page_idx, previous_page_idx):
+                continue
+            if current_block.get("_reference_start") is False and previous_text_block.get("_reference_start") is not None:
+                current_block["continues_prev"] = True
                 continue
             can_merge = (
                 can_auto_merge_ref_text_blocks(current_block, previous_text_block)

@@ -75,6 +75,8 @@ from .inline.materialize import (
 from .inline.scripts import detect_pdf_text_script_lines
 from .inline.types import PDFTextLinkLine, PDFTextStyleLine
 from .layout_evidence import build_layout_evidence
+from .annotation_bands import recover_image_annotation_bands
+from .title_analysis.compact_titles import _classify_small_emphasized_titles
 from .text_roles import publication_text
 from .line_merging import (
     _demote_runin_title_fragments,
@@ -117,6 +119,7 @@ from .text_assembly.continuity import (
     group_reference_lines,
     mark_document_reference_regions,
     merge_overlapping_member_blocks,
+    order_body_above_reference_band,
 )
 from .title_analysis.body_profile import _infer_document_body_profile
 from .title_analysis.document_profile import _infer_document_title_profile
@@ -523,6 +526,10 @@ def _analyze_native_document(
     classify_repeated_vector_decorations(prepared_pages)
     profiles = _classify_document_text(prepared_pages)
     mark_document_reference_regions(prepared_pages)
+    for page_index, prepared in enumerate(prepared_pages):
+        if prepared.numbered_references:
+            group_reference_lines(prepared.remaining_lines, prepared)
+        _classify_small_emphasized_titles(prepared, page_index)
     finalized_pages = [
         _finalize_prepared_page(
             prepared,
@@ -1005,6 +1012,8 @@ def _finalize_prepared_page(
     title_container_bboxes = [
         block["bbox"] for block in prepared.fixed_blocks if not isinstance(block.get("_inline_visual_row_id"), int)
     ]
+    if page_index == 0:
+        group_front_matter_lines(remaining_lines, prepared.page_size)
     caption_container_bboxes = [block["bbox"] for block in prepared.fixed_blocks if block.get("type") in {"image", "code"}]
     _classify_explicit_section_titles(
         remaining_lines,
@@ -1094,6 +1103,7 @@ def _finalize_prepared_page(
         prepared.page_size,
     )
     absolute_blocks = prepared.fixed_blocks + formula_blocks + index_blocks + text_blocks
+    recover_image_annotation_bands(absolute_blocks, prepared.page_size, prepared.drawing_lines)
     _apply_post_aggregation_tight_bboxes(
         absolute_blocks,
         prepared.page_size,
@@ -1109,6 +1119,7 @@ def _finalize_prepared_page(
         visual_annotation_regions=visual_annotation_regions,
     )
     sorted_blocks = _preserve_narrow_graphic_column_order(sorted_blocks, prepared.page_size)
+    sorted_blocks = order_body_above_reference_band(sorted_blocks, prepared)
     # 首页机构编号按物理行排列，避免长机构行使 XY-cut 将短机构先后顺序交错。
     front_matter = iter(
         sorted(
@@ -1488,6 +1499,11 @@ def _normalize_output_block(
         output_block["_inline_math_regions"] = inline_math_regions
     if normalized_type in _LINE_METADATA_OUTPUT_TYPES:
         output_block["lines"] = _normalize_output_line_items(block, page_size)
+    members = block.get("_text_lines", [])
+    if members and members[0].reference_start is not None:
+        output_block["_reference_start"] = members[0].reference_start
+    if block.get("_protected_hard_break_before"):
+        output_block["_paragraph_boundary"] = True
     return output_block
 
 

@@ -38,6 +38,7 @@ from .native_text import _normalize_native_run_text
 from .text_roles import metadata_field, text_role
 from .spatial_text import project_pdf_table_text
 from .table_text_styles import render_native_table_html_with_scripts
+from .table_annotations import _is_table_note_text
 
 
 def _recover_native_table_html(
@@ -81,6 +82,7 @@ def _materialize_table_blocks(
     native_rules = coerce_native_table_rules(source.drawing_lines)
     native_rectangles = coerce_native_table_rectangles(source.path_infos)
     for candidate in sorted(candidates, key=lambda item: item.score, reverse=True):
+        _separate_embedded_table_notes(source, candidate)
         # 候选去重仍使用包含注释的完整框，不能因输出表体收缩而放行重复表格。
         if any(_bbox_overlap_in_smaller(candidate.bbox, bbox) >= 0.5 for bbox in accepted_candidate_bboxes):
             continue
@@ -146,6 +148,44 @@ def _materialize_table_blocks(
     table_blocks.sort(key=lambda block: (block["bbox"][1], block["bbox"][0]))
     annotation_blocks.sort(key=lambda block: (block["bbox"][1], block["bbox"][0]))
     return table_blocks, annotation_blocks, claimed
+
+
+def _separate_embedded_table_notes(source: _PageSource, candidate: _TableCandidate) -> None:
+    """表内横线的规则单元行结束后，将外围框包住的连续表注外置。"""
+    if candidate.angle or any(annotation.kind == "footnote" for annotation in candidate.annotations):
+        return
+    core = candidate.core_bbox or candidate.bbox
+    width = core[2] - core[0]
+    members = [
+        line
+        for line in source.lines
+        if core[0] - 2 <= line.bbox[0] and line.bbox[2] <= core[2] + 2 and core[1] <= _bbox_center_y(line.bbox) <= core[3]
+    ]
+    rules = sorted(
+        rule.bbox[1]
+        for rule in source.drawing_lines
+        if rule.orientation == "horizontal"
+        and _bbox_axis_overlap_ratio(rule.bbox, core, axis="x") >= 0.8
+        and core[1] <= rule.bbox[1] <= core[3]
+    )
+    for first in sorted(members, key=lambda line: line.bbox[1]):
+        if not _is_table_note_text(first.text) or first.bbox[2] - first.bbox[0] < 0.6 * width:
+            continue
+        em = _line_effective_height(first, first.bbox)
+        above = [y for y in rules if y <= first.bbox[1] + 0.1 * em]
+        if len(above) < 3 or first.bbox[1] - above[-1] > 1.5 * em:
+            continue
+        notes = [line for line in members if line.bbox[1] >= first.bbox[1] - 0.2 * em]
+        if len(notes) < 2 or any(rule < core[3] - em for rule in rules if rule > first.bbox[3]):
+            continue
+        # 注释为全宽说明行，不应再出现多列单元格的反复水平分隔。
+        if any(abs(line.bbox[0] - first.bbox[0]) > em for line in notes):
+            continue
+        boxes = {line.source_index: line.bbox for line in notes}
+        candidate.annotations.append(_TableAnnotation("footnote", _bbox_union_many(list(boxes.values())), set(boxes), boxes))
+        candidate.core_bbox = (core[0], core[1], core[2], above[-1])
+        candidate.line_indices.difference_update(boxes)
+        return
 
 
 def _restore_front_matter_text_panel(source: _PageSource, bbox: BBox) -> bool:

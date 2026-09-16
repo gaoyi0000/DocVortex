@@ -1010,6 +1010,8 @@ def _annotation_local_sort_key(
     """按注释自身方向的局部上、左坐标提供稳定排序键。"""
 
     block = blocks[index]
+    if "_legend_sort_band" in block:
+        return (*block["_legend_sort_band"], index)
     local_bbox = _block_local_bbox(block, page_size)
     if local_bbox is None:
         return (float("inf"), float("inf"), index)
@@ -1174,6 +1176,21 @@ def _classify_and_bind_visual_annotations(
         )
         is not None
     }
+    for index in candidates:
+        parent_block = blocks[index].get("_annotation_band_parent")
+        if parent_block is None:
+            continue
+        parent = next(
+            (
+                parent
+                for parent in parents
+                if len(parent.member_indices) == 1 and blocks[parent.member_indices[0]] is parent_block
+            ),
+            None,
+        )
+        if parent is not None:
+            direction = "above" if blocks[index]["bbox"][3] <= parent_block["bbox"][1] else "below"
+            assignments[index] = _AnnotationRelation(parent, direction, 0.0, 1.0, 1.0, 0.0)
     assignments.update(
         _expand_stacked_bilingual_caption_assignments(
             blocks,

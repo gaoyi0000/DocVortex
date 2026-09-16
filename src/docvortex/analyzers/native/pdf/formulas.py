@@ -40,6 +40,7 @@ from .line_merging import _join_formula_visual_row, _merge_overlapping_inline_cl
 from .models import _AxisLine, _FormulaAnchor, _LineItem, _PageSource, _TextLane
 from .native_text import _sanitize_pdf_control_text
 from .text_roles import has_prose, prose_residue, publication_text
+from .layout_evidence import build_layout_evidence
 
 _FORMULA_NUMBER_SUFFIX_RE = re.compile(r"^(?P<prefix>.*?)(?P<marker>[(（﹙][^()（）﹙﹚\r\n]+[)）﹚])\s*$")
 _FORMULA_NUMBER_MARKER_RE = re.compile(
@@ -844,7 +845,7 @@ def _build_formula_like_blocks(
             and _bbox_axis_overlap_ratio(bbox, line.ink_bbox or line.bbox, axis="y") >= 0.25
             and max(0.0, bbox[0] - line.bbox[2], line.bbox[0] - bbox[2]) <= 3 * _line_effective_height(line, line.bbox)
         ]
-        if member_ids and hosts and "\\tag{" not in block["content"]:
+        if member_ids and hosts and "\\tag{" not in block["content"] and not block.get("_spatial_display_band"):
             claimed_source_indices.difference_update(member_ids)
             for line in lines:
                 if line.source_index in member_ids:
@@ -882,6 +883,32 @@ def _build_formula_like_blocks(
             block["_tight_output_bbox"] = _bbox_union(core, ink)
             block["content"] += "\n" + text
             claimed_source_indices.add(line.source_index)
+    bands, _ = _build_spatial_numbered_bands(lines, table_bboxes, page_size, drawing_lines or [])
+    recovered_band_ids = set()
+    for band in bands:
+        bbox = band.get("_tight_output_bbox", band["bbox"])
+        overlaps = [
+            block for block in blocks if _bbox_overlap_in_smaller(bbox, block.get("_tight_output_bbox", block["bbox"])) >= 0.5
+        ]
+        if any(
+            all(old[i] <= bbox[i] + 1 if i < 2 else old[i] >= bbox[i] - 1 for i in range(4))
+            for old in [block.get("_tight_output_bbox", block["bbox"]) for block in overlaps]
+        ):
+            continue
+        # 只补齐缺失成员，既有完整公式的内容、裁图和顺序保持原结果。
+        ids = set(band["_formula_members"]).union(*(block.get("_formula_members", []) for block in overlaps))
+        members = [(line, line.ink_bbox or line.bbox) for line in lines if line.source_index in ids]
+        if not members:
+            continue
+        merged = _formula_members_to_block(
+            members, page_size, 0, anchor_source_index=band["_formula_members"][-1], include_member_ids=True
+        )
+        if merged:
+            blocks = [block for block in blocks if not any(block is old for old in overlaps)]
+            blocks.append(merged)
+            claimed_source_indices.update(ids)
+            recovered_band_ids.update(ids)
+    for block in blocks:
         block.pop("_formula_members", None)
     remaining_lines = [
         line
@@ -889,7 +916,142 @@ def _build_formula_like_blocks(
         if line.source_index not in claimed_source_indices
         and (not line.formula_candidate_only or line.paragraph_formula_context)
     ]
-    return blocks, remaining_lines + paragraph_lines
+    return blocks, remaining_lines + [line for line in paragraph_lines if line.source_index not in recovered_band_ids]
+
+
+def _build_spatial_numbered_bands(lines, table_bboxes, page_size, rules):
+    """在成员被拆散认领前，用正文栏右缘的短编号与独立数学带恢复完整公式。"""
+    prose = [line for line in lines if line.angle == 0 and len(line.text) >= 25 and _has_sentence_words(line.text)]
+    layout = build_layout_evidence(prose, page_size, barriers=table_bboxes)
+    blocks, claimed = [], set()
+    for lane in layout.lanes:
+        em = statistics.median(_line_effective_height(line, bounds) for line, bounds in lane.lines)
+
+        def is_body(line):
+            """短数学簇的拉丁变量不等同于正文词行，实际正文宽度及词组提供屏障。"""
+            return _has_sentence_words(line.text) and (
+                line.bbox[2] - line.bbox[0] >= 0.6 * (lane.right - lane.left)
+                or len(re.findall(r"\b[A-Za-z]{3,}\b", line.text)) >= 3
+                or len(re.findall(r"[\u3400-\u9fff]", line.text)) >= 3
+                or re.search(r"\b(?:where|with|when|which|the|this|these|is|are|from|that|then)\b", line.text, re.I)
+            )
+
+        local = [
+            line
+            for line in lines
+            if line.angle == 0
+            and line.paragraph_group is None
+            and line.semantic_type is None
+            and lane.left - em <= line.bbox[0]
+            and line.bbox[2] <= lane.right + em
+        ]
+        markers = [
+            line
+            for line in local
+            if 2 <= len(line.text.strip()) <= 8
+            and not re.search(r"\s", line.text.strip())
+            and re.search(r"\d", line.text)
+            and not line.text.strip()[0].isdigit()
+            and not line.text.strip()[-1].isdigit()
+            and (
+                _standalone_formula_number_marker(line.text) is not None
+                or re.fullmatch(r"[^A-Za-z0-9][A-Za-z]?[.]?\d+(?:[.\-]\d+)*[^A-Za-z0-9]", line.text.strip())
+            )
+            and abs(line.bbox[2] - lane.right) < 1.5 * em
+            and line.bbox[2] - line.bbox[0] <= 4 * em
+        ]
+        for marker in markers:
+            if marker.source_index in claimed:
+                continue
+            mb = marker.ink_bbox or marker.bbox
+            nearby = [
+                line
+                for line in local
+                if line is not marker
+                and line.source_index not in claimed
+                and line not in markers
+                and not is_body(line)
+                and (line.ink_bbox or line.bbox)[3] >= mb[1] - 4.5 * em
+                and (line.ink_bbox or line.bbox)[1] <= mb[3] + 1.1 * em
+            ]
+            if not nearby:
+                continue
+            # 先形成二维数学主体，再关联隔着水平空白或位于右下角的编号。
+            pending = set(range(len(nearby)))
+            components = []
+            while pending:
+                seed = pending.pop()
+                component, frontier = [seed], [seed]
+                while frontier:
+                    current = nearby[frontier.pop()]
+                    bounds = current.ink_bbox or current.bbox
+                    connected = []
+                    for index in pending:
+                        other = nearby[index].ink_bbox or nearby[index].bbox
+                        xgap = max(0.0, bounds[0] - other[2], other[0] - bounds[2])
+                        ygap = max(0.0, bounds[1] - other[3], other[1] - bounds[3])
+                        if (
+                            ygap <= 0.8 * em
+                            and _bbox_axis_overlap_ratio(bounds, other, axis="x") > 0.1
+                            or xgap <= 3 * em
+                            and _bbox_axis_overlap_ratio(bounds, other, axis="y") > 0.15
+                        ):
+                            connected.append(index)
+                    pending.difference_update(connected)
+                    frontier.extend(connected)
+                    component.extend(connected)
+                components.append([nearby[index] for index in component])
+            candidates = []
+            for members in components:
+                bounds = _bbox_union_many([line.ink_bbox or line.bbox for line in members])
+                if (bounds[2] >= mb[0] + em and bounds[3] > mb[1]) or bounds[2] - bounds[0] < 3 * em:
+                    continue
+                gap = max(0.0, mb[1] - bounds[3], bounds[1] - mb[3])
+                if gap > 2 * em or bounds[3] - bounds[1] > 6 * em:
+                    continue
+                if any(_bbox_intersects(bounds, table) for table in table_bboxes):
+                    continue
+                if any(
+                    _bbox_axis_overlap_ratio(bounds, line.ink_bbox or line.bbox, axis="y") > 0.1
+                    for line in local
+                    if is_body(line)
+                ):
+                    continue
+                math = any(_formula_line_has_math_operator(line.text) for line in members)
+                fraction = any(
+                    rule.orientation == "horizontal"
+                    and bounds[0] <= rule.bbox[0] < rule.bbox[2] <= bounds[2]
+                    and bounds[1] < rule.bbox[1] < bounds[3]
+                    for rule in rules
+                )
+                if (
+                    not math
+                    and not fraction
+                    and not (
+                        (len(members) >= 3 or any(line.compact_formula_cluster for line in members))
+                        and bounds[3] - bounds[1] >= 1.3 * em
+                    )
+                ):
+                    continue
+                candidates.append((gap, members))
+            if not candidates:
+                continue
+            candidates.sort(key=lambda item: item[0])
+            if len(candidates) > 1 and abs(candidates[0][0] - candidates[1][0]) < 0.25 * em:
+                continue
+            members = candidates[0][1] + [marker]
+            block = _formula_members_to_block(
+                [(line, line.ink_bbox or line.bbox) for line in members],
+                page_size,
+                0,
+                anchor_source_index=marker.source_index,
+                include_member_ids=True,
+            )
+            if block:
+                block["_spatial_display_band"] = True
+                blocks.append(block)
+                claimed.update(line.source_index for line in members)
+    return blocks, claimed
 
 
 def _recover_detached_display_components(

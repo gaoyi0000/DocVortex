@@ -87,7 +87,8 @@ def _should_connect_semantic_rows(
     vertical_gap = _effective_text_row_gap(previous, current)
     if not -0.25 * pair_height <= vertical_gap <= max(1.25 * pair_height, regular_gap + 0.75 * pair_height):
         return False
-    if previous_line.semantic_type == "paragraph_title" and vertical_gap > 0.5 * pair_height:
+    shared_title_band = previous_line.title_band_id is not None and previous_line.title_band_id == current_line.title_band_id
+    if previous_line.semantic_type == "paragraph_title" and vertical_gap > 0.5 * pair_height and not shared_title_band:
         return False
     font_conflicts = (
         previous_line.font_signature is not None

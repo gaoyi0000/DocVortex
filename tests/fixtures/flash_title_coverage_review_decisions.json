@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "baseline_code_sha256": "d9a40dab073789eafc52b25fd2fc5771ae0ccc930b44222735eac7c4310f774c",
+  "code_sha256": "e15c4f306e5a228556d2aa3468642669dcbc1c89289724f791c1a008cfdca121",
+  "environment": {
+    "commit": "a8511caa6615fcf479a2b861061b4633ae1eef5f",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "sys_platform": "darwin",
+    "python": "3.13.5",
+    "pypdfium2": "5.10.1",
+    "pdfium_build": "151.0.7891.0",
+    "font_runtime": {
+      "pdfium_version": "151.0.7891.0",
+      "font_policy": "droid-cjk-v1",
+      "font_name": "Droid Sans Fallback Full",
+      "font_sha256": "8a4dea0899424438af25a6f1f6eb61e5d111d85367eece0a5d30170861ae6b2e"
+    }
+  },
+  "cases": [
+    {
+      "document": "dual_caption",
+      "page": 8,
+      "decision": "accept",
+      "reason": "栏首不存在上一正文行，不再直接拒绝；标题位置须与全页正文区顶部相符，下方正文和样式证据仍必需。",
+      "before_fingerprint": "0ae66ddb0fa20da01b2e4472a065ce962b555cb120233120e8aa247aaef93d14",
+      "after_fingerprint": "5de13d3527c57eee380869518322a07aec6524cf51b33c3a14da462bbb89cc99",
+      "before_bbox_fingerprint": "55b4d2fbe325de64a6a175dbbb7ae083b55f18c0fe9209792800256c429c7e1c",
+      "after_bbox_fingerprint": "e9901a96ccc37891442daf5914089b486bf58e764ed88791afc980d7eb486a40",
+      "evidence": {
+        "source": "output/pdf/flash-title-coverage/final/dual_caption/page-08-source.png",
+        "before": "output/pdf/flash-title-coverage/final/dual_caption/page-08-before.png",
+        "after": "output/pdf/flash-title-coverage/final/dual_caption/page-08-after.png"
+      }
+    },
+    {
+      "document": "dual_caption",
+      "page": 11,
+      "decision": "accept",
+      "reason": "独立标题约占局部正文宽度95%，用实际栏右缘包含关系替代90%固定宽度上限；越栏反例仍被拒绝。",
+      "before_fingerprint": "e1708f5fe73673912ddd9b95188dff8c4b452f3fde7a9e5992846d8f4952e8c0",
+      "after_fingerprint": "0459793adc1bd9ea75c8140a735b94ed31d717884770bec62ba42857f64c6976",
+      "before_bbox_fingerprint": "f47d7a1848de8221771ce1e30acbf1b32bbee50fd0777510368cd71fb478f1ac",
+      "after_bbox_fingerprint": "fa70f91f67bf7e691fb8fe810f54a18fa47537d73c2075fefbc970eba699f360",
+      "evidence": {
+        "source": "output/pdf/flash-title-coverage/final/dual_caption/page-11-source.png",
+        "before": "output/pdf/flash-title-coverage/final/dual_caption/page-11-before.png",
+        "after": "output/pdf/flash-title-coverage/final/dual_caption/page-11-after.png"
+      }
+    }
+  ],
+  "baseline_updates": [],
+  "verification": {
+    "focused_tests": 123,
+    "manual_documents": 8,
+    "manual_pages": 118,
+    "manual_changed_pages": 0,
+    "history_documents": 19,
+    "history_pages": 168,
+    "history_changed_pages": 0,
+    "target_pages": 41,
+    "target_changed_pages": 2,
+    "target_text_changed": false,
+    "target_bboxes_changed": false,
+    "exports": [
+      {
+        "name": "dual_caption",
+        "sha256": "ae9ee7db89a1ff23f9be8ecdb4ae70596ad1e3eec78c1d370f562a4aad3aa5ec",
+        "code_sha256": "e15c4f306e5a228556d2aa3468642669dcbc1c89289724f791c1a008cfdca121",
+        "pages": 20,
+        "assets": 3,
+        "seconds": 7.72,
+        "diagnostics": [],
+        "missing_images": []
+      },
+      {
+        "name": "fix",
+        "sha256": "6f393579aacfb8119f92790e565d539856e21d901f683147d242daefd6d094bb",
+        "code_sha256": "e15c4f306e5a228556d2aa3468642669dcbc1c89289724f791c1a008cfdca121",
+        "pages": 21,
+        "assets": 31,
+        "seconds": 8.36,
+        "diagnostics": [],
+        "missing_images": []
+      }
+    ],
+    "browser": "两个标题均为 h2，图片加载正常。",
+    "tests_passed": 1506,
+    "tests_failed": 0,
+    "test_seconds": 230.72,
+    "test_log": "output/pdf/flash-title-coverage/tests.log",
+    "static_checks": [
+      "ruff check",
+      "ruff format --check",
+      "git diff --check"
+    ]
+  }
+}

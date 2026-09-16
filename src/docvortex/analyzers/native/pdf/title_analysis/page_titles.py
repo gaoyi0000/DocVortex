@@ -286,9 +286,23 @@ def _classify_document_title(
             page_centered = abs(_bbox_center_x(bbox) - 0.5 * local_page_width) <= 0.15 * local_page_width
             page_width_ratio = (bbox[2] - bbox[0]) / max(0.1, local_page_width)
             spans_columns_fallback = lane.is_span and centered and width_ratio >= 0.65 and document_height_ratio >= 1.3
+            isolated_front_title = (
+                page_centered
+                and page_width_ratio >= 0.5
+                and document_height_ratio >= 1.12
+                and _bbox_center_y(bbox) < 0.25 * local_page_height
+                and not any(
+                    other.font_signature == line.font_signature and other_bbox[1] > bbox[1] for other, other_bbox in available
+                )
+                and all(
+                    abs(other_bbox[1] - bbox[1]) > 1.5 * _line_effective_height(line, bbox)
+                    for other, other_bbox in available
+                    if other is not line
+                )
+            )
             if (
                 _bbox_center_y(bbox) > 0.45 * local_page_height
-                or (height_ratio < 1.4 and not spans_columns_fallback)
+                or (height_ratio < 1.4 and not spans_columns_fallback and not isolated_front_title)
                 or width_ratio < 0.2
                 or (not centered and height_ratio < 1.7)
                 or (not page_centered and page_width_ratio < 0.45 and height_ratio < 1.8)
@@ -770,7 +784,11 @@ def _expand_cross_lane_paragraph_title_neighbors(
         for title_line, title_bbox in title_items:
             title_height = _line_effective_height(title_line, title_bbox)
             for candidate_line, candidate_bbox in line_geometry:
-                if candidate_line.semantic_type is not None:
+                if (
+                    candidate_line.semantic_type is not None
+                    or candidate_line.title_suppressed
+                    or candidate_line.paragraph_group is not None
+                ):
                     continue
                 candidate_height = _line_effective_height(
                     candidate_line,
@@ -802,6 +820,9 @@ def _expand_cross_lane_paragraph_title_neighbors(
                     0.0,
                 )
                 if vertical_gap > 0.35 * max(title_height, candidate_height):
+                    continue
+                # 相同正文字体的紧邻段落不能无限递归扩展成标题；段尾上标同样构成停止证据。
+                if title_line.paragraph_terminal or candidate_line.paragraph_terminal:
                     continue
                 if (
                     _bbox_axis_overlap_ratio(title_bbox, candidate_bbox, axis="x") < 0.2
