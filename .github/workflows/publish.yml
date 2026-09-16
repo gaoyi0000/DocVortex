@@ -13,43 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 门禁脚本沿第一父链回溯最近绿灯 commit，需要完整历史
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: '3.13'
       - name: Verify successful main CI
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          python - <<'PY'
-          import json
-          import os
-          import urllib.parse
-          import urllib.request
-
-          api_url = os.environ["GITHUB_API_URL"]
-          repository = os.environ["GITHUB_REPOSITORY"]
-          commit_sha = os.environ["GITHUB_SHA"]
-          query = urllib.parse.urlencode({
-              "head_sha": commit_sha,
-              "branch": "main",
-              "event": "push",
-              "per_page": "20",
-          })
-          request = urllib.request.Request(
-              f"{api_url}/repos/{repository}/actions/runs?{query}",
-              headers={"Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}", "Accept": "application/vnd.github+json"},
-          )
-          with urllib.request.urlopen(request) as response:
-              payload = json.load(response)
-          successful = any(
-              run.get("path") == ".github/workflows/ci.yml"
-              and run.get("status") == "completed"
-              and run.get("conclusion") == "success"
-              for run in payload.get("workflow_runs", [])
-          )
-          if not successful:
-              raise SystemExit("Release commit has no successful CI run on main")
-          PY
+        run: python tools/verify_release_ci_gate.py
       - name: Verify release tag
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
