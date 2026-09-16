@@ -23,7 +23,7 @@ DocVortex is a standalone Python engine for parsing and converting documents.
 It reads native text and document structure into a unified representation,
 then exports the result in the formats your workflow needs.
 
-- **Multi-format input** — read text PDFs, Office files, OpenDocument files, EPUB, HTML, OFD and CSV.
+- **Multi-format input** — read text PDFs, Office files, OpenDocument files, EPUB, HTML, OFD, CSV and TSV.
 - **Parse once, export many times** — reuse the same result for Markdown, HTML, LaTeX, DOCX, EPUB, PDF and structured JSON.
 - **Portable results** — save document structure and image assets in a Bundle, then export again without the source file.
 - **Composable APIs** — use the complete pipeline or integrate analysis, postprocessing and rendering separately.
@@ -81,7 +81,7 @@ use `overwrite=True` in Python or `--overwrite` in the CLI to replace them.
 | PDF with native text | PDF |
 | Word & rich text | DOC, DOCX, RTF |
 | Presentations | PPT, PPTX |
-| Spreadsheets | XLS, XLSX, CSV |
+| Spreadsheets | XLS, XLSX, CSV, TSV |
 | OpenDocument | ODT, ODS, ODP |
 | E-books & web documents | EPUB, HTML |
 | Open Fixed-layout Document | OFD |

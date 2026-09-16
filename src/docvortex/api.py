@@ -84,6 +84,7 @@ def analyze(
         else:
             model_types: dict[FileSuffix, type[NativeBinaryAnalyzer]] = {
                 "csv": models.CsvModel,
+                "tsv": models.CsvModel,
                 "epub": models.EpubModel,
                 "doc": models.DocModel,
                 "docx": models.DocxModel,

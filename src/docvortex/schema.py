@@ -56,6 +56,7 @@ FileSuffix: TypeAlias = Literal[
     "xlsx",
     "rtf",
     "csv",
+    "tsv",
     "epub",
     "html",
     "ofd",

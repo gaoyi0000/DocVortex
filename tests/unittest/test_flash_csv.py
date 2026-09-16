@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import codecs
 from io import BytesIO
+from pathlib import Path
 
 import pytest
 from _native_test_utils import analyze_native_test_document
@@ -9,6 +10,7 @@ from bs4 import BeautifulSoup
 
 from docvortex.analyzers.native import CsvModel
 from docvortex.analyzers.native import csv as csv_module
+from docvortex.document.detection import guess_suffix_by_bytes, guess_suffix_by_path
 from docvortex.render.html import render_html
 from docvortex.render.markdown import render_markdown
 from docvortex.schema import BlockType
@@ -169,3 +171,45 @@ def test_csv_default_grid_budget_rejects_wide_dom_before_rendering() -> None:
 
     with pytest.raises(ValueError, match="max_grid_slots"):
         CsvModel().predict(BytesIO(payload))
+
+
+def test_delimited_extension_resolves_to_independent_suffix() -> None:
+    """以 .csv/.tsv 路径兜底时按扩展名返回独立后缀，不再把 tsv 折叠为 csv。"""
+    payload = b"name,city\nAlice,London\n"
+
+    assert guess_suffix_by_bytes(payload, "demo.csv") == "csv"
+    assert guess_suffix_by_bytes(payload, "demo.tsv") == "tsv"
+
+
+def test_tsv_signatureless_bytes_without_path_require_explicit_suffix() -> None:
+    """无路径字节流不自动进入 tsv 解析，必须显式 file_suffix（与 csv 对称）。"""
+    payload = b"name\tcity\nAlice\tLondon\nBob\tParis\n" * 5
+
+    assert guess_suffix_by_bytes(payload) == "txt"
+
+
+def test_strong_content_signature_overrides_tsv_extension_fallback() -> None:
+    """RTF 强内容签名必须覆盖 .tsv 的无签名扩展名兜底。"""
+    payload = b"\xef\xbb\xbf \r\n{\\RTF1\\ANSI body}"
+
+    assert guess_suffix_by_bytes(payload, "disguised.tsv") == "rtf"
+
+
+def test_tsv_path_detection_returns_independent_suffix(tmp_path: Path) -> None:
+    """真实 .tsv 路径按独立后缀识别。"""
+    tsv_path = tmp_path / "demo.tsv"
+    tsv_path.write_bytes("姓名\t年龄\n张三\t30\n李四\t40\n".encode())
+
+    assert guess_suffix_by_path(tsv_path) == "tsv"
+
+
+def test_tsv_uses_shared_csv_engine_and_records_independent_file_suffix() -> None:
+    """tsv 复用 CSV 引擎与自动分隔符嗅探，并如实记录独立 file_suffix。"""
+    payload = "姓名\t年龄\n张三\t30\n李四\t40\n".encode()
+    middle, _ = analyze_native_test_document(payload, file_suffix="tsv")
+
+    assert middle.metadata.file_suffix == "tsv"
+    assert len(middle.pages) == 1
+    markdown = render_markdown(middle)
+    assert "张三" in markdown
+    assert "30" in markdown

@@ -1,4 +1,4 @@
-"""覆盖全部十五种原生文档输入与七种输出的独立端到端矩阵。"""
+"""覆盖全部十六种原生文档输入与七种输出的独立端到端矩阵。"""
 
 from __future__ import annotations
 
@@ -27,6 +27,8 @@ def source_payload(suffix: str) -> bytes:
         return builders[suffix]()
     if suffix == "csv":
         return b"name,value\nalpha,1\nbeta,2\n"
+    if suffix == "tsv":
+        return b"name\tvalue\nalpha\t1\nbeta\t2\n"
     if suffix == "html":
         return b"<html><h1>Title</h1><p>Native conversion</p></html>"
     if suffix == "pdf":
@@ -35,7 +37,7 @@ def source_payload(suffix: str) -> bytes:
 
 
 @pytest.mark.parametrize(
-    "suffix", ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "rtf", "csv", "html", "epub", "ofd", "odt", "ods", "odp"]
+    "suffix", ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "rtf", "csv", "tsv", "html", "epub", "ofd", "odt", "ods", "odp"]
 )
 def test_all_native_formats_render_all_targets(suffix: str, monkeypatch: pytest.MonkeyPatch) -> None:
     """每种原生格式完成分析、后处理和七种目标编码，不导入宿主。"""

@@ -43,7 +43,7 @@ FILETIME values are UTC. Missing or invalid dates are not replaced with filesyst
 | EPUB | OPF Dublin Core and recognized meta properties | `spine` |
 | OFD | DocInfo; first nonempty scalar across DocBody entries | `physical`, summed across documents |
 | HTML | title, standard meta, Dublin Core, Open Graph, document language | `logical`, 1 |
-| CSV | no embedded descriptive property convention | `logical`, 1 |
+| CSV / TSV | no embedded descriptive property convention | `logical`, 1 |
 
 A declared count may be stale and is not a measured layout. Counts are never inferred from the
 number of pages selected for parsing. Source author strings are not authors inferred from body text.

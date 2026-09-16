@@ -279,13 +279,13 @@ def _has_rtf_signature_by_path(file_path: Path) -> bool:
 
 
 def _resolve_signatureless_csv_suffix(detected_suffix: str, file_path: str | Path | None) -> str:
-    """以 .csv/.tsv 扩展名兜底无签名分隔文本，并保留强内容类型的优先级。"""
+    """以 .csv/.tsv 扩展名兜底无签名分隔文本：按扩展名返回独立后缀，并保留强内容类型的优先级。"""
     extension = Path(file_path).suffix.lower().lstrip(".") if file_path else ""
     if extension in CSV_EXTENSIONS:
         if detected_suffix in _STRONG_CONTENT_SUFFIXES:
             return detected_suffix
-        return "csv"
-    if detected_suffix == "csv":
+        return extension
+    if detected_suffix in ("csv", "tsv"):
         if extension in ODF_MIMETYPE_SUFFIXES.values():
             return "txt"
         return extension or "txt"

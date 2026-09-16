@@ -56,7 +56,7 @@ use `python -m docvortex.cli` with the same arguments.
 | PDF with native text | `pdf` |
 | Word and rich text | `doc`, `docx`, `rtf` |
 | Presentations | `ppt`, `pptx` |
-| Spreadsheets and delimited tables | `xls`, `xlsx`, `csv` |
+| Spreadsheets and delimited tables | `xls`, `xlsx`, `csv`, `tsv` |
 | OpenDocument | `odt`, `ods`, `odp` |
 | Books, HTML documents and fixed-layout documents | `epub`, `html`, `ofd` |
 

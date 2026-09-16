@@ -23,7 +23,7 @@ DocVortex 是一个独立的 Python 文档解析与转换引擎。
 它读取文档中的原生文字与结构，整理为统一的中间表示，
 再按工作流需要导出为不同格式。
 
-- **多格式输入** — 支持文本 PDF、Office、OpenDocument、EPUB、HTML、OFD 和 CSV。
+- **多格式输入** — 支持文本 PDF、Office、OpenDocument、EPUB、HTML、OFD、CSV 和 TSV。
 - **一次解析，多种导出** — 同一份结果可生成 Markdown、HTML、LaTeX、DOCX、EPUB、PDF 和结构化 JSON。
 - **结果可携带** — 将文档结构与图像素材保存为 Bundle，离开源文件也能继续导出。
 - **API 可组合** — 直接调用完整流程，或分别接入分析、后处理和渲染阶段。
@@ -81,7 +81,7 @@ result.export("output/report.docx", output_format="docx")
 | 含原生文字的 PDF | PDF |
 | Word 与富文本 | DOC, DOCX, RTF |
 | 演示文稿 | PPT, PPTX |
-| 电子表格 | XLS, XLSX, CSV |
+| 电子表格 | XLS, XLSX, CSV, TSV |
 | OpenDocument | ODT, ODS, ODP |
 | 电子书与网页文档 | EPUB, HTML |
 | 开放版式文档 | OFD |
