@@ -3,6 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+    # 纯版本号 bump 的发布提交复用祖先绿灯（见 tools/verify_release_ci_gate.py），
+    # 不再重复触发全量 CI；混合改动的 push 不受影响。
+    paths-ignore: ['src/docvortex/version.py']
   pull_request:
   workflow_call:
 
