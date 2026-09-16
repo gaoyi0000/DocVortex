@@ -28,8 +28,7 @@ DocVortex 是一个独立的 Python 文档解析与转换引擎。
 - **结果可携带** — 将文档结构与图像素材保存为 Bundle，离开源文件也能继续导出。
 - **API 可组合** — 直接调用完整流程，或分别接入分析、后处理和渲染阶段。
 
-原生解析无需 OCR 或 VLM 推理服务。通过 CLI 或 Python SDK
-即可独立使用 DocVortex，无需安装 MinerU。
+原生解析无需 OCR 或 VLM 推理服务。您可通过 CLI 或 Python SDK 便捷的使用 DocVortex。
 
 ![DocVortex 转换流程：原生文档经过统一中间表示，导出为 Markdown、HTML、LaTeX、DOCX、EPUB、PDF 或结构化 JSON。](https://gcore.jsdelivr.net/gh/myhloli/DocVortex@main/docs/images/docvortex-overview.jpg)
 

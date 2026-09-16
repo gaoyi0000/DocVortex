@@ -28,8 +28,7 @@ then exports the result in the formats your workflow needs.
 - **Portable results** — save document structure and image assets in a Bundle, then export again without the source file.
 - **Composable APIs** — use the complete pipeline or integrate analysis, postprocessing and rendering separately.
 
-Native parsing works without an OCR or VLM inference service. Use DocVortex
-directly through its CLI or Python SDK, independently of MinerU.
+Native parsing works without an OCR or VLM inference service. Use DocVortex directly through its CLI or Python SDK.
 
 ![DocVortex pipeline: native documents become a unified representation, then Markdown, HTML, LaTeX, DOCX, EPUB, PDF or structured JSON.](https://gcore.jsdelivr.net/gh/myhloli/DocVortex@main/docs/images/docvortex-overview.jpg)
 
