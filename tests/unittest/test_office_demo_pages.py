@@ -18,11 +18,12 @@ def analyze_sample(data: bytes, *, file_suffix: FileSuffix) -> tuple[MiddleJson,
 
 @pytest.mark.parametrize(
     ("file_suffix", "expected_page_count"),
-    [("docx", 3), ("pptx", 6), ("xlsx", 3)],
+    [("docx", 3), ("pptx", 6), ("xlsx", 3), ("ods", 3)],
 )
 def test_native_office_real_samples(file_suffix: str, expected_page_count: int) -> None:
     """验证统一入口可直接分析三类真实 Office 样例并返回完整分页结果。"""
-    sample_path = _OFFICE_SAMPLE_DIR / f"{file_suffix}_01.{file_suffix}"
+    basename = "xlsx" if file_suffix == "ods" else file_suffix
+    sample_path = _OFFICE_SAMPLE_DIR / f"{basename}_01.{file_suffix}"
 
     middle_json, model_json = analyze_sample(
         sample_path.read_bytes(),

@@ -682,6 +682,50 @@ def test_odf_rejects_overlong_repeat_before_integer_conversion(monkeypatch: pyte
         odf_table_module.parse_table_grid(table, unexpected_render)
 
 
+def test_odf_skips_trailing_repeated_empty_filler_rows() -> None:
+    """验证 LibreOffice 全网格声明的尾部空 filler 行不消耗网格预算。"""
+    table_xml = (
+        '<table:table xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" '
+        'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">'
+        "<table:table-row>"
+        '<table:table-cell><text:p>a</text:p></table:table-cell>'
+        '<table:table-cell><text:p>b</text:p></table:table-cell>'
+        '<table:table-cell><text:p>c</text:p></table:table-cell>'
+        '<table:table-cell><text:p>d</text:p></table:table-cell>'
+        '<table:table-cell table:number-columns-repeated="16380"/>'
+        "</table:table-row>"
+        '<table:table-row table:number-rows-repeated="1048574">'
+        '<table:table-cell table:number-columns-repeated="16384"/>'
+        "</table:table-row>"
+        "</table:table>"
+    )
+
+    grid = odf_table_module.parse_table_grid(etree.fromstring(table_xml.encode()), lambda cell: "".join(cell.itertext()))
+
+    assert len(grid.rows) == 1
+    assert grid.width == 4
+    assert [cell.html if cell else "" for cell in grid.rows[0]] == ["a", "b", "c", "d"]
+
+
+def test_odf_skips_wide_empty_filler_rows_between_content_regions() -> None:
+    """验证内容区域之间的全宽空行带只按已物化宽度计入网格预算。"""
+    table_xml = (
+        '<table:table xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" '
+        'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">'
+        '<table:table-row><table:table-cell><text:p>a</text:p></table:table-cell></table:table-row>'
+        '<table:table-row table:number-rows-repeated="300">'
+        '<table:table-cell table:number-columns-repeated="16384"/></table:table-row>'
+        '<table:table-row><table:table-cell><text:p>b</text:p></table:table-cell></table:table-row>'
+        "</table:table>"
+    )
+
+    grid = odf_table_module.parse_table_grid(etree.fromstring(table_xml.encode()), lambda cell: "".join(cell.itertext()))
+
+    assert len(grid.rows) == 302
+    assert grid.width == 1
+    assert len(odf_table_module.split_table_regions(grid)) == 2
+
+
 def test_odf_document_grid_budget_is_shared_across_tables(monkeypatch: pytest.MonkeyPatch) -> None:
     """验证多个独立表格共同消耗同一个文档网格预算。"""
     monkeypatch.setattr(odf_table_module, "MAX_GRID_SLOTS", 4)

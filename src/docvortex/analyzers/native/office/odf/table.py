@@ -169,7 +169,6 @@ def parse_table_grid(
     duplicated_text_bytes = 0
     row_index = 0
     pending_empty_rows = 0
-    pending_empty_width = 0
 
     def ensure_row(target_row: int, width: int = 0) -> list[GridCell | None]:
         """在兼容独立表格调用的同时应用可选文档级预留。"""
@@ -179,7 +178,6 @@ def parse_table_grid(
 
     for row_element, header in _iter_rows(table):
         row_repeat = _positive_int(row_element.get(qname("table", "number-rows-repeated")))
-        _validate_grid_extent(row_index + row_repeat, grid.width)
         cell_templates: list[tuple[bool, int, GridCell | None]] = []
         for cell in row_element:
             if not isinstance(cell.tag, str):
@@ -219,18 +217,14 @@ def parse_table_grid(
         )
         if not row_has_content:
             pending_empty_rows += row_repeat
-            pending_empty_width = max(
-                pending_empty_width,
-                sum(repeat * (template.col_span if template is not None else 1) for _, repeat, template in cell_templates),
-            )
             continue
         if pending_empty_rows:
-            _validate_grid_extent(row_index + pending_empty_rows, max(grid.width, pending_empty_width))
+            _validate_grid_extent(row_index + pending_empty_rows, grid.width)
             for _ in range(pending_empty_rows):
-                ensure_row(row_index, pending_empty_width)
+                ensure_row(row_index, grid.width)
                 row_index += 1
             pending_empty_rows = 0
-            pending_empty_width = 0
+        _validate_grid_extent(row_index + row_repeat, grid.width)
         for _ in range(row_repeat):
             row = ensure_row(row_index)
             col_index = 0
