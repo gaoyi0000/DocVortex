@@ -135,7 +135,7 @@ __all__ = ["model_json_to_middle_json"]
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_text(text)
         mapping[old_module] = new_module
-    for folder in ("html", "epub", "fasttext-langdetect"):
+    for folder in ("html", "epub"):
         shutil.copytree(SOURCE / "mineru/resources" / folder, TARGET / "src/docvortex/resources" / folder, dirs_exist_ok=True)
     shutil.copyfile(SOURCE / "LICENSE.md", TARGET / "LICENSE.md")
     (TARGET / ".baseline/module_mapping.json").write_text(json.dumps(mapping, indent=2))
