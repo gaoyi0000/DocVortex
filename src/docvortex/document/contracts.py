@@ -10,14 +10,12 @@ from pathlib import Path
 class HtmlSourceContext:
     """保存相对链接解析及 HTML 解码所需的来源上下文。
 
-    fetch_remote_images 默认关闭，远程图片仅记录 URL；开启后解析阶段会对受限
-    HTTP(S) 图片发起网络请求并内嵌，不可信输入的 SSRF 风险由调用者承担。
+    远程图片永不下载，仅在结果中保留受限 HTTP(S) 外链，解析过程保持零网络请求。
     """
 
     source_uri: str | None = None
     local_resource_root: Path | None = None
     transport_encoding: str | None = None
-    fetch_remote_images: bool = False
 
 
 __all__ = ["HtmlSourceContext"]
