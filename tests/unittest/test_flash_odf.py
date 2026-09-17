@@ -218,6 +218,29 @@ def test_odt_list_item_joins_multiple_paragraphs_before_markers() -> None:
     assert render_markdown(middle).count("- ") == 2
 
 
+def test_odt_unmarked_list_style_renders_items_as_plain_text() -> None:
+    """验证引用空列表样式（无可见标记）的列表按普通段落输出，样式缺失时保持 LIST。"""
+    content = """<office:document-content
+ xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+ xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+ xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0">
+ <office:automatic-styles>
+  <text:list-style style:name="NoMarker"/>
+ </office:automatic-styles>
+ <office:body><office:text>
+  <text:list text:style-name="NoMarker"><text:list-item><text:p>First</text:p></text:list-item><text:list-item><text:p>Second</text:p></text:list-item></text:list>
+  <text:list text:style-name="Missing"><text:list-item><text:p>Keeps list</text:p></text:list-item></text:list>
+ </office:text></office:body>
+</office:document-content>"""
+    middle, _ = analyze_native_test_document(build_odf_package("odt", content), file_suffix="odt")
+    blocks = middle.pages[0].blocks
+
+    assert [block.type for block in blocks] == [BlockType.TEXT, BlockType.TEXT, BlockType.LIST]
+    assert [inline_text(block.content) for block in blocks[:2]] == ["First", "Second"]  # type: ignore[union-attr]
+    assert [inline_text(child.content) for child in blocks[2].content] == ["- Keeps list"]  # type: ignore[union-attr,index]
+    assert render_markdown(middle).splitlines() == ["First", "", "Second", "", "- Keeps list"]
+
+
 def test_odt_table_cell_renders_inline_image_once() -> None:
     """验证 ODT/ODP 单元格内联图片不会再被对应段外 image block 重复输出。"""
     content = """<office:document-content
@@ -235,6 +258,94 @@ def test_odt_table_cell_renders_inline_image_once() -> None:
 
     assert pages[0][0]["type"] == BlockType.TABLE
     assert pages[0][0]["content"].count("<img") == 1
+
+
+def test_odt_table_cell_unmarked_list_renders_as_plain_paragraphs() -> None:
+    """验证空列表样式的单元格列表解包为 <p>，全空列表行不再因 <ul> 骨架残留。"""
+    content = """<office:document-content
+ xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+ xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+ xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+ xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0">
+ <office:automatic-styles>
+  <text:list-style style:name="NoMarker"/>
+  <text:list-style style:name="LB"><text:list-level-style-bullet text:level="1" text:bullet-char="•"/></text:list-style>
+ </office:automatic-styles>
+ <office:body><office:text><table:table>
+  <table:table-row>
+   <table:table-cell><text:list text:style-name="NoMarker"><text:list-item><text:p>Class1</text:p></text:list-item></text:list></table:table-cell>
+   <table:table-cell><text:list text:style-name="LB"><text:list-item><text:p>Bulleted</text:p></text:list-item></text:list></table:table-cell>
+  </table:table-row>
+  <table:table-row>
+   <table:table-cell><text:list text:style-name="NoMarker"><text:list-item><text:p><text:span/></text:p></text:list-item></text:list></table:table-cell>
+   <table:table-cell><text:list text:style-name="NoMarker"><text:list-item><text:p><text:span/></text:p></text:list-item></text:list></table:table-cell>
+  </table:table-row>
+ </table:table></office:text></office:body>
+</office:document-content>"""
+
+    pages = OdtModel().predict(BytesIO(build_odf_package("odt", content)))
+    table_html = pages[0][0]["content"]
+
+    assert "<td><p>Class1</p></td>" in table_html
+    assert "<ul><li>Bulleted</li></ul>" in table_html
+    assert table_html.count("<ul") == 1
+    assert "<li></li>" not in table_html
+    assert table_html.count("<tr>") == 1  # 全空列表行整体折叠
+
+
+def test_odt_table_cell_unmarked_list_keeps_styled_nested_list() -> None:
+    """验证无标记列表解包时，带真实样式的嵌套列表保留 ul，继承空样式的嵌套继续解包。"""
+    content = """<office:document-content
+ xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+ xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+ xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+ xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0">
+ <office:automatic-styles>
+  <text:list-style style:name="NoMarker"/>
+  <text:list-style style:name="LB"><text:list-level-style-bullet text:level="1" text:bullet-char="•"/></text:list-style>
+ </office:automatic-styles>
+ <office:body><office:text><table:table><table:table-row><table:table-cell>
+  <text:list text:style-name="NoMarker"><text:list-item>
+   <text:p>Top</text:p>
+   <text:list text:style-name="LB"><text:list-item><text:p>Nested</text:p></text:list-item></text:list>
+   <text:list><text:list-item><text:p>Inherited</text:p></text:list-item></text:list>
+  </text:list-item></text:list>
+ </table:table-cell></table:table-row></table:table></office:text></office:body>
+</office:document-content>"""
+
+    pages = OdtModel().predict(BytesIO(build_odf_package("odt", content)))
+
+    assert pages[0][0]["content"] == (
+        "<table><tbody><tr><td><p>Top</p><ul><li>Nested</li></ul><p>Inherited</p></td></tr></tbody></table>"
+    )
+
+
+def test_odp_table_cells_from_pptx_save_as_skip_bullet_wrappers() -> None:
+    """验证 PPTX 另存 ODP 的表格单元格（每段被包进空样式 text:list）不再输出 ul。"""
+    cell = (
+        '<text:list text:style-name="a1"><text:list-item><text:p text:style-name="a2"'
+        ' text:class-names="" text:cond-style-name=""><text:span text:style-name="a3"'
+        ' text:class-names="">{}</text:span></text:p></text:list-item></text:list>'
+    )
+    content = f"""<office:document-content
+ xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+ xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0"
+ xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"
+ xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+ xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+ xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0">
+ <office:automatic-styles><text:list-style style:name="a1"/></office:automatic-styles>
+ <office:body><office:presentation><draw:page draw:name="Test Table Slide"><draw:frame draw:name="Table 3"><table:table>
+  <table:table-row><table:table-cell>{cell.format("Class1")}</table:table-cell><table:table-cell>{cell.format("R1")}</table:table-cell></table:table-row>
+ </table:table></draw:frame></draw:page></office:presentation></office:body>
+</office:document-content>"""
+
+    pages = OdpModel().predict(BytesIO(build_odf_package("odp", content)))
+    table_html = pages[0][0]["content"]
+
+    assert pages[0][0]["type"] == BlockType.TABLE
+    assert "<td><p>Class1</p></td><td><p>R1</p></td>" in table_html
+    assert "<ul" not in table_html and "<li" not in table_html
 
 
 def test_odt_soft_page_break_is_ignored_with_inline_visual() -> None:

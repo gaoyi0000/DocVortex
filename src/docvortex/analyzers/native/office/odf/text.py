@@ -453,7 +453,7 @@ class OdfBlockParser:
         style_name = element.get(qname("text", "style-name")) or inherited_style
         level = self.styles.list_level(style_name, depth)
         key = (style_name or "", depth)
-        start = level.start
+        start = level.start if level is not None else 1
         continue_list = element.get(qname("text", "continue-list"))
         if continue_list and continue_list in self._list_ids:
             start = self._list_ids[continue_list]
@@ -466,17 +466,20 @@ class OdfBlockParser:
         active_master: str | None = None
 
         def flush_content(fragment_start: int) -> None:
-            """把当前合法子块冻结为一个 LIST 分片。"""
+            """把当前合法子块冻结为一个 LIST 分片；无标记列表按普通段落序列输出。"""
             if content:
-                block: dict[str, Any] = {
-                    "type": BlockType.LIST,
-                    "attribute": "ordered" if level.ordered else "unordered",
-                    "ilevel": depth,
-                    "content": list(content),
-                }
-                if level.ordered:
-                    block["start"] = fragment_start
-                results.append(block)
+                if level is None:
+                    results.extend(content)
+                else:
+                    block: dict[str, Any] = {
+                        "type": BlockType.LIST,
+                        "attribute": "ordered" if level.ordered else "unordered",
+                        "ilevel": depth,
+                        "content": list(content),
+                    }
+                    if level.ordered:
+                        block["start"] = fragment_start
+                    results.append(block)
                 content.clear()
             if fragment_notes:
                 results.extend(fragment_notes)
@@ -875,6 +878,20 @@ class OdfBlockParser:
         """把单元格行内流中的 note marker 排入当前逻辑页队列。"""
         self.notes.extend(atom.content for atom in atoms if isinstance(atom, InlineNote))
 
+    def _render_cell_paragraph(self, child: etree._Element, parts: list[str]) -> None:
+        """把单元格里的一个裸段落渲染为 <p>，并回收行内块组的单元格子块。"""
+        atoms = self.parse_inline_atoms(child)
+        self._queue_inline_notes(atoms)
+        rendered_atoms = [atom for atom in atoms if not isinstance(atom, InlineImage)] if self._collect_cell_visuals else atoms
+        parts.append(f"<p>{render_atoms_to_html(rendered_atoms)}</p>")
+        for atom in atoms:
+            if isinstance(atom, InlineBlockGroup):
+                self._append_cell_blocks(
+                    parts,
+                    atom.blocks,
+                    inline_image_rendered=atom.inline_image_rendered and not self._collect_cell_visuals,
+                )
+
     def render_cell_html(self, cell: etree._Element) -> str:
         """把表格单元格中的段落、列表、嵌套表和 frame 转为 HTML。"""
         parts: list[str] = []
@@ -882,19 +899,7 @@ class OdfBlockParser:
             if not isinstance(child.tag, str):
                 continue
             if child.tag in {qname("text", "p"), qname("text", "h")}:
-                atoms = self.parse_inline_atoms(child)
-                self._queue_inline_notes(atoms)
-                rendered_atoms = (
-                    [atom for atom in atoms if not isinstance(atom, InlineImage)] if self._collect_cell_visuals else atoms
-                )
-                parts.append(f"<p>{render_atoms_to_html(rendered_atoms)}</p>")
-                for atom in atoms:
-                    if isinstance(atom, InlineBlockGroup):
-                        self._append_cell_blocks(
-                            parts,
-                            atom.blocks,
-                            inline_image_rendered=atom.inline_image_rendered and not self._collect_cell_visuals,
-                        )
+                self._render_cell_paragraph(child, parts)
             elif child.tag == qname("text", "list"):
                 parts.append(self._render_list_html(child))
             elif child.tag == qname("table", "table"):
@@ -915,6 +920,8 @@ class OdfBlockParser:
         """把单元格内 ODF 列表递归渲染为 ol/ul HTML。"""
         style_name = element.get(qname("text", "style-name")) or inherited_style
         level = self.styles.list_level(style_name, depth)
+        if level is None:
+            return self._render_unmarked_list_html(element, depth=depth, inherited_style=style_name)
         tag = "ol" if level.ordered else "ul"
         start = f' start="{level.start}"' if level.ordered and level.start != 1 else ""
         parts = [f"<{tag}{start}>"]
@@ -939,6 +946,30 @@ class OdfBlockParser:
             parts.append("</li>")
         parts.append(f"</{tag}>")
         return "".join(parts)
+
+    def _render_unmarked_list_html(
+        self,
+        element: etree._Element,
+        *,
+        depth: int,
+        inherited_style: str | None,
+    ) -> str:
+        """把引用空列表样式（无可见标记）的单元格列表按裸段落序列渲染。"""
+        parts: list[str] = []
+        for item in element:
+            if not isinstance(item.tag, str) or item.tag not in {
+                qname("text", "list-item"),
+                qname("text", "list-header"),
+            }:
+                continue
+            for child in item:
+                if not isinstance(child.tag, str):
+                    continue
+                if child.tag in {qname("text", "p"), qname("text", "h")}:
+                    self._render_cell_paragraph(child, parts)
+                elif child.tag == qname("text", "list"):
+                    parts.append(self._render_list_html(child, depth=depth + 1, inherited_style=inherited_style))
+        return "".join(part for part in parts if part)
 
     def drain_notes(self) -> list[str]:
         """取出当前累计脚注并清空共享队列。"""

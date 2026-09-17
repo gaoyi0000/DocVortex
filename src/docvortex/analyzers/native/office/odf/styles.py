@@ -260,11 +260,15 @@ class OdfStyles:
             current = definition.parent or ""
         return False
 
-    def list_level(self, style_name: str | None, depth: int) -> ListLevel:
-        """返回指定列表深度的定义，不存在时使用无序默认值。"""
+    def list_level(self, style_name: str | None, depth: int) -> ListLevel | None:
+        """返回指定列表深度的定义；样式已定义但无任何层级时返回 None（无可见标记）。"""
         if not style_name:
             return ListLevel()
-        levels = self._list_styles.get(style_name, {})
+        levels = self._list_styles.get(style_name)
+        if levels is None:
+            return ListLevel()
+        if not levels:
+            return None
         return levels.get(depth, ListLevel())
 
     def table_is_visible(self, style_name: str | None) -> bool:
