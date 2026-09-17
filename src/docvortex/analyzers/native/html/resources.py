@@ -6,6 +6,7 @@ import base64
 from pathlib import Path
 from typing import Protocol
 from urllib.parse import SplitResult, unquote, urljoin, urlsplit, urlunsplit
+from urllib.request import urlopen
 
 from lxml import etree  # type: ignore[reportMissingImports]
 
@@ -19,6 +20,7 @@ from .constants import (
     MAX_HTML_IMAGE_TOTAL_BYTES,
     MAX_HTML_STYLESHEET_BYTES,
     MAX_HTML_STYLESHEET_TOTAL_BYTES,
+    MAX_REMOTE_IMAGE_FETCH_SECONDS,
 )
 from .errors import HtmlResourceLimitError
 
@@ -65,6 +67,7 @@ class HtmlResourceContext:
         self._image_bytes = 0
         self._stylesheet_bytes = 0
         self._image_cache: dict[Path, str] = {}
+        self._remote_image_cache: dict[str, str] = {}
         self._data_image_cache: dict[str, ResolvedMarkupImage] = {}
         self._stylesheet_cache: dict[Path, str] = {}
         self._local_root = source_context.local_resource_root.resolve() if source_context.local_resource_root else None
@@ -157,14 +160,14 @@ class HtmlResourceContext:
         return sanitize_hyperlink_target(normalized, allow_relative=True, allow_fragment=True)
 
     def resolve_image(self, source: str, *, alt: str = "") -> ResolvedMarkupImage | None:
-        """按 data URI、本地安全文件、远程 URL 的顺序解析图片。"""
+        """按 data URI、远程 URL、本地安全文件的顺序解析图片，远程图片仅在来源显式开启下载时内嵌。"""
         normalized = (source or "").strip()
         if not normalized:
             return ResolvedMarkupImage(alt=alt) if alt else None
         if normalized.casefold().startswith("data:"):
             return self._resolve_data_image(normalized, alt=alt)
         if remote_url := self._resolve_remote_image_url(normalized):
-            return ResolvedMarkupImage(image_url=remote_url, alt=alt)
+            return self._resolve_remote_image(remote_url, alt=alt)
         local_path = self._resolve_local_path(normalized)
         if local_path is None or not local_path.is_file():
             return ResolvedMarkupImage(alt=alt) if alt else None
@@ -242,6 +245,41 @@ class HtmlResourceContext:
         resolved = ResolvedMarkupImage(image_base64=data_uri, alt=alt)
         self._data_image_cache[data_uri] = resolved
         return resolved
+
+    def _resolve_remote_image(self, remote_url: str, *, alt: str) -> ResolvedMarkupImage:
+        """远程图片默认保持外链，来源显式开启下载时按缓存下载内嵌。"""
+        if not self.source_context.fetch_remote_images:
+            return ResolvedMarkupImage(image_url=remote_url, alt=alt)
+        if cached := self._remote_image_cache.get(remote_url):
+            return ResolvedMarkupImage(image_base64=cached, alt=alt)
+        data_uri = self._fetch_remote_image(remote_url)
+        if data_uri is None:
+            return ResolvedMarkupImage(image_url=remote_url, alt=alt)
+        self._remote_image_cache[remote_url] = data_uri
+        return ResolvedMarkupImage(image_base64=data_uri, alt=alt)
+
+    def _fetch_remote_image(self, remote_url: str) -> str | None:
+        """在单图上限与超时约束内下载远程图片并复核签名，网络失败返回 None 退回外链。"""
+        try:
+            with urlopen(remote_url, timeout=MAX_REMOTE_IMAGE_FETCH_SECONDS) as response:
+                chunks: list[bytes] = []
+                remaining = MAX_HTML_IMAGE_BYTES + 1
+                while remaining > 0:
+                    chunk = response.read(remaining)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                    remaining -= len(chunk)
+        except (OSError, ValueError):
+            return None
+        payload = b"".join(chunks)
+        if len(payload) > MAX_HTML_IMAGE_BYTES:
+            raise HtmlResourceLimitError(f"HTML image exceeds max_html_image_bytes={MAX_HTML_IMAGE_BYTES}")
+        data_uri = _image_data_uri(payload)
+        if data_uri is None:
+            return None
+        self._charge_image_bytes(len(payload))
+        return data_uri
 
     def _charge_image_bytes(self, byte_count: int) -> None:
         """累计实际保留的图片字节，并在超限时终止整份文档。"""

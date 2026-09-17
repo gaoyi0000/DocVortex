@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import base64
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from copy import copy
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from io import BytesIO
 from pathlib import Path
 
@@ -19,6 +23,7 @@ from docvortex.analyzers.native.html import HtmlResourceLimitError
 from docvortex.analyzers.native.html import document as html_document_module
 from docvortex.analyzers.native.html import resources as html_resources_module
 from docvortex.analyzers.native.html import selector as html_selector_module
+from docvortex.analyzers.native.html.constants import MAX_HTML_IMAGE_BYTES
 from docvortex.analyzers.native.html.resources import HtmlResourceContext
 from docvortex.api import parse
 from docvortex.codecs.html import decode_docvortex_html_wire
@@ -1982,3 +1987,134 @@ def test_html_invalid_mathml_and_asciimath_remain_visible_text() -> None:
 
     assert "not-latex" in markdown and "sqrt(2)" in markdown
     assert not any(block.type == BlockType.EQUATION for block in middle.pages[0].blocks)
+
+
+def _tiny_png_bytes() -> bytes:
+    """构造 1x1 红色像素的最小合法 PNG。"""
+    buffer = BytesIO()
+    Image.new("RGB", (1, 1), (255, 0, 0)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+@contextmanager
+def _local_image_server(routes: dict[str, bytes]) -> Iterator[tuple[str, list[str]]]:
+    """在回环地址启动按路径返回固定字节的计数服务，退出时关闭。"""
+    hits: list[str] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            hits.append(self.path)
+            body = routes[self.path]
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args: object) -> None:
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        yield f"http://127.0.0.1:{server.server_address[1]}", hits
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def _remote_chart_middle(url: str) -> MiddleJson:
+    """构造主图片指向远程 URL 的 chart wire 文档，复现导出 HTML 回灌场景。"""
+    return MiddleJson.model_validate(
+        {
+            "pages": [
+                {
+                    "page_idx": 0,
+                    "blocks": [
+                        {
+                            "type": "chart",
+                            "index": 0,
+                            "content": [{"type": "chart_body", "index": 0, "content": "", "image_url": url}],
+                        }
+                    ],
+                }
+            ],
+            "is_full_document": True,
+            "metadata": {"file_suffix": "html", "producer": {"name": "docvortex", "version": "0.2.0"}},
+            "schema": "docvortex.middle",
+            "schema_version": "2.0",
+        }
+    )
+
+
+def test_html_remote_images_stay_external_and_offline_by_default(tmp_path: Path) -> None:
+    """默认不下载远程图片：保持外链、零网络请求，save_bundle 仍拒绝未物化图片。"""
+    with _local_image_server({"/chart.png": _tiny_png_bytes()}) as (base, hits):
+        url = f"{base}/chart.png"
+        default = HtmlResourceContext(HtmlSourceContext())
+        resolved = default.resolve_image(url, alt="chart")
+        assert resolved is not None and resolved.image_url == url and not resolved.image_base64
+
+        rendered = render_html(_remote_chart_middle(url), standalone=False)
+        result = parse(rendered.encode(), file_suffix="html")
+        body = result.middle_json.pages[0].blocks[0].content[0]
+        assert body.image_url == url and not body.image_path
+
+        with pytest.raises(ValueError, match="must be materialized"):
+            result.save_bundle(tmp_path / "bundle")
+        assert hits == []
+
+
+def test_html_remote_image_fetch_embeds_and_caches_by_url() -> None:
+    """开启下载后有效图片内嵌为 data URI，同一 URL 复用缓存不重复请求。"""
+    png = _tiny_png_bytes()
+    with _local_image_server({"/chart.png": png}) as (base, hits):
+        context = HtmlResourceContext(HtmlSourceContext(fetch_remote_images=True))
+        first = context.resolve_image(f"{base}/chart.png", alt="chart")
+        assert first is not None and first.image_url is None
+        assert first.image_base64 is not None and first.image_base64.startswith("data:image/png;base64,")
+        assert base64.b64decode(first.image_base64.split(",", 1)[1]) == png
+        assert hits == ["/chart.png"]
+
+        second = context.resolve_image(f"{base}/chart.png", alt="chart")
+        assert second is not None and second.image_base64 == first.image_base64
+        assert hits == ["/chart.png"]
+
+
+def test_html_remote_image_fetch_falls_back_to_url_when_unavailable() -> None:
+    """非图片字节或网络不可达时下载退回外链，不阻断解析。"""
+    with _local_image_server({"/text.png": b"not-an-image"}) as (base, hits):
+        context = HtmlResourceContext(HtmlSourceContext(fetch_remote_images=True))
+        resolved = context.resolve_image(f"{base}/text.png", alt="chart")
+        assert resolved is not None and resolved.image_url == f"{base}/text.png" and not resolved.image_base64
+
+        dead = "http://127.0.0.1:9/chart.png"
+        resolved = context.resolve_image(dead)
+        assert resolved is not None and resolved.image_url == dead and not resolved.image_base64
+
+
+def test_html_remote_image_fetch_rejects_oversized_download() -> None:
+    """下载超过单图上限的远程图片时与本地文件一致地终止整份文档。"""
+    oversized = b"\x89PNG\r\n\x1a\n" + b"\x00" * (MAX_HTML_IMAGE_BYTES + 1)
+    with _local_image_server({"/big.png": oversized}) as (base, hits):
+        context = HtmlResourceContext(HtmlSourceContext(fetch_remote_images=True))
+        with pytest.raises(HtmlResourceLimitError, match="max_html_image_bytes"):
+            context.resolve_image(f"{base}/big.png")
+
+
+def test_html_remote_image_fetch_roundtrips_into_saved_bundle(tmp_path: Path) -> None:
+    """开启下载后：远程图片在解析阶段内嵌，save_bundle 不再依赖网络且图片入包。"""
+    png = _tiny_png_bytes()
+    with _local_image_server({"/chart.png": png}) as (base, hits):
+        url = f"{base}/chart.png"
+        rendered = render_html(_remote_chart_middle(url), standalone=False)
+        result = parse(
+            rendered.encode(),
+            file_suffix="html",
+            source_context=HtmlSourceContext(fetch_remote_images=True),
+        )
+        assert hits == ["/chart.png"]
+        body = result.middle_json.pages[0].blocks[0].content[0]
+        assert body.image_path and not body.image_url and not body.image_base64
+
+        result.save_bundle(tmp_path / "bundle")
+        assert [path.read_bytes() for path in sorted((tmp_path / "bundle" / "images").glob("*"))] == [png]

@@ -20,7 +20,7 @@ def isolated_logger() -> Iterator[None]:
     logger.remove()
     yield
     logger.remove()
-    logger.add(sys.stderr)
+    logger.add(sys.stderr, level="INFO")
 
 
 class _DummyPDFDocument:
