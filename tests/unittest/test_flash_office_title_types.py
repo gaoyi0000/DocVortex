@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -78,24 +79,55 @@ def test_office_models_store_standalone_images_in_image_base64() -> None:
             assert ";base64," in block["image_base64"]
 
 
-def test_pptx_svg_picture_uses_image_base64(monkeypatch: Any) -> None:
-    """验证 PPTX SVG 图片分支同样使用统一 image_base64 字段。"""
+def test_pptx_svg_picture_rasterizes_to_png(monkeypatch: Any) -> None:
+    """验证 PPTX SVG 图片光栅化为 PNG 并使用统一 image_base64 字段。"""
     converter = PptxConverter()
 
-    def fake_get_shape_image_data(_shape: Any) -> tuple[bytes, str]:
+    def fake_get_shape_image_data(_shape: Any, *, include_svg: bool = True) -> tuple[bytes, str]:
         """返回固定 SVG 图片载荷，隔离 PPTX shape 解析逻辑。"""
-        return b"<svg/>", "image/svg+xml"
+        return (
+            b'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20">'
+            b'<rect width="40" height="20" fill="red"/></svg>',
+            "image/svg+xml",
+        )
 
     monkeypatch.setattr(converter, "_get_shape_image_data", fake_get_shape_image_data)
 
     converter._handle_pictures(object())
 
-    assert converter.cur_page == [
-        {
-            "type": BlockType.IMAGE,
-            "image_base64": "data:image/svg+xml;base64,PHN2Zy8+",
-        }
-    ]
+    assert len(converter.cur_page) == 1
+    block = converter.cur_page[0]
+    assert block["type"] == BlockType.IMAGE
+    assert isinstance(block["image_base64"], str)
+    assert block["image_base64"].startswith("data:image/png;base64,")
+
+
+def test_pptx_unrasterizable_svg_falls_back_to_companion_raster_blip(monkeypatch: Any) -> None:
+    """验证 SVG 光栅化失败时回退到 PowerPoint 原生伴随存储的栅量 blip。"""
+    converter = PptxConverter()
+    pixel_png = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGP8zwACTGCSAQANHQEDgslx/wAAAABJRU5ErkJggg=="
+    )
+    include_svg_calls: list[bool] = []
+
+    def fake_get_shape_image_data(_shape: Any, *, include_svg: bool = True) -> tuple[bytes, str]:
+        """记录调用顺序并按 include_svg 返回 SVG 或其栅量 fallback。"""
+        include_svg_calls.append(include_svg)
+        if include_svg:
+            return b"<svg/>", "image/svg+xml"
+        return pixel_png, "image/png"
+
+    monkeypatch.setattr(converter, "_get_shape_image_data", fake_get_shape_image_data)
+
+    converter._handle_pictures(object())
+
+    assert include_svg_calls == [True, False]
+    assert len(converter.cur_page) == 1
+    block = converter.cur_page[0]
+    assert block["type"] == BlockType.IMAGE
+    assert isinstance(block["image_base64"], str)
+    assert block["image_base64"].startswith("data:image/")
+    assert ";base64," in block["image_base64"]
 
 
 def test_docx_model_splits_document_and_paragraph_titles() -> None:

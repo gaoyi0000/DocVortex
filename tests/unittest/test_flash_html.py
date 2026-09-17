@@ -706,6 +706,43 @@ def test_html_arbitrary_svg_data_image_degrades_to_alt_text() -> None:
     assert "alert(1)" not in middle.to_json()
 
 
+def test_html_svg_data_image_rasterizes_to_png() -> None:
+    """验证来源 HTML 的 SVG data URI 光栅化为 PNG 内嵌，而不是整图丢弃。"""
+    svg = base64.b64encode(
+        b'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20">'
+        b'<rect width="40" height="20" fill="red"/></svg>'
+    ).decode()
+    payload = f'<html><body><h1>SVG</h1><img src="data:image/svg+xml;base64,{svg}" alt="Vector"></body></html>'.encode()
+
+    middle = analyze_native_test_document(payload, file_suffix="html")[0]
+
+    body = _image_body(middle)
+    assert body.image_base64 is not None
+    assert body.image_base64.startswith("data:image/png;base64,")
+    assert "alert" not in middle.to_json()
+
+
+def test_html_local_svg_image_rasterizes_to_png(tmp_path: Path) -> None:
+    """验证本地 .svg 图片引用光栅化为 PNG sidecar 资产。"""
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "logo.svg").write_bytes(
+        b'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20">'
+        b'<rect width="40" height="20" fill="blue"/></svg>'
+    )
+    source = tmp_path / "sample.htm"
+    source.write_text(
+        '<html><head><base href="assets/"></head><body><h1>Local</h1><img src="logo.svg" alt="Logo"></body></html>',
+        encoding="utf-8",
+    )
+
+    result = parse(source)
+
+    image_key = _image_body(result.middle_json).image_path
+    assert image_key is not None
+    assert result.assets[image_key].startswith(b"\x89PNG")
+
+
 def test_html_mineru_figure_keeps_real_caption_without_exposing_alt_as_caption() -> None:
     """验证 MinerU renderer 图片只恢复真实 caption，不重复显示用于无障碍的长 alt。"""
     payload = b"""<html><body><h1>Figure</h1><figure class="docvortex-figure docvortex-figure--image">

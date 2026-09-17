@@ -20,6 +20,7 @@ from .....content.spans import (
     inline_span_plain_text,
     strip_span_dicts,
 )
+from .....foundation._svg_raster import serialize_svg_image
 from .....foundation.image_encoding import image_to_b64str
 from .....schema import BlockType
 from ..._shared.hyperlink import sanitize_hyperlink_target
@@ -108,16 +109,36 @@ def _style_html(text: str, style: TextStyle) -> str:
     return rendered
 
 
+_SVG_RENDER_DPI = 200
+
+
+def _frame_render_size(frame: etree._Element | None) -> tuple[int, int] | None:
+    """按 draw:frame 显示尺寸换算渲染像素，作为 SVG 光栅化的目标尺寸。"""
+    from .converters import _length_to_points
+
+    if frame is None:
+        return None
+    width = _length_to_points(frame.get(qname("svg", "width")))
+    height = _length_to_points(frame.get(qname("svg", "height")))
+    if width <= 0 or height <= 0:
+        return None
+    return (max(1, round(width / 72 * _SVG_RENDER_DPI)), max(1, round(height / 72 * _SVG_RENDER_DPI)))
+
+
 def _serialize_odf_image(
     image_bytes: bytes,
     *,
     part_name: str | None,
     content_type: str | None,
+    size_hint: tuple[int, int] | None = None,
 ) -> str | None:
-    """序列化 ODF 图片；SVG、SVM 和 GDIMeta 使用安全占位图保留对象位置。"""
+    """序列化 ODF 图片；SVG 光栅化为 PNG，SVM 和 GDIMeta 使用安全占位图保留对象位置。"""
     normalized_type = (content_type or "").split(";", 1)[0].strip().casefold()
     suffix = (part_name or "").rsplit(".", 1)[-1].casefold() if "." in (part_name or "") else ""
     if normalized_type == "image/svg+xml" or suffix == "svg":
+        rendered = serialize_svg_image(image_bytes, size_hint=size_hint)
+        if rendered is not None:
+            return rendered
         placeholder = create_text_placeholder((320, 180), ["SVG image", "Preview unavailable"])
         return image_to_b64str(placeholder, image_format="JPEG")
     if suffix == "svm" or "gdimetafile" in normalized_type or image_bytes.startswith(b"VCLMTF"):
@@ -712,7 +733,15 @@ class OdfBlockParser:
             )
         if not image_bytes:
             return None, alt
-        return _serialize_odf_image(image_bytes, part_name=part_name, content_type=content_type), alt
+        return (
+            _serialize_odf_image(
+                image_bytes,
+                part_name=part_name,
+                content_type=content_type,
+                size_hint=_frame_render_size(parent),
+            ),
+            alt,
+        )
 
     def _object_root(self, object_element: etree._Element) -> tuple[etree._Element | None, str | None]:
         """读取 draw:object 指向的子文档内容树和成员路径。"""

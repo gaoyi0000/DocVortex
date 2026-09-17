@@ -1177,6 +1177,68 @@ def test_odf_unavailable_image_preserves_safe_alt_text(
     assert "](javascript:" not in markdown
 
 
+_VECTOR_LOGO_SVG = (
+    b'<svg xmlns="http://www.w3.org/2000/svg" width="118" height="30" viewBox="0 0 118 30">'
+    b'<rect width="118" height="30" fill="#006633"/><circle cx="15" cy="15" r="8" fill="#ffffff"/></svg>'
+)
+
+
+@pytest.mark.parametrize(
+    ("svg_part", "expected_prefix"),
+    [
+        (_VECTOR_LOGO_SVG, "data:image/png;base64,"),
+        (b"<svg><unclosed>", "data:image/jpeg;base64,"),
+    ],
+)
+def test_odf_svg_image_rasterizes_or_falls_back_to_placeholder(svg_part: bytes, expected_prefix: str) -> None:
+    """验证包内 SVG 图片按帧尺寸光栅化为 PNG，无法渲染时回退安全占位图。"""
+    content = """<office:document-content
+ xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+ xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+ xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"
+ xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"
+ xmlns:xlink="http://www.w3.org/1999/xlink">
+ <office:body><office:text><draw:frame svg:width="2.82529in" svg:height="0.70632in">
+  <draw:image xlink:href="media/logo.svg"/><svg:title>vector logo</svg:title>
+ </draw:frame></office:text></office:body>
+</office:document-content>"""
+    payload = build_odf_package("odt", content, extra_parts={"media/logo.svg": svg_part})
+
+    middle, model = analyze_native_test_document(payload, file_suffix="odt")
+
+    block = model.pages[0][0]
+    assert block["type"] == BlockType.IMAGE
+    assert isinstance(block["image_base64"], str)
+    assert block["image_base64"].startswith(expected_prefix)
+
+
+def test_odf_word_formula_number_separator_becomes_tag() -> None:
+    """验证 Word 公式编号分隔符 # 在 ODT 公式对象中转换为 \\tag 而非裸 #。"""
+    content = """<office:document-content
+ xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+ xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+ xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"
+ xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"
+ xmlns:xlink="http://www.w3.org/1999/xlink">
+ <office:body><office:text><text:p><draw:frame svg:width="1.425in" svg:height="0.175in">
+  <draw:object xlink:href="./Object 1"/>
+ </draw:frame></text:p></office:text></office:body>
+</office:document-content>"""
+    formula = (
+        b'<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mtable><mtr><mtd>'
+        b"<mi>E</mi><mo>=</mo><msup><mi>mc</mi><mn>2</mn></msup>"
+        b'<mo>#</mo><mo fence="false">(</mo><mn>1</mn><mo fence="false">)</mo>'
+        b"</mtd></mtr></mtable></math>"
+    )
+    payload = build_odf_package("odt", content, extra_parts={"Object 1/content.xml": formula})
+
+    middle, model = analyze_native_test_document(payload, file_suffix="odt")
+
+    block = model.pages[0][0]
+    assert block["type"] == BlockType.EQUATION
+    assert block["content"] == r"E={mc}^{2}\tag{1}"
+
+
 def test_odf_annotation_emits_page_footnote_without_metadata_in_body() -> None:
     """验证标准 annotation 正文作为页脚注保留，作者日期不拼入周围正文。"""
     content = """<office:document-content

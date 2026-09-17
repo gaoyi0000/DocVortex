@@ -14,6 +14,7 @@ from docvortex.content.markup import ResolvedMarkupImage
 from docvortex.document.contracts import HtmlSourceContext
 
 from ....foundation._image_payload import parse_image_data_uri_strict, validate_remote_image_url
+from ....foundation._svg_raster import looks_like_svg_payload, serialize_svg_image
 from .._shared.hyperlink import sanitize_hyperlink_target
 from .constants import (
     MAX_HTML_IMAGE_BYTES,
@@ -178,7 +179,10 @@ class HtmlResourceContext:
             payload = source_file.read(MAX_HTML_IMAGE_BYTES + 1)
         if len(payload) > MAX_HTML_IMAGE_BYTES:
             raise HtmlResourceLimitError(f"HTML image exceeds max_html_image_bytes={MAX_HTML_IMAGE_BYTES}")
-        data_uri = _image_data_uri(payload)
+        if local_path.suffix.casefold() == ".svg" or looks_like_svg_payload(payload):
+            data_uri = serialize_svg_image(payload)
+        else:
+            data_uri = _image_data_uri(payload)
         if data_uri is None:
             return ResolvedMarkupImage(alt=alt) if alt else None
         self._charge_image_bytes(len(payload))
@@ -228,7 +232,7 @@ class HtmlResourceContext:
         return self.anchors.note_anchor(note) if self.anchors else None
 
     def _resolve_data_image(self, data_uri: str, *, alt: str) -> ResolvedMarkupImage | None:
-        """严格解析 data URI，并执行单图与累计图片预算。"""
+        """严格解析 data URI 并执行图片预算，SVG 光栅化为 PNG 后内嵌。"""
         if cached := self._data_image_cache.get(data_uri):
             return ResolvedMarkupImage(image_base64=cached.image_base64, alt=alt)
         if len(data_uri) > MAX_HTML_IMAGE_BYTES * 2:
@@ -238,7 +242,15 @@ class HtmlResourceContext:
         except ValueError:
             return ResolvedMarkupImage(alt=alt) if alt else None
         if extension == "svg":
-            return ResolvedMarkupImage(alt=alt) if alt else None
+            if len(payload) > MAX_HTML_IMAGE_BYTES:
+                raise HtmlResourceLimitError(f"HTML image exceeds max_html_image_bytes={MAX_HTML_IMAGE_BYTES}")
+            raster_uri = serialize_svg_image(payload)
+            if raster_uri is None:
+                return ResolvedMarkupImage(alt=alt) if alt else None
+            self._charge_image_bytes(len(payload))
+            resolved = ResolvedMarkupImage(image_base64=raster_uri, alt=alt)
+            self._data_image_cache[data_uri] = resolved
+            return resolved
         if len(payload) > MAX_HTML_IMAGE_BYTES:
             raise HtmlResourceLimitError(f"HTML image exceeds max_html_image_bytes={MAX_HTML_IMAGE_BYTES}")
         self._charge_image_bytes(len(payload))

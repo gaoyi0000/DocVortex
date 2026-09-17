@@ -74,6 +74,53 @@ def test_mathml_literal_identifier_tokens_do_not_become_latex_syntax(token: str,
     assert mathml_to_latex(math) == expected
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("#", r"\#"),
+        ("&amp;", r"\&"),
+        ("%", r"\%"),
+        ("_", r"\_"),
+    ],
+)
+def test_mathml_literal_operator_tokens_do_not_become_latex_syntax(value: str, expected: str) -> None:
+    """验证操作符字面量同样转义 TeX 控制字符，避免裸 #/& 破坏公式渲染。"""
+    math = etree.fromstring(
+        f'<math xmlns="http://www.w3.org/1998/Math/MathML"><mi>a</mi><mo>{value}</mo><mi>b</mi></math>'.encode()
+    )
+
+    assert mathml_to_latex(math) == f"a{expected}b"
+
+
+def test_mathml_word_equation_number_separator_becomes_tag() -> None:
+    """验证 Word 公式编号分隔符 #(n) 转换为 \\tag 并去掉多余的 matrix 包裹。"""
+    math = etree.fromstring(
+        b'<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mtable><mtr><mtd>'
+        b"<mi>E</mi><mo>=</mo><msup><mi>mc</mi><mn>2</mn></msup>"
+        b'<mo>#</mo><mo fence="false">(</mo><mn>1</mn><mo fence="false">)</mo>'
+        b"</mtd></mtr></mtable></math>"
+    )
+
+    assert mathml_to_latex(math) == r"E={mc}^{2}\tag{1}"
+
+
+def test_mathml_mtable_without_trailing_equation_number_keeps_matrix() -> None:
+    """验证无编号单行与多行 mtable 维持 matrix 输出，编号转换只命中行尾模式。"""
+    single = etree.fromstring(
+        b'<math xmlns="http://www.w3.org/1998/Math/MathML"><mtable><mtr><mtd><mi>a</mi></mtd></mtr></mtable></math>'
+    )
+    multi = etree.fromstring(
+        b'<math xmlns="http://www.w3.org/1998/Math/MathML"><mtable>'
+        b"<mtr><mtd><mi>a</mi></mtd></mtr>"
+        b'<mtr><mtd><mi>b</mi><mo>#</mo><mo fence="false">(</mo><mn>2</mn><mo fence="false">)</mo></mtd></mtr>'
+        b"</mtable></math>"
+    )
+
+    assert mathml_to_latex(single) == r"\begin{matrix}a\end{matrix}"
+    multi_latex = mathml_to_latex(multi)
+    assert multi_latex == r"\begin{matrix}a \\ b\#(2)\end{matrix}"
+
+
 @pytest.mark.parametrize("extra_node", ["<!--producer note-->", "<?producer note?>"])
 def test_mathml_annotation_scan_skips_non_element_nodes(extra_node: str) -> None:
     """验证 TeX annotation 扫描跳过 XML comment 与处理指令。"""

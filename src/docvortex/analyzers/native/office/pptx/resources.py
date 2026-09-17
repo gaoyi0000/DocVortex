@@ -1,6 +1,5 @@
 """PPTX 图片、图表与公式资源，复用当前转换器的单文档状态。"""
 
-import base64
 from typing import Any, Optional
 from loguru import logger
 from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -222,11 +221,19 @@ class _PptxResources:
             return
 
         if content_type == "image/svg+xml":
-            image_block = {
-                "type": BlockType.IMAGE,
-                "image_base64": self._bytes_to_data_uri(image_bytes, content_type),
-            }
-            self.cur_page.append(image_block)
+            img_base64 = serialize_office_image(image_bytes, content_type=content_type)
+            if img_base64 is None:
+                # SVG 光栅化失败时回退到 PowerPoint 为 SVG 原生伴随存储的栅量 blip。
+                fallback_data = self._get_shape_image_data(shape, include_svg=False)
+                if fallback_data is not None and fallback_data[1] != "image/svg+xml":
+                    img_base64 = serialize_office_image(fallback_data[0], content_type=fallback_data[1])
+            if img_base64 is not None:
+                self.cur_page.append(
+                    {
+                        "type": BlockType.IMAGE,
+                        "image_base64": img_base64,
+                    }
+                )
             return
 
         img_base64 = serialize_office_image(
@@ -256,19 +263,14 @@ class _PptxResources:
         )
 
     @staticmethod
-    def _bytes_to_data_uri(image_bytes: bytes, content_type: str) -> str:
-        """按原有图片、图表与公式资源规则执行 _bytes_to_data_uri，保持输入顺序与降级行为。"""
-        encoded = base64.b64encode(image_bytes).decode("utf-8")
-        return f"data:{content_type};base64,{encoded}"
-
-    @staticmethod
-    def _find_first_embedded_image_rid(shape) -> Optional[str]:
+    def _find_first_embedded_image_rid(shape, *, include_svg: bool = True) -> Optional[str]:
         """按原有图片、图表与公式资源规则执行 _find_first_embedded_image_rid，保持输入顺序与降级行为。"""
-        svg_blips = shape._element.findall(f".//{{{SVG_BLIP_NS}}}svgBlip")
-        for svg_blip in svg_blips:
-            relationship_id = svg_blip.get(f"{{{RELATIONSHIP_NS}}}embed")
-            if relationship_id:
-                return relationship_id
+        if include_svg:
+            svg_blips = shape._element.findall(f".//{{{SVG_BLIP_NS}}}svgBlip")
+            for svg_blip in svg_blips:
+                relationship_id = svg_blip.get(f"{{{RELATIONSHIP_NS}}}embed")
+                if relationship_id:
+                    return relationship_id
 
         blips = shape._element.findall(f".//{{{DRAWINGML_NS}}}blip")
         for blip in blips:
@@ -296,11 +298,11 @@ class _PptxResources:
                 return False
         return True
 
-    def _get_shape_image_data(self, shape) -> Optional[tuple[bytes, Optional[str]]]:
+    def _get_shape_image_data(self, shape, *, include_svg: bool = True) -> Optional[tuple[bytes, Optional[str]]]:
         """按原有图片、图表与公式资源规则执行 _get_shape_image_data，保持输入顺序与降级行为。"""
         relationship_id = None
         if hasattr(shape, "_element"):
-            relationship_id = self._find_first_embedded_image_rid(shape)
+            relationship_id = self._find_first_embedded_image_rid(shape, include_svg=include_svg)
 
         if relationship_id:
             try:

@@ -6,6 +6,7 @@ import re
 
 from lxml import etree  # type: ignore[reportMissingImports]
 
+from ..foundation._text import normalize_formula_tag_content
 from ..foundation.xml_names import local_name
 
 _OPERATOR_MAP = {
@@ -71,6 +72,8 @@ _LATEX_MATH_TOKEN_ESCAPES = {
     "}": r"\}",
     "~": r"\~{}",
 }
+# Word 线性格式把公式编号分隔符写作 ``#(n)``；经 mo 转义后行尾呈现为 ``\#(n)``。
+_EQUATION_TAG_RE = re.compile(r"\\#\s*\(([^()]*)\)\s*$")
 
 
 def _escape_text(value: str) -> str:
@@ -81,6 +84,22 @@ def _escape_text(value: str) -> str:
 def _escape_math_token(value: str) -> str:
     """转义 MathML 标识符中的 TeX 控制字符，避免字面文本改变公式结构。"""
     return "".join(_LATEX_MATH_TOKEN_ESCAPES.get(char, char) for char in value)
+
+
+def _tag_equation_number(latex: str) -> str | None:
+    """把 Word 公式编号分隔符残留的行尾 ``\\#(n)`` 转换为 LaTeX ``\\tag``。
+
+    参考 OMML 转换器 ``do_eqarr`` 的既有语义：单行公式数组末尾的编号
+    ``#(n)`` 输出为 ``公式\\tag{n}``，同时避免 ``\\tag`` 进入 matrix 环境。
+    """
+    match = _EQUATION_TAG_RE.search(latex)
+    if match is None:
+        return None
+    formula = latex[: match.start()].rstrip()
+    tag_content = normalize_formula_tag_content(match.group(1))
+    if not formula or not tag_content:
+        return None
+    return rf"{formula}\tag{{{tag_content}}}"
 
 
 def _children(element: etree._Element) -> list[etree._Element]:
@@ -107,7 +126,7 @@ def _convert(element: etree._Element) -> str:
     if name in {"mi", "mn"}:
         return _GREEK_MAP.get(text, _escape_math_token(text))
     if name == "mo":
-        return _OPERATOR_MAP.get(text, text)
+        return _OPERATOR_MAP.get(text, _escape_math_token(text))
     if name == "mtext":
         return rf"\text{{{_escape_text(text)}}}"
     if name == "mspace":
@@ -139,6 +158,8 @@ def _convert(element: etree._Element) -> str:
         return rf"\left{opening}{separators[0].join(values)}\right{closing}"
     if name == "mtable":
         rows = [_convert(child) for child in children if local_name(child) in {"mtr", "mlabeledtr"}]
+        if len(rows) == 1 and (tagged := _tag_equation_number(rows[0])) is not None:
+            return tagged
         return r"\begin{matrix}" + r" \\ ".join(rows) + r"\end{matrix}"
     if name in {"mtr", "mlabeledtr"}:
         return " & ".join(_convert(child) for child in children)
@@ -160,7 +181,7 @@ def mathml_to_latex(math_element: etree._Element) -> str | None:
         if "tex" in encoding and (annotation.text or "").strip():
             return (annotation.text or "").strip()
     latex = _convert(math_element).strip()
-    return latex or None
+    return _tag_equation_number(latex) or latex or None
 
 
 __all__ = ["mathml_to_latex"]

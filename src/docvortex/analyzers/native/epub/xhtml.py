@@ -35,6 +35,7 @@ from docvortex.content.markup.projector import (
 
 from ....content.spans import normalize_span_dicts
 from ....foundation._image_payload import parse_image_data_uri_strict
+from ....foundation._svg_raster import serialize_svg_image
 from .._shared.hyperlink import sanitize_hyperlink_target
 from .constants import IMAGE_MEDIA_BY_EXTENSION, SVG_MEDIA_TYPE
 from .package import EpubPackage
@@ -275,14 +276,22 @@ class _EpubMarkupContext:
         )
 
     def resolve_image(self, source: str, *, alt: str = "") -> ResolvedMarkupImage | None:
-        """读取并严格校验一个 EPUB 包内栅格图片引用。"""
+        """读取并严格校验一个 EPUB 包内图片引用，SVG 光栅化为 PNG。"""
         target = self.package.resolve_reference(source, base_part=self.chapter_path)
         if target is None:
             return ResolvedMarkupImage(alt=alt) if alt else None
         media_type = (self.package.content_type_for(target.path) or "").casefold()
         extension = target.path.rsplit(".", 1)[-1].casefold() if "." in target.path else ""
         media_type = media_type or IMAGE_MEDIA_BY_EXTENSION.get(extension, "")
-        if not media_type.startswith("image/") or media_type == SVG_MEDIA_TYPE:
+        if media_type == SVG_MEDIA_TYPE:
+            payload = self.package.read_part(target.path, asset=True)
+            if payload is None:
+                return ResolvedMarkupImage(alt=alt) if alt else None
+            data_uri = serialize_svg_image(payload)
+            if data_uri is None:
+                return ResolvedMarkupImage(alt=alt) if alt else None
+            return ResolvedMarkupImage(image_base64=data_uri, alt=alt)
+        if not media_type.startswith("image/"):
             return ResolvedMarkupImage(alt=alt) if alt else None
         payload = self.package.read_part(target.path, asset=True)
         if payload is None:

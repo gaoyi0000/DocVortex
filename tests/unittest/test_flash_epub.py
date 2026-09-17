@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
-from zipfile import ZIP_DEFLATED, ZipFile
+from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
 import pytest
 from _epub_test_utils import (
@@ -277,6 +277,54 @@ def test_epub_table_spans_are_bounded_before_downstream_grid_parsing() -> None:
         assert parsed_cell is not None
         assert parsed_cell["rowspan"] == "2"
         assert not parsed_cell.has_attr("colspan")
+    finally:
+        package.close()
+
+
+def _build_epub_with_svg_image_fixture() -> bytes:
+    """构造带 SVG 包内图片引用的最小 EPUB 3。"""
+    container = """<?xml version="1.0" encoding="UTF-8"?>
+<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container" version="1.0">
+  <rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles>
+</container>"""
+    opf = """<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="uid">urn:uuid:svg-image</dc:identifier></metadata>
+  <manifest>
+    <item id="chapter" href="chapter.xhtml" media-type="application/xhtml+xml"/>
+    <item id="logo" href="images/logo.svg" media-type="image/svg+xml"/>
+  </manifest>
+  <spine><itemref idref="chapter"/></spine>
+</package>"""
+    chapter = """<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"><body><h1>Logo</h1>
+  <p><img src="images/logo.svg" alt="Vector logo"/></p>
+</body></html>"""
+    logo = (
+        b'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20">'
+        b'<rect width="40" height="20" fill="green"/></svg>'
+    )
+    output = BytesIO()
+    with ZipFile(output, "w") as package:
+        package.writestr("mimetype", "application/epub+zip", compress_type=ZIP_STORED)
+        package.writestr("META-INF/container.xml", container, compress_type=ZIP_DEFLATED)
+        package.writestr("OEBPS/content.opf", opf, compress_type=ZIP_DEFLATED)
+        package.writestr("OEBPS/chapter.xhtml", chapter, compress_type=ZIP_DEFLATED)
+        package.writestr("OEBPS/images/logo.svg", logo, compress_type=ZIP_DEFLATED)
+    return output.getvalue()
+
+
+def test_epub_svg_package_image_rasterizes_to_png() -> None:
+    """验证包内 SVG 图片光栅化为 PNG，而不是整图丢弃只留 alt。"""
+    package = EpubPackage(_build_epub_with_svg_image_fixture())
+    chapter_path = "OEBPS/chapter.xhtml"
+    try:
+        root = package.xml_part(chapter_path)
+        anchors = build_anchor_registry([(chapter_path, root)], package)
+        blocks = EpubChapterConverter(package, chapter_path, root, anchors).convert()
+
+        image = next(block for block in blocks if block["type"] == BlockType.IMAGE)
+        assert image["image_base64"].startswith("data:image/png;base64,")
     finally:
         package.close()
 

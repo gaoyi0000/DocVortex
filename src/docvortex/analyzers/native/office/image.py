@@ -11,6 +11,7 @@ from loguru import logger
 from metafile_render import MetafileError, MetafileResourceLimitError, render_metafile
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
+from ....foundation._svg_raster import is_svg_image_part, looks_like_svg_payload, serialize_svg_image
 from ....foundation.image_encoding import image_to_b64str
 
 VECTOR_IMAGE_FORMATS = frozenset({"WMF", "EMF"})
@@ -266,6 +267,9 @@ def serialize_office_image(
         if rendered is not None:
             return rendered
         return serialize_vector_part_with_placeholder(part_name, content_type)
+
+    if is_svg_image_part(part_name, content_type) or looks_like_svg_payload(image_data):
+        return serialize_svg_image(image_data)
 
     try:
         pil_image = Image.open(BytesIO(image_data))
