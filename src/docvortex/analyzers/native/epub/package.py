@@ -201,7 +201,9 @@ class EpubPackage:
         except UnicodeDecodeError as exc:
             raise EpubParseError("Malformed EPUB package: mimetype is not ASCII") from exc
         if value != EPUB_MIME:
-            raise EpubParseError(f"Malformed EPUB package: invalid mimetype {value!r}")
+            if value.strip() != EPUB_MIME:
+                raise EpubParseError(f"Malformed EPUB package: invalid mimetype {value!r}")
+            logger.warning("EPUB mimetype has surrounding whitespace; continuing in compatibility mode")
         first_name = self._zip.infolist()[0].filename if self._zip.infolist() else ""
         if first_name != "mimetype" or info.compress_type != ZIP_STORED:
             logger.warning("EPUB mimetype is not the first uncompressed member; continuing in compatibility mode")

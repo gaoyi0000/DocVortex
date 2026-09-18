@@ -15,6 +15,7 @@ def build_epub_fixture(
     dtd_first_chapter: bool = False,
     encrypted_paths: tuple[str, ...] = (),
     omit_mimetype: bool = False,
+    mimetype_value: str = "application/epub+zip",
     unsafe_member: str | None = None,
     use_foreign_fallback: bool = False,
     use_missing_supported_fallback: bool = False,
@@ -146,7 +147,7 @@ def build_epub_fixture(
     output = BytesIO()
     with ZipFile(output, "w") as package:
         if not omit_mimetype:
-            package.writestr("mimetype", "application/epub+zip", compress_type=ZIP_STORED)
+            package.writestr("mimetype", mimetype_value, compress_type=ZIP_STORED)
         package.writestr("META-INF/container.xml", container, compress_type=ZIP_DEFLATED)
         if encrypted_paths:
             package.writestr("META-INF/encryption.xml", encryption, compress_type=ZIP_DEFLATED)

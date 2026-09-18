@@ -401,6 +401,16 @@ def test_epub2_and_mimetype_less_compatibility_packages_parse() -> None:
     assert len(analyze_native_test_document(compatibility, file_suffix="epub")[0].pages) == 3
 
 
+def test_epub_mimetype_with_surrounding_whitespace_parses() -> None:
+    """验证 mimetype 带首尾空白的真实世界 EPUB 可解析，错误 mimetype 仍被拒绝。"""
+    sloppy = build_epub_fixture(mimetype_value="application/epub+zip\r\n")
+    assert detect_epub(sloppy)
+    assert len(analyze_native_test_document(sloppy, file_suffix="epub")[0].pages) == 3
+    invalid = build_epub_fixture(mimetype_value="application/zip")
+    with pytest.raises(EpubParseError, match="invalid mimetype"):
+        EpubPackage(invalid)
+
+
 def test_epub_spine_foreign_resource_uses_xhtml_fallback_chain() -> None:
     """验证 foreign spine item 缺失时仍沿 manifest fallback 到 XHTML。"""
     middle, _ = analyze_native_test_document(build_epub_fixture(use_foreign_fallback=True), file_suffix="epub")
