@@ -370,7 +370,9 @@ class SpreadsheetProjector:
         semantic_sets = [self._get_table_semantic_positions(table) for table in tables]
         return [tables[index] for index in keep_maximal_by_semantic_sets(semantic_sets)]
 
-    def _sheet_semantic_predicates(self, sheet: Worksheet) -> tuple[Callable[[int, int], bool], Callable[[int, int], tuple[int, int]]]:
+    def _sheet_semantic_predicates(
+        self, sheet: Worksheet
+    ) -> tuple[Callable[[int, int], bool], Callable[[int, int], tuple[int, int]]]:
         """构造 gap 评分使用的语义内容与合并跨度查询。
 
         语义判断与 _build_excel_cell 物化结果保持一致：普通值取非空白文本，

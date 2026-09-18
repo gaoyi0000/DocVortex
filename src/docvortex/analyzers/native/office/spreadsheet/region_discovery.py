@@ -317,11 +317,7 @@ def keep_maximal_by_semantic_sets(semantic_sets: Sequence[set[tuple[int, int]]])
     """返回语义坐标集不被其它候选严格包含的下标。"""
     kept_indices: list[int] = []
     for index, semantic_set in enumerate(semantic_sets):
-        if any(
-            semantic_set < semantic_sets[other_index]
-            for other_index in range(len(semantic_sets))
-            if other_index != index
-        ):
+        if any(semantic_set < semantic_sets[other_index] for other_index in range(len(semantic_sets)) if other_index != index):
             continue
         kept_indices.append(index)
     return kept_indices
