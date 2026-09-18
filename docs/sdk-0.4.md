@@ -1,6 +1,6 @@
 # DocVortex 0.4 公共 SDK 与宿主迁移
 
-MinerU 使用 `docvortex>=0.4.0,<0.5.0`。本轮调整 Python 模块边界，保持文档协议、解析路由、模型回退与渲染语义。
+本文记录 0.4 系列的公共模块边界。MinerU 的页面原语复用需要 `docvortex>=0.4.15,<1`，文档协议、解析路由、模型回退与渲染语义保持不变。
 
 ## 公开入口
 
@@ -29,6 +29,11 @@ MinerU 使用 `docvortex>=0.4.0,<0.5.0`。本轮调整 Python 模块边界，保
 `prepare_text_evidence` 返回具名的 `PDFTextEvidence`，`apply_text_evidence` 统一完成链接、样式、脚本与 InlineSpan 物化。MinerU 仍决定调用时机、公式排除区域、超大字符页和 OCR 回退。
 
 `prepare_table_page` 仅在存在候选表格时调用；同页复用其物化数据。`recover_table_region` 返回最终 HTML、来源、置信度和诊断，`None` 表示没有可接受结果。结构恢复异常以 `PDFTableRecoveryError` 保留原始原因，交给宿主回退；HTML 物化异常继续传播，避免改变旧异常边界。页面几何可以复用，证据不持有 PDFium 裸句柄。
+
+从 0.4.15 起，`PDFPage.get_vector_geometry()` 一次遍历返回公开的 `PDFPageVectorGeometry`，其中
+`drawing_lines` 与 `path_infos` 是物化元组。`prepare_table_page` 和 `prepare_text_evidence` 都接受可选的
+`vector_geometry=`，可与 `geometry=` 一起复用。调用方按页、按处理窗口持有并释放这些数据；`PDFPage`
+本身不缓存。文字证据构造只读访问源字符，旋转和组行累加使用独立的局部对象。
 
 通用 `convert_bbox` 显式声明 `unit`、`pixel` 或 `point`；`page_size` 使用 point，`render_scale` 是每 point 的像素数。模型 bbox 的自动解释与三位小数规则保留在 MinerU。共享 PDFium 锁、进程池和资源关闭职责仍归 DocVortex。
 

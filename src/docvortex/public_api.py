@@ -131,6 +131,7 @@ PUBLIC_API: dict[str, tuple[str, ...]] = {
         "PDFDocument",
         "PDFPage",
         "PDFPageTextGeometry",
+        "PDFPageVectorGeometry",
         "PdfiumFontError",
         "PdfiumRuntimeInfo",
         "Span",

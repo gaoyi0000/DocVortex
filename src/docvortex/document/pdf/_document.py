@@ -104,6 +104,7 @@ from .native_contracts import (
 from .native_contracts import (
     PDFPageTextGeometry as PDFPageTextGeometry,
 )
+from .native_contracts import PDFPageVectorGeometry as PDFPageVectorGeometry
 from .native_contracts import (
     PDFPathInfo as PDFPathInfo,
 )
@@ -288,6 +289,10 @@ class PDFPage:
         """读取当前页及嵌套 Form 中已规范到视觉页面坐标的 Path 摘要。"""
 
         return self.pdf_doc.get_page_path_infos(self._idx)
+
+    def get_vector_geometry(self) -> PDFPageVectorGeometry:
+        """一次读取当前页的绘图线和路径摘要，由调用方显式管理复用范围。"""
+        return self.pdf_doc.get_page_vector_geometry(self._idx)
 
     def get_link_annotations(self) -> list[PDFLinkAnnotation]:
         """读取当前页已规范到视觉页面坐标的外部 URI Link 注解。"""
@@ -598,6 +603,17 @@ class PDFDocument:
             except Exception:
                 page_rotation = 0
             return _extract_page_drawing_lines(page, page_bbox, page_rotation)
+
+    def get_page_vector_geometry(self, page_idx: int) -> PDFPageVectorGeometry:
+        """在同一页面和共享锁内遍历一次 Path，返回独立物化的矢量几何。"""
+        with self._open_page(page_idx) as page:
+            page_bbox = _normalize_pdf_page_bbox(page.get_bbox())
+            try:
+                page_rotation = int(page.get_rotation()) % 360
+            except Exception:
+                page_rotation = 0
+            drawings, paths = _extract_page_paths_and_lines(page, page_bbox, page_rotation)
+            return PDFPageVectorGeometry(tuple(drawings), tuple(paths))
 
     def get_page_path_infos(self, page_idx: int) -> list[PDFPathInfo]:
         """提取页面及嵌套 Form 中的 Path 几何和绘制特征。"""

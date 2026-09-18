@@ -23,7 +23,7 @@ from docvortex.analyzers.pdf import (
     prepare_text_evidence,
     recover_table_region,
 )
-from docvortex.document.pdf import PDFPageTextGeometry
+from docvortex.document.pdf import PDFPageTextGeometry, PDFPageVectorGeometry
 from docvortex.public_api import PUBLIC_API
 
 
@@ -112,6 +112,7 @@ def test_table_page_is_reused_and_returns_materialized_html(monkeypatch: pytest.
     page = MagicMock(size=(100.0, 200.0))
     page.get_drawing_lines.return_value = []
     page.get_path_infos.return_value = []
+    page.get_vector_geometry.return_value = PDFPageVectorGeometry()
     geometry = PDFPageTextGeometry([], {}, {})
     prepared = prepare_table_page(page, geometry=geometry)
     recover = MagicMock(
@@ -125,8 +126,9 @@ def test_table_page_is_reused_and_returns_materialized_html(monkeypatch: pytest.
     assert all(result.html == "<table><tr><td>x<sup>2</sup></td></tr></table>" for result in results)
     assert [call.args[0].angle for call in recover.call_args_list] == [0, 90]
     page.get_chars_with_geometry.assert_not_called()
-    page.get_drawing_lines.assert_called_once()
-    page.get_path_infos.assert_called_once()
+    page.get_vector_geometry.assert_called_once()
+    page.get_drawing_lines.assert_not_called()
+    page.get_path_infos.assert_not_called()
     assert prepared.geometry is geometry
     monkeypatch.setattr(table_materialization, "recover_table_result", lambda *_args: None)
     assert recover_table_region(prepared, (10, 20, 90, 80)) is None

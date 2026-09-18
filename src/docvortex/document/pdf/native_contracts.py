@@ -126,6 +126,14 @@ class PDFImageInfo:
 
 
 @dataclass(frozen=True, slots=True)
+class PDFPageVectorGeometry:
+    """保存一次 Path 遍历物化的线与路径摘要，不持有 PDFium 句柄。"""
+
+    drawing_lines: tuple[PDFDrawingLine, ...] = ()
+    path_infos: tuple[PDFPathInfo, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class _PDFPageSnapshot:
     """保存单次页面生命周期提取的纯 Python 数据，不持有 PDFium 子对象。"""
 

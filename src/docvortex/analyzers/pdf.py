@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from copy import deepcopy
 from dataclasses import dataclass, replace
 from typing import Any
 
-from ..document.pdf import PDFPage, PDFPageTextGeometry
+from ..document.pdf import PDFPage, PDFPageTextGeometry, PDFPageVectorGeometry
 from ..schema import BBox
 from .native.pdf._script_geometry import ScriptRole, classify_char_script_roles
 from .native.pdf._table_recovery.contracts import NativeTableRectangle, NativeTableRule, PDFTableRecoveryError
@@ -57,6 +56,7 @@ def prepare_text_evidence(
     page: PDFPage,
     *,
     geometry: PDFPageTextGeometry | None = None,
+    vector_geometry: PDFPageVectorGeometry | None = None,
     supported_angles: Sequence[float] = (0.0,),
     table_regions: Sequence[BBox] = (),
     excluded_script_regions: Sequence[BBox] = (),
@@ -70,11 +70,12 @@ def prepare_text_evidence(
 
     geometry = geometry if geometry is not None else page.get_chars_with_geometry()
     page_size = tuple(float(value) for value in page.size)
-    chars = deepcopy(geometry.chars)
+    # 源字符只读；组行使用独立累加框，旋转等变换在消费处创建局部字符副本。
+    chars = geometry.chars
     lines = _build_native_line_items(
         get_lines_from_chars(chars), page_size, page_rotation=page.rotation, supported_angles=supported_angles
     )
-    drawing_lines = page.get_drawing_lines()
+    drawing_lines = vector_geometry.drawing_lines if vector_geometry is not None else page.get_drawing_lines()
     styles = detect_pdf_text_style_lines(lines, drawing_lines)
     links = detect_pdf_text_link_lines(lines, page.get_link_annotations())
     script_lines = merge_text_line_clusters(list(lines), page_size, list(table_regions))
@@ -124,16 +125,22 @@ def apply_text_evidence(
     )
 
 
-def prepare_table_page(page: PDFPage, *, geometry: PDFPageTextGeometry | None = None) -> PDFTablePage:
+def prepare_table_page(
+    page: PDFPage,
+    *,
+    geometry: PDFPageTextGeometry | None = None,
+    vector_geometry: PDFPageVectorGeometry | None = None,
+) -> PDFTablePage:
     """在调用方确认存在候选表格后物化页面原语，复用已有字符几何。"""
     from .native.pdf._table_recovery.engine import coerce_native_table_rectangles, coerce_native_table_rules
 
     geometry = geometry if geometry is not None else page.get_chars_with_geometry()
+    vector_geometry = vector_geometry if vector_geometry is not None else page.get_vector_geometry()
     return PDFTablePage(
         tuple(float(value) for value in page.size),
         geometry,
-        coerce_native_table_rules(page.get_drawing_lines()),
-        coerce_native_table_rectangles(page.get_path_infos()),
+        coerce_native_table_rules(vector_geometry.drawing_lines),
+        coerce_native_table_rectangles(vector_geometry.path_infos),
     )
 
 

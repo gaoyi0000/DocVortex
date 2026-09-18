@@ -7,6 +7,8 @@ from .layout_evidence import build_layout_evidence
 import re
 import statistics
 import unicodedata
+import heapq
+import math
 
 from ....schema import BBox
 from .geometry import (
@@ -33,6 +35,59 @@ def _caption_crosses_left_text(members: list[_LineItem]) -> bool:
         for seed in members
         for other in members
     )
+
+
+def _same_baseline_candidate_pairs(
+    lines: list[_LineItem],
+    local_bboxes: list[BBox],
+    compatible_indices: dict[tuple[int, bool, str | None], list[int]],
+) -> list[list[int]] | None:
+    """仅筛除原规则不可能接受的纵向远距行对；异常或密集页面回退原遍历。"""
+    bounds: list[tuple[float, float]] = []
+    for line, box in zip(lines, local_bboxes, strict=True):
+        try:
+            height = _line_effective_height(line, box)
+            if not all(math.isfinite(value) for value in (*box, height)) or box[2] <= box[0] or box[3] <= box[1]:
+                return None
+            # 同行规则既接受框交叠，也接受底边差不超过 0.25 * max(height) 的行。
+            # 两行各自扩展底边容差形成超集，最终仍由原判定函数决定是否合并。
+            low, high = min(box[1], box[3] - 0.25 * height), box[3] + 0.25 * height
+            if line.angle == 0 and line.source_bbox is not None:
+                source = line.source_bbox
+                if not all(math.isfinite(value) for value in source) or source[2] <= source[0] or source[3] <= source[1]:
+                    return None
+                source_height = source[3] - source[1]
+                low = min(low, source[1], source[3] - 0.25 * source_height)
+                high = max(high, source[3] + 0.25 * source_height)
+            if not math.isfinite(low) or not math.isfinite(high):
+                return None
+        except (TypeError, ValueError, IndexError):
+            return None
+        bounds.append((low, high))
+
+    candidates: list[list[int]] = [[] for _ in lines]
+    pair_count = 0
+    pair_limit = max(4096, 32 * len(lines))
+    for indices in compatible_indices.values():
+        active: set[int] = set()
+        ends: list[tuple[float, int]] = []
+        for index in sorted(indices, key=lambda item: (bounds[item][0], item)):
+            low, high = bounds[index]
+            # 保留相等端点，避免漏掉原规则恰好落在容差边界上的行对。
+            while ends and ends[0][0] < low:
+                _, expired = heapq.heappop(ends)
+                active.remove(expired)
+            pair_count += len(active)
+            if pair_count > pair_limit:
+                return None
+            for previous in active:
+                left, right = (previous, index) if previous < index else (index, previous)
+                candidates[left].append(right)
+            active.add(index)
+            heapq.heappush(ends, (high, index))
+    for partners in candidates:
+        partners.sort()
+    return candidates
 
 
 def _merge_same_baseline_text_lines(
@@ -67,8 +122,14 @@ def _merge_same_baseline_text_lines(
     compatible_indices: dict[tuple[int, bool, str | None], list[int]] = {}
     for index, line in enumerate(lines):
         compatible_indices.setdefault((line.angle, line.formula_candidate_only, line.semantic_type), []).append(index)
+    candidates = _same_baseline_candidate_pairs(lines, local_bboxes, compatible_indices)
     for left_index, left_line in enumerate(lines):
-        for right_index in compatible_indices[(left_line.angle, left_line.formula_candidate_only, left_line.semantic_type)]:
+        right_indices = (
+            candidates[left_index]
+            if candidates is not None
+            else compatible_indices[(left_line.angle, left_line.formula_candidate_only, left_line.semantic_type)]
+        )
+        for right_index in right_indices:
             if right_index <= left_index:
                 continue
             right_line = lines[right_index]
@@ -222,13 +283,13 @@ def _overlapping_inline_cluster_pair_is_connected(
         return False
     if first_line.semantic_type != second_line.semantic_type:
         return False
+    if _bbox_axis_overlap_ratio(first_bbox, second_bbox, axis="y") < 0.55:
+        return False
     if _connection_crosses_table(
         first_line.bbox,
         second_line.bbox,
         table_bboxes,
     ):
-        return False
-    if _bbox_axis_overlap_ratio(first_bbox, second_bbox, axis="y") < 0.55:
         return False
 
     first_guard_bbox = first_line.source_bbox or first_bbox
