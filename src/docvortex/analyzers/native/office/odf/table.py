@@ -10,6 +10,12 @@ from dataclasses import dataclass
 from lxml import etree  # type: ignore[reportMissingImports]
 
 from ..limits import MAX_GRID_SLOTS
+from ..spreadsheet.region_discovery import (
+    discover_connected_regions,
+    keep_maximal_by_semantic_sets,
+    region_semantic_positions,
+    select_best_gap_candidate,
+)
 from .constants import MAX_EXPANSION_TEXT_BYTES, qname
 from .errors import OdfResourceLimitError
 from .models import GridCell, TableGrid
@@ -326,37 +332,64 @@ def crop_table_grid(grid: TableGrid, bounds: tuple[int, int, int, int]) -> Table
     return trim_table_grid(TableGrid(rows=rows, header_rows=header_rows, covered=covered))
 
 
+def _grid_cell_at(grid: TableGrid, row: int, col: int) -> GridCell | None:
+    """安全返回网格坐标上的原点单元格，越界或未物化位置返回 None。"""
+    cells = grid.rows[row] if 0 <= row < len(grid.rows) else []
+    return cells[col] if 0 <= col < len(cells) else None
+
+
 def split_table_regions(grid: TableGrid) -> list[TableGrid]:
-    """按至少两条全空行列分隔电子表格中的离散数据区域。"""
-    nonempty = [
-        (row_index, col_index)
-        for row_index, row in enumerate(grid.rows)
-        for col_index, cell in enumerate(row)
+    """洪水填充发现离散数据区域，并按 gap 候选评分选择稳定分割。
+
+    与 XLS/XLSX 投影器共用区域发现算法：连通性掩码把可见内容、合并跨度和
+    covered 占位都视为内容格，BFS 四向连通并在容忍距离内跨越空白；对候选
+    tolerance 按惩罚指标选优后，逐区域裁剪出包围盒网格。
+    """
+    max_row = len(grid.rows) - 1
+    max_col = grid.width - 1
+    if max_row < 0 or max_col < 0:
+        return []
+
+    def has_content(row: int, col: int) -> bool:
+        """判断坐标是否有可见内容或属于合并占位（对齐 Excel 投影语义）。"""
+        if (row, col) in grid.covered:
+            return True
+        cell = _grid_cell_at(grid, row, col)
+        return cell is not None and (cell.has_content or cell.row_span > 1 or cell.col_span > 1)
+
+    # 仅从有可见内容的坐标出发，对齐 Excel 投影只以有值格为起点的行为。
+    starts = [
+        (row, col)
+        for row, cells in enumerate(grid.rows)
+        for col, cell in enumerate(cells)
         if cell is not None and cell.has_content
     ]
-    if not nonempty:
+    if not starts:
         return []
-    row_values = sorted({row for row, _ in nonempty})
-    row_bands: list[tuple[int, int]] = []
-    start = previous = row_values[0]
-    for current in row_values[1:]:
-        if current - previous > 2:
-            row_bands.append((start, previous))
-            start = current
-        previous = current
-    row_bands.append((start, previous))
-    result: list[TableGrid] = []
-    for row_start, row_end in row_bands:
-        cols = sorted({col for row, col in nonempty if row_start <= row <= row_end})
-        col_start = col_previous = cols[0]
-        for current in cols[1:] + [cols[-1] + 3]:
-            if current - col_previous > 2:
-                region = crop_table_grid(grid, (row_start, row_end, col_start, col_previous))
-                if region.rows:
-                    result.append(region)
-                col_start = current
-            col_previous = current
-    return result
+
+    def has_semantic_content(row: int, col: int) -> bool:
+        """判断坐标是否包含可见或结构化 HTML 语义。"""
+        cell = _grid_cell_at(grid, row, col)
+        return cell is not None and cell.has_content
+
+    def span_at(row: int, col: int) -> tuple[int, int]:
+        """返回原点单元格的合并跨度，非原点或空位返回 1x1。"""
+        cell = _grid_cell_at(grid, row, col)
+        return (cell.row_span, cell.col_span) if cell is not None else (1, 1)
+
+    _, _, best_regions = select_best_gap_candidate(
+        lambda tolerance: discover_connected_regions(has_content, starts, max_row, max_col, tolerance),
+        has_semantic_content,
+        span_at,
+    )
+    semantic_sets = [region_semantic_positions(region, has_semantic_content) for region in best_regions]
+    regions: list[TableGrid] = []
+    for index in keep_maximal_by_semantic_sets(semantic_sets):
+        region = best_regions[index]
+        cropped = crop_table_grid(grid, (region.row_start, region.row_end, region.col_start, region.col_end))
+        if cropped.rows:
+            regions.append(cropped)
+    return regions
 
 
 def _render_html_row(grid: TableGrid, row_index: int, *, header: bool) -> str:

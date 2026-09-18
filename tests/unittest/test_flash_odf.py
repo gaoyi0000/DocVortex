@@ -569,8 +569,8 @@ def test_ods_cell_note_emits_page_footnote() -> None:
 
     pages = OdsModel().predict(BytesIO(build_odf_package("ods", content)))
 
-    assert [block["type"] for block in pages[0]] == [BlockType.TABLE, BlockType.PAGE_FOOTNOTE]
-    assert "Cell [1]" in pages[0][0]["content"]
+    assert [block["type"] for block in pages[0]] == [BlockType.TEXT, BlockType.PAGE_FOOTNOTE]
+    assert inline_text(pages[0][0]["content"]) == "Cell [1]"
     assert inline_text(pages[0][1]["content"]) == "[1] Cell note"
 
 
@@ -835,6 +835,123 @@ def test_odf_skips_wide_empty_filler_rows_between_content_regions() -> None:
     assert len(grid.rows) == 302
     assert grid.width == 1
     assert len(odf_table_module.split_table_regions(grid)) == 2
+
+
+def test_odf_column_offset_region_drops_leading_empty_rows() -> None:
+    """验证列错位数据区域的包围盒不携带整行带的前导空行。"""
+
+    def cell(text: str) -> str:
+        return f'<table:table-cell><text:p>{text}</text:p></table:table-cell>'
+
+    def row(*cells_xml: str) -> str:
+        return f"<table:table-row>{''.join(cells_xml)}</table:table-row>"
+
+    gap = '<table:table-cell table:number-columns-repeated="2"/>'
+    table_xml = (
+        '<table:table xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" '
+        'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">'
+        + row(*[cell("L") for _ in range(4)]) * 4
+        + row(*[cell("L") for _ in range(4)], gap, cell("col-1"), cell("col-2"), cell("col-3"))
+        + row(*[cell("L") for _ in range(4)], gap, cell("1"), cell("2"), cell("3")) * 4
+        + "</table:table>"
+    )
+
+    grid = odf_table_module.parse_table_grid(etree.fromstring(table_xml.encode()), lambda cell: "".join(cell.itertext()))
+    regions = odf_table_module.split_table_regions(grid)
+
+    assert [(len(region.rows), region.width) for region in regions] == [(9, 4), (5, 3)]
+    assert [cell.html if cell else "" for cell in regions[1].rows[0]] == ["col-1", "col-2", "col-3"]
+
+
+def test_odf_single_blank_column_splits_overlapping_side_by_side_tables() -> None:
+    """验证隔一列空位且行范围重叠的并排表格按连通域拆分。"""
+
+    def cell(text: str) -> str:
+        return f'<table:table-cell><text:p>{text}</text:p></table:table-cell>'
+
+    def row(*cells_xml: str) -> str:
+        return f"<table:table-row>{''.join(cells_xml)}</table:table-row>"
+
+    one_blank = '<table:table-cell/>'
+    wide_gap = '<table:table-cell table:number-columns-repeated="4"/>'
+    table_xml = (
+        '<table:table xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" '
+        'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">'
+        + row(cell("a0"), cell("a1"), cell("a2"))
+        + row(cell("b0"), cell("b1"), cell("b2"))
+        + row(cell("c0"), cell("c1"), cell("c2"), one_blank, cell("d0"), cell("d1"), cell("d2"))
+        + row(wide_gap, cell("e0"), cell("e1"), cell("e2"))
+        + row(wide_gap, cell("f0"), cell("f1"), cell("f2"))
+        + "</table:table>"
+    )
+
+    grid = odf_table_module.parse_table_grid(etree.fromstring(table_xml.encode()), lambda cell: "".join(cell.itertext()))
+    regions = odf_table_module.split_table_regions(grid)
+
+    assert [(len(region.rows), region.width) for region in regions] == [(3, 3), (3, 3)]
+
+
+def test_odf_single_blank_row_splits_like_excel_gap_selection() -> None:
+    """验证单空行分隔的数据带与 Excel 投影一致选择零容忍拆分。"""
+
+    def cell(text: str) -> str:
+        return f'<table:table-cell><text:p>{text}</text:p></table:table-cell>'
+
+    blank_row = '<table:table-row><table:table-cell table:number-columns-repeated="3"/></table:table-row>'
+    table_xml = (
+        '<table:table xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" '
+        'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">'
+        f"<table:table-row>{cell('v00')}{cell('v01')}{cell('v02')}</table:table-row>"
+        f"<table:table-row>{cell('v10')}{cell('v11')}{cell('v12')}</table:table-row>"
+        f"{blank_row}"
+        f"<table:table-row>{cell('v30')}{cell('v31')}{cell('v32')}</table:table-row>"
+        "</table:table>"
+    )
+
+    grid = odf_table_module.parse_table_grid(etree.fromstring(table_xml.encode()), lambda cell: "".join(cell.itertext()))
+    regions = odf_table_module.split_table_regions(grid)
+
+    assert [(len(region.rows), region.width) for region in regions] == [(2, 3), (1, 3)]
+
+
+def test_ods_singleton_regions_downgrade_to_text_blocks() -> None:
+    """验证无结构单格区域降级为文本块，结构化单格仍按表格输出。"""
+    content = """<office:document-content
+ xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+ xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+ xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">
+ <office:body><office:spreadsheet><table:table table:name="Sheet1">
+  <table:table-row><table:table-cell><text:p>solo</text:p></table:table-cell></table:table-row>
+  <table:table-row table:number-rows-repeated="3"><table:table-cell table:number-columns-repeated="2"/></table:table-row>
+  <table:table-row><table:table-cell table:number-columns-repeated="2"/><table:table-cell>
+   <table:table><table:table-row><table:table-cell><text:p>inner</text:p></table:table-cell></table:table-row></table:table>
+  </table:table-cell></table:table-row>
+ </table:table></office:spreadsheet></office:body>
+</office:document-content>"""
+
+    pages = OdsModel().predict(BytesIO(build_odf_package("ods", content)))
+
+    assert [block["type"] for block in pages[0]] == [BlockType.TEXT, BlockType.TABLE]
+    assert inline_text(pages[0][0]["content"]) == "solo"
+    assert "inner" in str(pages[0][1]["content"])
+
+
+def test_ods_demo_workbook_splits_regions_like_excel_workbook() -> None:
+    """验证真实 ODS 工作簿的区域拆分与 Excel 投影一致且无前导空行。"""
+    demo_path = Path(__file__).resolve().parents[2] / "demo" / "office_docs" / "xlsx_01.ods"
+    with demo_path.open("rb") as handle:
+        pages = OdsModel().predict(handle)
+
+    assert len(pages) == 3
+
+    sheet_two_tables = [block for block in pages[1] if block["type"] == BlockType.TABLE]
+    assert [str(block["content"]).count("<tr>") for block in sheet_two_tables] == [9, 5, 5]
+    for block in sheet_two_tables:
+        first_row = str(block["content"]).split("</tr>")[0]
+        assert "<p>col-" in first_row
+
+    sheet_three_tables = [block for block in pages[2] if block["type"] == BlockType.TABLE]
+    assert [str(block["content"]).count("<tr>") for block in sheet_three_tables] == [7, 7]
 
 
 def test_odf_document_grid_budget_is_shared_across_tables(monkeypatch: pytest.MonkeyPatch) -> None:

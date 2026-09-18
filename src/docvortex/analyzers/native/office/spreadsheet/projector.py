@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import collections
 import html
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 from loguru import logger
@@ -17,10 +17,12 @@ from ..._shared.hyperlink import OFFICE_EXTERNAL_HYPERLINK_SCHEMES, sanitize_hyp
 from .....content.spans import text_spans
 from .html import EQUATION_BOOKENDS, render_spreadsheet_table
 from .models import AnchoredBlock, DataRegion, ExcelCell, ExcelTable, FormulaMap, SheetImage
-
-AUTO_GAP_TOLERANCE_CANDIDATES = (0, 1, 2)
-AUTO_GAP_TOLERANCE_PREFERENCE = {1: 0, 0: 1, 2: 2}
-AUTO_GAP_TOLERANCE_PREFERENCE_MARGIN = 0.15
+from .region_discovery import (
+    ConnectedRegion,
+    discover_connected_regions,
+    keep_maximal_by_semantic_sets,
+    select_best_gap_candidate,
+)
 
 
 class _MergedCellLookup:
@@ -365,176 +367,48 @@ class SpreadsheetProjector:
 
     def _filter_semantic_subset_tables(self, tables: list[ExcelTable]) -> list[ExcelTable]:
         """删除语义坐标严格包含于其它候选的重复表格。"""
-        semantic_positions = [self._get_table_semantic_positions(table) for table in tables]
-        filtered_tables = []
+        semantic_sets = [self._get_table_semantic_positions(table) for table in tables]
+        return [tables[index] for index in keep_maximal_by_semantic_sets(semantic_sets)]
 
-        for table_idx, table in enumerate(tables):
-            if any(
-                semantic_positions[table_idx] < semantic_positions[other_idx]
-                for other_idx in range(len(tables))
-                if other_idx != table_idx
-            ):
-                continue
-            filtered_tables.append(table)
+    def _sheet_semantic_predicates(self, sheet: Worksheet) -> tuple[Callable[[int, int], bool], Callable[[int, int], tuple[int, int]]]:
+        """构造 gap 评分使用的语义内容与合并跨度查询。
 
-        return filtered_tables
+        语义判断与 _build_excel_cell 物化结果保持一致：普通值取非空白文本，
+        DISPIMG 公式仅在解析出媒体时算内容，另叠加锚定图片与公式映射。
+        """
+        merged_lookup = self._get_merged_cell_lookup(sheet)
 
-    def _build_table_content_mask(self, excel_table: ExcelTable) -> list[list[bool]]:
-        """构造包含合并跨度的表格语义内容掩码。"""
-        mask = [[False for _ in range(excel_table.num_cols)] for _ in range(excel_table.num_rows)]
-        for cell in excel_table.data:
-            if not self._cell_has_semantic_content(excel_table, cell):
-                continue
-            for row_idx in range(cell.row, min(cell.row + cell.row_span, excel_table.num_rows)):
-                for col_idx in range(cell.col, min(cell.col + cell.col_span, excel_table.num_cols)):
-                    mask[row_idx][col_idx] = True
-        return mask
+        def has_semantic_content(row: int, col: int) -> bool:
+            """判断源坐标是否含文本、媒体或公式语义。"""
+            cell = sheet._cells.get((row + 1, col + 1))
+            if cell is not None and cell.value is not None:
+                raw_text = str(cell.value)
+                if "DISPIMG" in raw_text:
+                    resolved_image = self._resolve_cell_image(raw_text)
+                    if resolved_image and resolved_image.strip():
+                        return True
+                elif raw_text.strip():
+                    return True
+            if any(media.strip() for media in self.table_image_map.get((row, col), [])):
+                return True
+            return bool(self.math_map.get((row, col)))
 
-    @staticmethod
-    def _count_max_consecutive_true(flags: list[bool]) -> int:
-        """返回布尔序列中最长连续真值长度。"""
-        max_count = 0
-        current = 0
-        for flag in flags:
-            if flag:
-                current += 1
-                max_count = max(max_count, current)
-            else:
-                current = 0
-        return max_count
-
-    @staticmethod
-    def _is_real_singleton_table(excel_table: ExcelTable) -> bool:
-        """判断候选是否是单格且不可进一步拆分的真实表格。"""
-        if excel_table.num_rows != 1 or excel_table.num_cols != 1 or len(excel_table.data) != 1:
-            return False
-        cell = excel_table.data[0]
-        return cell.row_span == 1 and cell.col_span == 1
-
-    def _summarize_table_for_gap_selection(self, excel_table: ExcelTable) -> dict[str, float | int | bool]:
-        """计算 gap 候选评分使用的单表形态指标。"""
-        table_area = excel_table.num_rows * excel_table.num_cols
-        content_mask = self._build_table_content_mask(excel_table)
-        content_area = sum(sum(1 for flag in row if flag) for row in content_mask)
-        blank_ratio = 1.0 - (content_area / max(table_area, 1))
-
-        interior_blank_rows = [not any(content_mask[row_idx]) for row_idx in range(1, max(excel_table.num_rows - 1, 1))]
-        interior_blank_cols = [
-            not any(content_mask[row_idx][col_idx] for row_idx in range(excel_table.num_rows))
-            for col_idx in range(1, max(excel_table.num_cols - 1, 1))
-        ]
-        if excel_table.num_rows <= 2:
-            interior_blank_rows = []
-        if excel_table.num_cols <= 2:
-            interior_blank_cols = []
-
-        interior_blank_row_count = sum(interior_blank_rows)
-        interior_blank_col_count = sum(interior_blank_cols)
-        max_consecutive_interior_blank_lines = max(
-            self._count_max_consecutive_true(interior_blank_rows),
-            self._count_max_consecutive_true(interior_blank_cols),
-        )
-
-        return {
-            "table_area": table_area,
-            "content_area": content_area,
-            "blank_ratio": blank_ratio,
-            "interior_blank_row_count": interior_blank_row_count,
-            "interior_blank_col_count": interior_blank_col_count,
-            "max_consecutive_interior_blank_lines": max_consecutive_interior_blank_lines,
-            "real_singleton": self._is_real_singleton_table(excel_table),
-        }
-
-    def _summarize_candidate_tables(self, tables: list[ExcelTable]) -> dict[str, float | int]:
-        """汇总一组 gap 候选表格的惩罚指标。"""
-        table_count = len(tables)
-        real_singleton_count = 0
-        severe_separator_count = 0
-        sparse_large_table_count = 0
-        total_area = 0
-        weighted_blank_numerator = 0.0
-        total_interior_blank_lines = 0
-        total_possible_interior_lines = 0
-        row_cover_count = collections.Counter()
-
-        for table in tables:
-            table_summary = self._summarize_table_for_gap_selection(table)
-            table_area = int(table_summary["table_area"])
-            blank_ratio = float(table_summary["blank_ratio"])
-            interior_blank_row_count = int(table_summary["interior_blank_row_count"])
-            interior_blank_col_count = int(table_summary["interior_blank_col_count"])
-            max_consecutive_interior_blank_lines = int(table_summary["max_consecutive_interior_blank_lines"])
-
-            total_area += table_area
-            weighted_blank_numerator += table_area * blank_ratio
-            total_interior_blank_lines += interior_blank_row_count + interior_blank_col_count
-            total_possible_interior_lines += max(table.num_rows - 2, 0) + max(table.num_cols - 2, 0)
-            for row_idx in range(table.anchor[1], table.anchor[1] + table.num_rows):
-                row_cover_count[row_idx] += 1
-
-            if bool(table_summary["real_singleton"]):
-                real_singleton_count += 1
-            if table_area >= 6 and blank_ratio > 0.35:
-                sparse_large_table_count += 1
-            if max_consecutive_interior_blank_lines >= 2:
-                severe_separator_count += 1
-
-        occupied_row_count = max(len(row_cover_count), 1)
-        row_overlap_excess_ratio = sum(max(0, count - 1) for count in row_cover_count.values()) / occupied_row_count
-
-        return {
-            "real_singleton_ratio": real_singleton_count / max(table_count, 1),
-            "weighted_blank_ratio": weighted_blank_numerator / max(total_area, 1),
-            "interior_blank_line_ratio": total_interior_blank_lines / max(total_possible_interior_lines, 1),
-            "sparse_large_table_ratio": sparse_large_table_count / max(table_count, 1),
-            "severe_separator_count": severe_separator_count,
-            "row_overlap_excess_ratio": row_overlap_excess_ratio,
-        }
+        return has_semantic_content, merged_lookup.get_anchor_span
 
     def _select_best_gap_candidate(self, sheet: Worksheet) -> tuple[int, float, list[ExcelTable]]:
         """按固定候选与偏好顺序选择最稳定的 gap tolerance。"""
-        candidates = []
-        for gap_tolerance in AUTO_GAP_TOLERANCE_CANDIDATES:
-            raw_tables = self._find_data_tables_with_gap_raw(sheet, gap_tolerance)
-            summary = self._summarize_candidate_tables(raw_tables)
-            penalty = (
-                6.0 * int(summary["severe_separator_count"])
-                + 2.5 * float(summary["interior_blank_line_ratio"])
-                + 1.5 * float(summary["sparse_large_table_ratio"])
-                + 1.0 * float(summary["real_singleton_ratio"])
-                + 0.5 * float(summary["weighted_blank_ratio"])
-                + 1.0 * float(summary["row_overlap_excess_ratio"])
-            )
-            candidates.append(
-                {
-                    "gap_tolerance": gap_tolerance,
-                    "penalty": penalty,
-                    "tables": self._filter_semantic_subset_tables(raw_tables),
-                    **summary,
-                }
-            )
-
-        min_penalty = min(float(candidate["penalty"]) for candidate in candidates)
-        near_best_candidates = [
-            candidate
-            for candidate in candidates
-            if float(candidate["penalty"]) <= (min_penalty + AUTO_GAP_TOLERANCE_PREFERENCE_MARGIN)
-        ]
-
-        best_candidate = min(
-            near_best_candidates,
-            key=lambda candidate: (
-                int(candidate["severe_separator_count"]),
-                AUTO_GAP_TOLERANCE_PREFERENCE[int(candidate["gap_tolerance"])],
-                float(candidate["interior_blank_line_ratio"]),
-                float(candidate["penalty"]),
-            ),
+        bounds: DataRegion = self._find_true_data_bounds(sheet)
+        has_semantic_content, span_at = self._sheet_semantic_predicates(sheet)
+        gap_tolerance, penalty, best_regions = select_best_gap_candidate(
+            lambda tolerance: self._discover_sheet_regions(sheet, bounds, tolerance),
+            has_semantic_content,
+            span_at,
         )
-        return (
-            int(best_candidate["gap_tolerance"]),
-            float(best_candidate["penalty"]),
-            best_candidate["tables"],
+        merged_lookup = self._get_merged_cell_lookup(sheet)
+        tables = self._filter_semantic_subset_tables(
+            [self._materialize_region(sheet, region, merged_lookup) for region in best_regions]
         )
+        return gap_tolerance, penalty, tables
 
     def _select_best_tables(self, sheet: Worksheet) -> list[ExcelTable]:
         """选择并记录当前工作表的最佳表格候选集合。"""
@@ -585,28 +459,77 @@ class SpreadsheetProjector:
     def _find_data_tables_with_gap_raw(self, sheet: Worksheet, gap_tolerance: int) -> list[ExcelTable]:
         """在固定 gap_tolerance 下查找工作表中的所有数据表格。"""
         bounds: DataRegion = self._find_true_data_bounds(sheet)  # 获取真实数据边界
-        tables: list[ExcelTable] = []  # 存储已发现的表格
-        visited: set[tuple[int, int]] = set()  # 记录已访问的单元格
+        merged_lookup = self._get_merged_cell_lookup(sheet)
+        return [
+            self._materialize_region(sheet, region, merged_lookup)
+            for region in self._discover_sheet_regions(sheet, bounds, gap_tolerance)
+        ]
+
+    def _discover_sheet_regions(
+        self,
+        sheet: Worksheet,
+        bounds: DataRegion,
+        gap_tolerance: int,
+    ) -> list[ConnectedRegion]:
+        """对当前工作表按 gap_tolerance 洪水填充发现连通数据区域。"""
+        merged_lookup = self._get_merged_cell_lookup(sheet)
+        max_row, max_col = bounds.max_row - 1, bounds.max_col - 1
+
+        def has_content(row: int, col: int) -> bool:
+            """检查指定单元格（0-based索引）是否有内容（有值或属于合并区域）。"""
+            cell = sheet._cells.get((row + 1, col + 1))
+            if cell is not None and cell.value is not None:
+                return True
+            return merged_lookup.contains_merged_cell(row, col)
 
         # 仅遍历已存在且有值的单元格，避免 iter_rows 在稀疏大表上创建大量空单元格。
-        for ri, rj in self._get_non_empty_cell_positions(sheet, bounds):
-            # 跳过已访问的单元格
-            if (ri, rj) in visited:
-                continue
+        return discover_connected_regions(
+            has_content,
+            self._get_non_empty_cell_positions(sheet, bounds),
+            max_row,
+            max_col,
+            gap_tolerance,
+        )
 
-            # 从当前单元格出发，通过洪水填充算法确定所属表格的边界
-            table_bounds, visited_cells = self._find_table_bounds(
-                sheet,
-                ri,
-                rj,
-                bounds.max_row,
-                bounds.max_col,
-                gap_tolerance,
-            )
-            visited.update(visited_cells)  # 将已访问单元格加入全局记录
-            tables.append(table_bounds)
+    def _materialize_region(
+        self,
+        sheet: Worksheet,
+        region: ConnectedRegion,
+        merged_lookup: _MergedCellLookup,
+    ) -> ExcelTable:
+        """把连通区域包围盒物化为紧凑的表格 IR，正确处理合并单元格。
 
-        return tables
+        遍历发现区域的边界框（bbox 内部的空格作为空单元格保留，维持矩形布局），
+        跳过被合并单元格遮蔽的坐标并把跨度挂到合并锚点上。
+        """
+        data: list[ExcelCell] = []
+        for source_row in range(region.row_start, region.row_end + 1):
+            for source_col in range(region.col_start, region.col_end + 1):
+                # 跳过被合并单元格遮蔽的单元格（非左上角）。
+                if merged_lookup.is_hidden_merged_cell(source_row, source_col):
+                    continue
+
+                # 计算合并跨度（默认为 1x1）。
+                row_span, col_span = merged_lookup.get_anchor_span(source_row, source_col)
+
+                data.append(
+                    self._build_excel_cell(
+                        sheet,
+                        source_row - region.row_start,
+                        source_col - region.col_start,
+                        source_row,
+                        source_col,
+                        row_span=row_span,
+                        col_span=col_span,
+                    )
+                )
+
+        return ExcelTable(
+            anchor=(region.col_start, region.row_start),
+            num_rows=region.num_rows,
+            num_cols=region.num_cols,
+            data=data,
+        )
 
     def _get_non_empty_cell_positions(
         self,
@@ -660,139 +583,6 @@ class SpreadsheetProjector:
             min_row = min_col = max_row = max_col = 1
 
         return DataRegion(min_row, max_row, min_col, max_col)
-
-    def _find_table_bounds(
-        self,
-        sheet: Worksheet,
-        start_row: int,
-        start_col: int,
-        max_row: int,
-        max_col: int,
-        gap_tolerance: int,
-    ) -> tuple[ExcelTable, set[tuple[int, int]]]:
-        """使用洪水填充（BFS）策略确定表格边界。
-
-        该方法通过广度优先搜索（BFS）算法识别 Excel 工作表中连续的非空单元格区域，
-        能够准确检测非矩形表格（如 L 形、错位列等），并支持通过间隔容忍度
-        连接相邻但不直接相连的单元格。
-
-        算法分两个阶段执行：
-        1. 洪水填充阶段：使用 BFS 从给定位置出发，找出所有相连的单元格。
-        2. 数据提取阶段：构建矩形边界框并提取单元格数据，正确处理合并单元格。
-
-        参数：
-            sheet: 待分析的 Excel 工作表。
-            start_row: 洪水填充起始行索引（从0开始）。
-            start_col: 洪水填充起始列索引（从0开始）。
-            max_row: 工作表中可考虑的最大行索引（从0开始）。
-            max_col: 工作表中可考虑的最大列索引（从0开始）。
-            gap_tolerance: 允许跨越空白单元格查找邻居的最大间隔。
-
-        返回：
-            一个元组，包含：
-                - ExcelTable：表示检测到的表格对象，含锚点位置、尺寸和单元格数据。
-                - set[tuple[int, int]]：洪水填充期间访问的所有 (行, 列) 元组集合，
-                  用于防止重复扫描。
-
-        说明：
-            该方法遵循 GAP_TOLERANCE 选项，允许在容忍距离内将被空单元格隔开的
-            单元格视为同一表格的一部分。
-        """
-
-        # BFS 队列，存储待处理的 (行, 列) 坐标
-        queue = collections.deque([(start_row, start_col)])
-
-        # 记录当前表格内已访问的单元格（避免重复加入队列）
-        # 调用方维护全局 visited 集合，防止重复启动新表格
-        table_cells: set[tuple[int, int]] = set()
-        table_cells.add((start_row, start_col))
-
-        # 动态记录当前表格的行列边界
-        min_r, max_r = start_row, start_row
-        min_c, max_c = start_col, start_col
-        merged_lookup = self._get_merged_cell_lookup(sheet)
-
-        def has_content(r: int, c: int) -> bool:
-            """检查指定单元格（0-based索引）是否有内容（有值或属于合并区域）。"""
-            if r < 0 or c < 0 or r > max_row or c > max_col:
-                return False
-
-            # 1. 检查单元格直接值
-            cell = sheet._cells.get((r + 1, c + 1))
-            if cell is not None and cell.value is not None:
-                return True
-
-            # 2. 检查是否属于某个合并单元格区域
-            return merged_lookup.contains_merged_cell(r, c)
-
-        # --- 第一阶段：洪水填充（连通性检测）---
-        while queue:
-            curr_r, curr_c = queue.popleft()
-
-            # 动态更新表格边界
-            min_r = min(min_r, curr_r)
-            max_r = max(max_r, curr_r)
-            min_c = min(min_c, curr_c)
-            max_c = max(max_c, curr_c)
-
-            # 四个方向（上、下、左、右）的邻居检测
-            directions = [
-                (0, 1),  # 右
-                (0, -1),  # 左
-                (1, 0),  # 下
-                (-1, 0),  # 上
-            ]
-
-            for dr, dc in directions:
-                # 在容忍距离范围内逐步检查邻居（优先检查最近的）
-                for step in range(1, gap_tolerance + 2):
-                    nr, nc = curr_r + (dr * step), curr_c + (dc * step)
-
-                    if (nr, nc) in table_cells:
-                        break  # 已属于当前表格，不跨越继续查找
-
-                    if has_content(nr, nc):
-                        table_cells.add((nr, nc))
-                        queue.append((nr, nc))
-                        # 在该方向找到连接点，停止扩展间隔
-                        break
-
-        # --- 第二阶段：数据提取（语义网格构建）---
-        data = []
-
-        # 遍历发现区域的边界框（bbox内部的空格作为空单元格保留，维持矩形布局）
-        for ri in range(min_r, max_r + 1):
-            for rj in range(min_c, max_c + 1):
-                # 跳过被合并单元格遮蔽的单元格（非左上角）
-                if merged_lookup.is_hidden_merged_cell(ri, rj):
-                    continue
-
-                # 计算合并跨度（默认为 1x1）
-                row_span, col_span = merged_lookup.get_anchor_span(ri, rj)
-
-                data.append(
-                    self._build_excel_cell(
-                        sheet,
-                        ri - min_r,  # 相对于表格起始行的偏移
-                        rj - min_c,  # 相对于表格起始列的偏移
-                        ri,
-                        rj,
-                        row_span=row_span,
-                        col_span=col_span,
-                    )
-                )
-
-        # 返回给调用方的 visited_cells 严格为包含数据/合并的单元格，
-        # 使主循环不会重复扫描已处理的单元格。
-        return (
-            ExcelTable(
-                anchor=(min_c, min_r),
-                num_rows=max_r + 1 - min_r,
-                num_cols=max_c + 1 - min_c,
-                data=data,
-            ),
-            table_cells,
-        )
 
     def _get_merged_cell_lookup(self, sheet: Worksheet) -> _MergedCellLookup:
         """获取工作表合并单元格缓存，同一轮转换内每个 sheet 只构建一次。"""

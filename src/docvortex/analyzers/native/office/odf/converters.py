@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import re
 from dataclasses import dataclass
 from typing import Any, BinaryIO, Iterator
@@ -14,7 +15,7 @@ from .constants import OdfSuffix, qname
 from .models import InlineNote
 from .package import OdfPackage
 from .styles import OdfStyles
-from .table import OdfTableExpansionBudget, parse_table_grid, split_table_regions, table_grid_to_html
+from .table import OdfTableExpansionBudget, TableGrid, parse_table_grid, split_table_regions, table_grid_to_html
 from .text import (
     OdfBlockParser,
     OdfMasterPageChange,
@@ -26,6 +27,29 @@ from .text import (
 
 _LENGTH_RE = re.compile(r"^\s*(?P<value>[+-]?(?:\d+(?:\.\d*)?|\.\d+))(?P<unit>cm|mm|in|pt|pc|px)?\s*$")
 _LENGTH_TO_PT = {"": 1.0, "pt": 1.0, "pc": 12.0, "in": 72.0, "cm": 72.0 / 2.54, "mm": 72.0 / 25.4, "px": 0.75}
+
+_PARAGRAPH_JOIN_RE = re.compile(r"\s*</p>\s*<p>\s*")
+_BREAK_TAG_RE = re.compile(r"<br\s*/?>")
+_PARAGRAPH_TAG_RE = re.compile(r"</?p>")
+
+
+def _singleton_region_plain_text(region: TableGrid) -> str | None:
+    """把无结构的单格区域还原为可降级的纯文本。
+
+    对齐 Excel 投影的单格降级条件：1x1、无合并跨度、无媒体公式等结构化
+    HTML；仅由段落包装与换行组成的单元格才视为普通文本。
+    """
+    if len(region.rows) != 1 or region.width != 1 or (0, 0) in region.covered:
+        return None
+    cell = region.rows[0][0] if region.rows[0] else None
+    if cell is None or cell.row_span > 1 or cell.col_span > 1:
+        return None
+    normalized = _BREAK_TAG_RE.sub("\n", _PARAGRAPH_JOIN_RE.sub("\n", cell.html))
+    normalized = _PARAGRAPH_TAG_RE.sub("", normalized)
+    if "<" in normalized:
+        return None
+    plain = html.unescape(normalized).strip()
+    return plain or None
 
 
 @dataclass(frozen=True, slots=True)
@@ -319,6 +343,10 @@ def _sheet_blocks(sheet: etree._Element, parser: OdfBlockParser) -> list[dict[st
     grid = parse_table_grid(sheet, parser.render_cell_html, expansion_budget=parser.table_expansion_budget)
     blocks: list[dict[str, Any]] = []
     for region in split_table_regions(grid):
+        plain_text = _singleton_region_plain_text(region)
+        if plain_text is not None:
+            blocks.append({"type": BlockType.TEXT, "content": text_spans(plain_text)})
+            continue
         content = table_grid_to_html(region)
         if content:
             blocks.append({"type": BlockType.TABLE, "content": content})
