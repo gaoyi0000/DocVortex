@@ -70,14 +70,14 @@ from ....schema import (
 )
 
 _STYLE_RESOURCE_NAME = "docvortex.min.css"
-_MATHJAX_URL = "https://cdn.jsdelivr.net/npm/mathjax@4.1.2/tex-chtml.js"
+_MATHJAX_URL = "https://gcore.jsdelivr.net/npm/mathjax@4.1.2/tex-chtml.js"
 _MATHJAX_INTEGRITY = "sha384-zAhQQhdaMeHsMProNntGGg6nOUVcfuF9F22C3d1qJ9NZAVzCplXk1X85D2O5iufn"
-_PRISM_CORE_URL = "https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/prism-core.min.js"
+_PRISM_CORE_URL = "https://gcore.jsdelivr.net/npm/prismjs@1.30.0/components/prism-core.min.js"
 _PRISM_CORE_INTEGRITY = "sha384-zLRFO4dwowZvh8kzutOb5AWhH7f39HeJp+N7PtHF1SQtTBnifRx0AtmvTYs3F4YV"
-_PRISM_AUTOLOADER_URL = "https://cdn.jsdelivr.net/npm/prismjs@1.30.0/plugins/autoloader/prism-autoloader.min.js"
+_PRISM_AUTOLOADER_URL = "https://gcore.jsdelivr.net/npm/prismjs@1.30.0/plugins/autoloader/prism-autoloader.min.js"
 _PRISM_AUTOLOADER_INTEGRITY = "sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q"
-_PRISM_LANGUAGES_PATH = "https://cdn.jsdelivr.net/npm/prismjs@1.30.0/components/"
-_MERMAID_URL = "https://cdn.jsdelivr.net/npm/mermaid@11.16.1/dist/mermaid.min.js"
+_PRISM_LANGUAGES_PATH = "https://gcore.jsdelivr.net/npm/prismjs@1.30.0/components/"
+_MERMAID_URL = "https://gcore.jsdelivr.net/npm/mermaid@11.16.1/dist/mermaid.min.js"
 _MERMAID_INTEGRITY = "sha384-aBQXj4hK6Jm05i7aQAsUV3bLdSUrHX1BGYfMB0166TtWt/RRaw+h0Eelme9OCOvy"
 _MERMAID_MAX_TEXT_SIZE = 50_000
 _MERMAID_FLOWCHART_HEADER_RE = re.compile(
