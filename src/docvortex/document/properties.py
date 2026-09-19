@@ -29,7 +29,7 @@ def property_date(value: object, *, warnings: list[str] | None = None) -> str | 
     if not text:
         return None
     if text.startswith("D:"):
-        match = re.fullmatch(r"D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?(Z|[+-]\d{2}'?\d{2}'?)?", text)
+        match = re.fullmatch(r"D:(\d{4})(\d{2})?(\d{2})?(\d{2})?(\d{2})?(\d{2})?(Z|[+-]\d{2}'?(?:\d{2}'?)?)?", text)
         if match is None:
             if warnings is not None:
                 warnings.append(f"Invalid declared date: {text[:120]}")
@@ -41,7 +41,7 @@ def property_date(value: object, *, warnings: list[str] | None = None) -> str | 
                 text += separator + part
         if zone:
             zone = zone.replace("'", "")
-            text += zone if zone == "Z" else zone[:3] + ":" + zone[3:]
+            text += zone if zone == "Z" else zone[:3] + (":" + zone[3:] if zone[3:] else ":00")
     try:
         if re.fullmatch(r"\d{4}", text):
             date(int(text), 1, 1)

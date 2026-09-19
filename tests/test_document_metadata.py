@@ -156,7 +156,16 @@ def test_rtf_explicit_time_count_and_application() -> None:
 
 @pytest.mark.parametrize(
     "value,expected",
-    [("D:2024", "2024"), ("D:202402", "2024-02"), ("2024-03-04", "2024-03-04"), ("D:202413", None), ("yesterday", None)],
+    [
+        ("D:2024", "2024"),
+        ("D:202402", "2024-02"),
+        ("2024-03-04", "2024-03-04"),
+        ("D:202413", None),
+        ("yesterday", None),
+        ("D:20131014124204-04'", "2013-10-14T12:42:04-04:00"),
+        ("D:20240304050607+08", "2024-03-04T05:06:07+08:00"),
+        ("D:20240304050607+0", None),
+    ],
 )
 def test_dates_never_invent_missing_parts(value: str, expected: str | None) -> None:
     """非法日期保持未知，年和月精度不能补成任意日期。"""
