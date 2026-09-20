@@ -685,7 +685,18 @@ def _reattach_cross_lane_short_tails(
 ) -> None:
     """把误入另一栏带、但完整落在唯一前序栏内的正文短尾迁回原栏。"""
 
+    # 跨栏搬迁的判据可互相满足：把短尾行从 A 迁到 B 后，下一轮它又满足"从 B 迁回 A"的条件，
+    # 而本循环没有收敛保证（无单调势函数、无已访问状态记忆）→ 两栏之间无限往复。
+    # 下面记录"已执行过的搬迁"，一旦同一 (行, 源栏, 目标栏) 迁移重复出现，
+    # 即判定该行处于振荡环中并冻结它（不再参与搬迁），其余合法搬迁不受影响。
+    attempted_moves: set[tuple[int, int, int]] = set()
+    frozen_lines: set[int] = set()
+    guard = 0
+    max_rounds = 2 * max(1, sum(len(lane.lines) for lane in lanes))
     while True:
+        guard += 1
+        if guard > max_rounds:
+            return
         moves: list[
             tuple[
                 float,
@@ -696,6 +707,8 @@ def _reattach_cross_lane_short_tails(
         ] = []
         for source_lane in lanes:
             for candidate in source_lane.lines:
+                if id(candidate) in frozen_lines:
+                    continue
                 candidate_line, candidate_bbox = candidate
                 if candidate_line.semantic_type is not None:
                     continue
@@ -751,6 +764,12 @@ def _reattach_cross_lane_short_tails(
         )
         if candidate not in source_lane.lines:
             continue
+        move_key = (candidate[0].source_index, id(source_lane), id(target_lane))
+        if move_key in attempted_moves:
+            # 同一迁移重复出现 ⇒ 该行正在 A→B→A 振荡，冻结它并让其余搬迁继续
+            frozen_lines.add(id(candidate))
+            continue
+        attempted_moves.add(move_key)
         source_lane.lines.remove(candidate)
         target_lane.lines.append(candidate)
         target_lane.lines.sort(
